@@ -11,12 +11,13 @@ class NetworkManager {
   factory NetworkManager(Infospect infospect) {
     final dio = Dio();
 
+    dio.interceptors.add(infospect.dioInterceptor);
+
+    //
     dio.interceptors.add(DioCacheManager(CacheConfig(
       defaultMaxAge: Duration(days: 10),
       maxMemoryCacheCount: 3,
     )).interceptor);
-
-    dio.interceptors.add(infospect.dioInterceptor);
 
     return NetworkManager._(dio);
   }

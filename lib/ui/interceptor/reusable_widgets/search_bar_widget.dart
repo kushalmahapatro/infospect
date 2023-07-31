@@ -11,6 +11,7 @@ class SearchBarWidget extends StatelessWidget {
       height: 36,
       child: SearchBar(
         shadowColor: MaterialStatePropertyAll(Colors.transparent),
+        textStyle: MaterialStatePropertyAll(TextStyle(height: 1)),
         side:
             MaterialStatePropertyAll(BorderSide(color: Colors.black, width: 2)),
         leading: Icon(

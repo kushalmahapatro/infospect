@@ -9,9 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:http/http.dart';
 import 'package:infospect/logger/infospect_logger.dart';
 import 'package:infospect/logger/models/infospect_log.dart';
 import 'package:infospect/network/interceptors/infospect_dio_interceptor.dart';
+import 'package:infospect/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/network/models/infospect_network_call.dart';
 import 'package:infospect/network/models/infospect_network_error.dart';
 import 'package:infospect/network/models/infospect_network_response.dart';
@@ -224,6 +226,10 @@ class Infospect {
   }
 
   InfospectDioInterceptor get dioInterceptor => InfospectDioInterceptor(this);
+
+  InfospectHttpClientInterceptor httpClientInterceptor(
+          {required Client client}) =>
+      InfospectHttpClientInterceptor(client: client, infospect: this);
 
   /// Dispose subjects and subscriptions
   void dispose() {

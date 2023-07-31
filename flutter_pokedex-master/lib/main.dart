@@ -14,7 +14,7 @@ import 'package:pokedex/states/theme/theme_cubit.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  var infospect = Infospect(navigatorKey: AppNavigator.navigatorKey);
+  final infospect = Infospect(navigatorKey: AppNavigator.navigatorKey);
 
   await LocalDataSource.initialize();
 

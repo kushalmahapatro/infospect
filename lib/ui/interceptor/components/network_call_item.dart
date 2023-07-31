@@ -96,7 +96,7 @@ class _EndpointWidget extends StatelessWidget {
         children: [
           TextSpan(
               text: '${networkCall.method}:',
-              style: TextStyle(color: color, fontSize: 12)),
+              style: const TextStyle(color: Colors.black, fontSize: 12)),
           const WidgetSpan(child: SizedBox(width: 8)),
           TextSpan(text: networkCall.endpoint),
         ],

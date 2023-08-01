@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:dio_http_cache/dio_http_cache.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:pokedex/core/utils.dart';
 
@@ -14,10 +13,10 @@ class NetworkManager {
     dio.interceptors.add(infospect.dioInterceptor);
 
     //
-    dio.interceptors.add(DioCacheManager(CacheConfig(
-      defaultMaxAge: Duration(days: 10),
-      maxMemoryCacheCount: 3,
-    )).interceptor);
+    // dio.interceptors.add(DioCacheManager(CacheConfig(
+    //   defaultMaxAge: Duration(days: 10),
+    //   maxMemoryCacheCount: 3,
+    // )).interceptor);
 
     return NetworkManager._(dio);
   }

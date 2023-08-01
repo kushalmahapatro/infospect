@@ -1,11 +1,13 @@
 import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/network/models/infospect_network_call.dart';
 import 'package:infospect/ui/interceptor_details/bloc/interceptor_details_bloc.dart';
-import 'package:infospect/ui/interceptor_details/components/interceptor_details_overview.dart';
 import 'package:infospect/ui/interceptor_details/components/interceptor_details_request.dart';
+import 'package:infospect/ui/interceptor_details/components/interceptor_details_response.dart';
+import 'package:share_plus/share_plus.dart';
 
 class InterceptorDetailsScreen extends StatelessWidget {
   final Infospect infospect;
@@ -15,10 +17,16 @@ class InterceptorDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.yellow[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.yellow[50],
         elevation: 0,
+        backgroundColor: Colors.white,
+        title: Text(
+          call.server,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.black),
+        ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: BlocSelector<InterceptorDetailsBloc, InterceptorDetailsState, int>(
@@ -27,21 +35,22 @@ class InterceptorDetailsScreen extends StatelessWidget {
           return IndexedStack(
             index: index,
             children: [
-              InterceptorDetailsOverview(call),
               InterceptorDetailsRequest(call),
-              Center(child: Text("Response")),
+              InterceptorDetailsResponse(call),
               Center(child: Text("Error")),
             ],
           );
         },
       ),
-      bottomNavigationBar: const BottomNavBarWidget(),
+      bottomNavigationBar: BottomNavBarWidget(call),
     );
   }
 }
 
 class BottomNavBarWidget extends StatelessWidget {
-  const BottomNavBarWidget({
+  final InfospectNetworkCall call;
+  const BottomNavBarWidget(
+    this.call, {
     super.key,
   });
 
@@ -54,21 +63,26 @@ class BottomNavBarWidget extends StatelessWidget {
           key: const Key("BottomBar"),
           barShadow: const [BoxShadow(blurRadius: 0)],
           selectedTab: index,
-          barBackgroundColor: Colors.yellow[50],
           inactiveIconColor: Colors.black,
-          textColor: Colors.yellow[50],
           tabs: [
-            TabData(iconData: Icons.info_outline, title: "Overview"),
             TabData(iconData: Icons.arrow_upward, title: "Request"),
             TabData(iconData: Icons.arrow_downward, title: "Response"),
             TabData(iconData: Icons.warning, title: "Error"),
+            TabData(iconData: FontAwesomeIcons.share, title: "Share"),
           ],
-          onTabChangedListener: (position, headline6, backgroundColor) {
-            context.read<InterceptorDetailsBloc>().add(
-                  DetailsTabChanged(
-                    selectedTab: position,
-                  ),
-                );
+          onTabChangedListener: (position, headline6, backgroundColor) async {
+            if (position == 3) {
+              Share.share(
+                await call.sharableData,
+                subject: 'Request Details',
+              );
+            } else {
+              context.read<InterceptorDetailsBloc>().add(
+                    DetailsTabChanged(
+                      selectedTab: position,
+                    ),
+                  );
+            }
           },
         );
       },

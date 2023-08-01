@@ -22,9 +22,11 @@ class _MainAppState extends State<MainApp> {
 
   @override
   void initState() {
-    _dio = Dio(BaseOptions(
-      followRedirects: false,
-    ));
+    _dio = Dio(
+      BaseOptions(
+        followRedirects: false,
+      ),
+    );
     _dio.interceptors.add(widget.infospect.dioInterceptor);
     super.initState();
   }
@@ -38,7 +40,13 @@ class _MainAppState extends State<MainApp> {
         home: Scaffold(
           body: Center(
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                _dio.get(
+                  'https://official-joke-api.appspot.com/random_joke',
+                  options: Options(headers: {'content-type': 'json'}),
+                  queryParameters: {'id': 1},
+                );
+              },
               child: const Text('Example App'),
             ),
           ),

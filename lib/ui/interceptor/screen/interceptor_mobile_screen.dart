@@ -17,10 +17,10 @@ class InterceptorMobileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.yellow[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.yellow[50],
         elevation: 0,
+        backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         title: const SearchBarWidget(),
         actions: const [AppBarActionWidget()],
@@ -32,7 +32,9 @@ class InterceptorMobileScreen extends StatelessWidget {
             index: index,
             children: [
               NetworkCallsWidget(infospect),
-              const Center(child: Text("Logs")),
+              const Center(
+                child: Text("Logs"),
+              ),
             ],
           );
         },
@@ -56,9 +58,7 @@ class BottomNavBarWidget extends StatelessWidget {
           key: const Key("BottomBar"),
           barShadow: const [BoxShadow(blurRadius: 0)],
           selectedTab: index,
-          barBackgroundColor: Colors.yellow[50],
           inactiveIconColor: Colors.black,
-          textColor: Colors.yellow[50],
           tabs: [
             TabData(iconData: FontAwesomeIcons.globe, title: "Network calls"),
             TabData(iconData: FontAwesomeIcons.list, title: "Logs")

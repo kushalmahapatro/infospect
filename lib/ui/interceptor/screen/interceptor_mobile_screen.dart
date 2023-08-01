@@ -2,13 +2,17 @@ import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/network/models/infospect_network_call.dart';
 import 'package:infospect/ui/interceptor/bloc/bloc/interceptor_bloc.dart';
 import 'package:infospect/ui/interceptor/components/network_call_item.dart';
 import 'package:infospect/ui/interceptor/reusable_widgets/search_bar_widget.dart';
+import 'package:infospect/ui/interceptor_details/bloc/interceptor_details_bloc.dart';
+import 'package:infospect/ui/interceptor_details/screen/interceptor_details_screen.dart';
 
 class InterceptorMobileScreen extends StatelessWidget {
-  const InterceptorMobileScreen({super.key});
+  final Infospect infospect;
+  const InterceptorMobileScreen(this.infospect, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +30,9 @@ class InterceptorMobileScreen extends StatelessWidget {
         builder: (context, index) {
           return IndexedStack(
             index: index,
-            children: const [
-              NetworkCallsWidget(),
-              Center(child: Text("Logs")),
+            children: [
+              NetworkCallsWidget(infospect),
+              const Center(child: Text("Logs")),
             ],
           );
         },
@@ -93,13 +97,14 @@ class AppBarActionWidget extends StatelessWidget {
 }
 
 class NetworkCallsWidget extends StatelessWidget {
-  const NetworkCallsWidget({super.key});
+  final Infospect infospect;
+  const NetworkCallsWidget(this.infospect, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocSelector<InterceptorBloc, InterceptorState,
         List<InfospectNetworkCall>>(
-      selector: (state) => state.networkCalls,
+      selector: (state) => state.networkCalls.reversed.toList(),
       builder: (context, calls) {
         if (calls.isEmpty) {
           return const Center(child: Text("No network calls"));
@@ -110,7 +115,20 @@ class NetworkCallsWidget extends StatelessWidget {
           itemBuilder: (context, index) {
             return NetworkCallItem.mobile(
               networkCall: calls[index],
-              itemClicked: (call) {},
+              itemClicked: (InfospectNetworkCall call) {
+                Navigator.push<void>(
+                  infospect.context!,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => InterceptorDetailsBloc(),
+                      child: InterceptorDetailsScreen(
+                        infospect,
+                        call,
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

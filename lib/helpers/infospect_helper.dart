@@ -87,7 +87,7 @@ class Infospect {
             infospect: this,
             infospectLogger: infospectLogger,
           ),
-          child: const InfospectInterceptorScreen(),
+          child: InfospectInterceptorScreen(this),
         ),
       );
 

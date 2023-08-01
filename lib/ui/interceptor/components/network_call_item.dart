@@ -164,8 +164,8 @@ class _StatsWidget extends StatelessWidget {
         ),
         Flexible(
           child: Text(
-              "${(networkCall.request?.size ?? 0).toReadableBytes} / "
-              "${(networkCall.response?.size ?? 0).toReadableBytes}",
+              "Sent: ${(networkCall.request?.size ?? 0).toReadableBytes} / "
+              "Received: ${(networkCall.response?.size ?? 0).toReadableBytes}",
               style: style),
         )
       ],

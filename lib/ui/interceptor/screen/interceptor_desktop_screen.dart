@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:infospect/helpers/infospect_helper.dart';
 
 class InterceptorDesktopScreen extends StatelessWidget {
-  const InterceptorDesktopScreen({super.key});
+  final Infospect infospect;
+  const InterceptorDesktopScreen(this.infospect, {super.key});
 
   @override
   Widget build(BuildContext context) {

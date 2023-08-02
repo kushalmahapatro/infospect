@@ -7,8 +7,6 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// ignore: depend_on_referenced_packages
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart';
 import 'package:infospect/logger/infospect_logger.dart';
 import 'package:infospect/logger/models/infospect_log.dart';
@@ -17,8 +15,8 @@ import 'package:infospect/network/interceptors/infospect_http_client_interceptor
 import 'package:infospect/network/models/infospect_network_call.dart';
 import 'package:infospect/network/models/infospect_network_error.dart';
 import 'package:infospect/network/models/infospect_network_response.dart';
-import 'package:infospect/ui/interceptor/bloc/bloc/interceptor_bloc.dart';
-import 'package:infospect/ui/interceptor/screen/infospect_interceptor_screen.dart';
+import 'package:infospect/network/ui/interceptor_list/bloc/bloc/interceptor_bloc.dart';
+import 'package:infospect/network/ui/interceptor_list/screen/infospect_interceptor_screen.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -210,10 +208,7 @@ class Infospect {
       runApp(
         MaterialApp(
           debugShowCheckedModeBanner: false,
-          localizationsDelegates: const <LocalizationsDelegate<Object>>[
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-          ],
+          localizationsDelegates: const <LocalizationsDelegate<Object>>[],
           supportedLocales: const <Locale>[
             Locale('en', 'US'), // English
           ],

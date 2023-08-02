@@ -4,11 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/network/models/infospect_network_call.dart';
-import 'package:infospect/ui/interceptor/bloc/bloc/interceptor_bloc.dart';
-import 'package:infospect/ui/interceptor/components/network_call_item.dart';
-import 'package:infospect/ui/interceptor/reusable_widgets/search_bar_widget.dart';
-import 'package:infospect/ui/interceptor_details/bloc/interceptor_details_bloc.dart';
-import 'package:infospect/ui/interceptor_details/screen/interceptor_details_screen.dart';
+import 'package:infospect/network/ui/interceptor_details/bloc/interceptor_details_bloc.dart';
+import 'package:infospect/network/ui/interceptor_details/screen/interceptor_details_screen.dart';
+import 'package:infospect/network/ui/interceptor_list/bloc/bloc/interceptor_bloc.dart';
+import 'package:infospect/network/ui/interceptor_list/components/network_call_item.dart';
+import 'package:infospect/network/ui/interceptor_list/reusable_widgets/search_bar_widget.dart';
 
 class InterceptorMobileScreen extends StatelessWidget {
   final Infospect infospect;

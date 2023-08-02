@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_multi_window
-  flutter_localization
   share_plus
   url_launcher_windows
 )

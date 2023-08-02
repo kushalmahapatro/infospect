@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/ui/interceptor/screen/interceptor_desktop_screen.dart';
+import 'package:infospect/network/ui/interceptor_list/screen/interceptor_desktop_screen.dart';
 
 import 'interceptor_mobile_screen.dart';
 

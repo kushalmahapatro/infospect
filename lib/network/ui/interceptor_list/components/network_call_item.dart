@@ -1,9 +1,8 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:infospect/network/models/infospect_network_call.dart';
-import 'package:infospect/network/models/infospect_network_response.dart';
-import 'package:infospect/ui/common_widgets/conditional_widget.dart';
+import 'package:infospect/utils/common_widgets/conditional_widget.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
+import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
 
 part 'desktop_network_call_item.dart';
@@ -126,21 +125,11 @@ class _ResponseStatusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String getStatus(InfospectNetworkResponse response) {
-      if (response.status == -1) {
-        return "ERR";
-      } else if (response.status == 0) {
-        return "???";
-      } else {
-        return "${response.status} OK";
-      }
-    }
-
     return ConditionalWidget(
       condition: networkCall.loading,
       ifTrue: const SizedBox.shrink(),
       ifFalse: Text(
-        ' • ${getStatus(networkCall.response!)}',
+        ' • ${networkCall.response!.statusString}',
         style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,

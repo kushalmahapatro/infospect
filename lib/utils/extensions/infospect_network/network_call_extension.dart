@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:infospect/network/models/infospect_network_call.dart';
-import 'package:infospect/network/ui/interceptor_details/utils/interceptor_details_helper.dart';
+import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/details/utils/interceptor_details_helper.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:package_info_plus/package_info_plus.dart';

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:infospect/features/logger/models/infospect_log.dart';
 import 'package:infospect/infospect.dart';
 
 void main(List<String> args) {
@@ -46,6 +49,19 @@ class _MainAppState extends State<MainApp> {
                   options: Options(headers: {'content-type': 'json'}),
                   queryParameters: {'id': 1},
                 );
+                Timer.periodic(const Duration(seconds: 2), (timer) {
+                  if (timer.tick >= 30) {
+                    timer.cancel();
+                  }
+                  widget.infospect.addLog(
+                    InfospectLog(
+                      message: 'test log ${timer.tick}',
+                      level: DiagnosticLevel.debug,
+                      error: 'Error',
+                      stackTrace: StackTrace.current,
+                    ),
+                  );
+                });
               },
               child: const Text('Example App'),
             ),

@@ -8,15 +8,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart';
-import 'package:infospect/logger/infospect_logger.dart';
-import 'package:infospect/logger/models/infospect_log.dart';
-import 'package:infospect/network/interceptors/infospect_dio_interceptor.dart';
-import 'package:infospect/network/interceptors/infospect_http_client_interceptor.dart';
-import 'package:infospect/network/models/infospect_network_call.dart';
-import 'package:infospect/network/models/infospect_network_error.dart';
-import 'package:infospect/network/models/infospect_network_response.dart';
-import 'package:infospect/network/ui/interceptor_list/bloc/bloc/interceptor_bloc.dart';
-import 'package:infospect/network/ui/interceptor_list/screen/infospect_interceptor_screen.dart';
+import 'package:infospect/features/launch/bloc/launch_bloc.dart';
+import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
+import 'package:infospect/features/logger/infospect_logger.dart';
+import 'package:infospect/features/logger/models/infospect_log.dart';
+import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
+import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
+import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/models/infospect_network_error.dart';
+import 'package:infospect/features/network/models/infospect_network_response.dart';
+import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -80,12 +82,21 @@ class Infospect {
   }
 
   MaterialPageRoute get interceptorScreen => MaterialPageRoute<dynamic>(
-        builder: (context) => BlocProvider(
-          create: (context) => InterceptorBloc(
-            infospect: this,
-            infospectLogger: infospectLogger,
-          ),
-          child: InfospectInterceptorScreen(this),
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (context) => LaunchBloc(),
+            ),
+            BlocProvider(
+              create: (context) => NetworksListBloc(infospect: this),
+            ),
+            BlocProvider(
+              create: (context) => LogsListBloc(
+                infospectLogger: infospectLogger,
+              ),
+            ),
+          ],
+          child: InfospectLaunchScreen(this),
         ),
       );
 
@@ -190,7 +201,7 @@ class Infospect {
       callsSubject.value.firstWhereOrNull((call) => call.id == requestId);
 
   void addLog(InfospectLog log) {
-    infospectLogger.logs.add(log);
+    infospectLogger.add(log);
     sendLogs();
   }
 

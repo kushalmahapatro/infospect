@@ -1,4 +1,4 @@
-import 'package:infospect/network/models/infospect_network_response.dart';
+import 'package:infospect/features/network/models/infospect_network_response.dart';
 
 extension NetworkResponseExtension on InfospectNetworkResponse {
   String get statusString {

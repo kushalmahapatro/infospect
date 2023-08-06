@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -49,19 +50,23 @@ class _MainAppState extends State<MainApp> {
                   options: Options(headers: {'content-type': 'json'}),
                   queryParameters: {'id': 1},
                 );
-                Timer.periodic(const Duration(seconds: 2), (timer) {
-                  if (timer.tick >= 30) {
-                    timer.cancel();
-                  }
-                  widget.infospect.addLog(
-                    InfospectLog(
-                      message: 'test log ${timer.tick}',
-                      level: DiagnosticLevel.debug,
-                      error: 'Error',
-                      stackTrace: StackTrace.current,
-                    ),
-                  );
-                });
+                Timer.periodic(
+                  const Duration(seconds: 2),
+                  (timer) {
+                    if (timer.tick >= 30) {
+                      timer.cancel();
+                    }
+                    widget.infospect.addLog(
+                      InfospectLog(
+                        message: 'test log ${timer.tick}',
+                        level: DiagnosticLevel.values[
+                            Random().nextInt(DiagnosticLevel.values.length)],
+                        error: _getError(timer.tick),
+                        stackTrace: StackTrace.current,
+                      ),
+                    );
+                  },
+                );
               },
               child: const Text('Example App'),
             ),
@@ -69,5 +74,15 @@ class _MainAppState extends State<MainApp> {
         ),
       ),
     );
+  }
+
+  _getError(int tick) {
+    String error = '';
+    int i = 0;
+    while (i < tick) {
+      i++;
+      error += 'Error ';
+    }
+    return error;
   }
 }

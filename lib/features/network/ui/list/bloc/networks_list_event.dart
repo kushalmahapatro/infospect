@@ -12,3 +12,9 @@ final class CallsChanged extends NetworksListEvent {
 
   const CallsChanged({required this.calls});
 }
+
+final class NetworkLogsSearched extends NetworksListEvent {
+  final String text;
+
+  const NetworkLogsSearched({required this.text});
+}

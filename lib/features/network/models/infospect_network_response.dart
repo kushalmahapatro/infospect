@@ -1,7 +1,10 @@
+// ignore_for_file: must_be_immutable
+
+import 'package:equatable/equatable.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network response data for the Infospect application.
-class InfospectNetworkResponse {
+class InfospectNetworkResponse extends Equatable {
   int? status; // The Network status code of the response.
   int size = 0; // The size of the response data in bytes.
   DateTime time =
@@ -60,4 +63,7 @@ class InfospectNetworkResponse {
       headers: (map['headers'] as Map?)?.getMap<String>(),
     );
   }
+
+  @override
+  List<Object?> get props => [status, size, time, body, headers];
 }

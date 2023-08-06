@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/logger/models/infospect_log.dart';
 import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/logger/ui/logs_list/components/log_item_widget.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
 class LogsListScreen extends StatelessWidget {
@@ -11,15 +11,14 @@ class LogsListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<LogsListBloc, LogsListState, List<InfospectLog>>(
-      selector: (state) => state.logs,
+    return BlocBuilder<LogsListBloc, LogsListState>(
       builder: (context, state) {
         return ListView.builder(
-          itemCount: state.length,
+          itemCount: state.filteredLogs.length,
           itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(state[index].message),
-              subtitle: Text(state[index].error),
+            return LogItemWidget(
+              log: state.filteredLogs[index],
+              searchedText: state.searchedText,
             );
           },
         );

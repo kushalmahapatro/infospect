@@ -33,12 +33,7 @@ class InfospectLog {
     required this.message,
     this.error,
     this.stackTrace,
-  })  : assert(
-          level != DiagnosticLevel.off,
-          '`DiagnosticLevel.off` is a "[special] level indicating that no '
-          'diagnostics should be shown" and should not be used as a value.',
-        ),
-        assert(timestamp == null || !timestamp.isUtc),
+  })  : assert(timestamp == null || !timestamp.isUtc),
         timestamp = timestamp ?? DateTime.now();
 
   /// Generates a hash code for the `InfospectLog` object.

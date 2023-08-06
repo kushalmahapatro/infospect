@@ -9,3 +9,9 @@ final class LogsChanged extends LogsListEvent {
 
   const LogsChanged({required this.logs});
 }
+
+final class TextSearched extends LogsListEvent {
+  final String text;
+
+  const TextSearched({required this.text});
+}

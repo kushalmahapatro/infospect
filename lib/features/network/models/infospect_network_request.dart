@@ -1,10 +1,13 @@
+// ignore_for_file: must_be_immutable
+
 import 'dart:io';
 
+import 'package:equatable/equatable.dart';
 import 'package:infospect/features/network/models/infospect_form_data.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network request data for the Infospect application.
-class InfospectNetworkRequest {
+class InfospectNetworkRequest extends Equatable {
   int size = 0; // The size of the request data in bytes.
 
   DateTime time = DateTime.now(); // The timestamp when the request was made.
@@ -121,4 +124,16 @@ class InfospectNetworkRequest {
               : null,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        size,
+        time,
+        headers,
+        body,
+        contentType,
+        cookies,
+        formDataFields,
+        formDataFiles
+      ];
 }

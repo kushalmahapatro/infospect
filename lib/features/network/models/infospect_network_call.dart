@@ -1,9 +1,10 @@
+import 'package:equatable/equatable.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_request.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 
 /// Represents an Network call data for the Infospect application.
-class InfospectNetworkCall {
+class InfospectNetworkCall extends Equatable {
   // The unique identifier for the Network call.
   final int id;
   // The timestamp when the Network call was created.
@@ -172,4 +173,21 @@ class InfospectNetworkCall {
 
     return call;
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        createdTime,
+        client,
+        loading,
+        secure,
+        method,
+        endpoint,
+        server,
+        uri,
+        duration,
+        request,
+        response,
+        error
+      ];
 }

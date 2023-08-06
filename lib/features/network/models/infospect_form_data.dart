@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 /// Represents a file attachment for the Infospect application.
-class InfospectFormDataFile {
+class InfospectFormDataFile extends Equatable {
   final String? fileName; // The name of the file.
   final String contentType; // The content type (MIME type) of the file.
   final int length; // The length (size) of the file in bytes.
@@ -10,7 +12,7 @@ class InfospectFormDataFile {
   /// - [fileName]: The name of the file (optional). Can be null if the file is not available or has no name.
   /// - [contentType]: The content type (MIME type) of the file.
   /// - [length]: The length (size) of the file in bytes.
-  InfospectFormDataFile(this.fileName, this.contentType, this.length);
+  const InfospectFormDataFile(this.fileName, this.contentType, this.length);
 
   /// Converts the `InfospectFormDataFile` object into a Map representation.
   ///
@@ -39,15 +41,18 @@ class InfospectFormDataFile {
       map['length'] as int,
     );
   }
+
+  @override
+  List<Object?> get props => [fileName, contentType, length];
 }
 
 /// Represents a data field for the Infospect application.
-class InfospectFormDataField {
+class InfospectFormDataField extends Equatable {
   final String name; // The name of the data field.
   final String value; // The value of the data field.
 
   /// Creates an instance of the `InfospectFormDataField` class with the provided [name] and [value].
-  InfospectFormDataField(this.name, this.value);
+  const InfospectFormDataField(this.name, this.value);
 
   /// Converts the `InfospectFormDataField` object into a Map representation.
   ///
@@ -73,4 +78,7 @@ class InfospectFormDataField {
       map['value'] as String,
     );
   }
+
+  @override
+  List<Object?> get props => [name, value];
 }

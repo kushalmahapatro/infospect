@@ -13,19 +13,18 @@ class NetworksListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<NetworksListBloc, NetworksListState,
-        List<InfospectNetworkCall>>(
-      selector: (state) => state.calls.reversed.toList(),
-      builder: (context, calls) {
-        if (calls.isEmpty) {
+    return BlocBuilder<NetworksListBloc, NetworksListState>(
+      builder: (context, state) {
+        if (state.filteredCalls.isEmpty) {
           return const Center(child: Text("No network calls"));
         }
 
         return ListView.builder(
-          itemCount: calls.length,
+          itemCount: state.filteredCalls.length,
           itemBuilder: (context, index) {
             return NetworkCallItem.mobile(
-              networkCall: calls[index],
+              networkCall: state.filteredCalls[index],
+              searchedText: state.searchedText,
               itemClicked: (InfospectNetworkCall call) {
                 Navigator.push<void>(
                   infospect.context!,

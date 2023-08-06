@@ -16,17 +16,52 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
         super(const NetworksListState()) {
     on<CallsChanged>(_onCallsChanged);
 
+    on<NetworkLogsSearched>(_onNetworkLogsSearched);
+
     _onStarted();
   }
 
   FutureOr<void> _onCallsChanged(
-      CallsChanged event, Emitter<NetworksListState> emit) {
-    emit.forEach(
+      CallsChanged event, Emitter<NetworksListState> emit) async {
+    await emit.forEach(
       _infospect.callsSubject,
-      onData: (value) => state.copyWith(calls: value),
+      onData: (value) {
+        final searched = state.searchedText.toLowerCase();
+
+        final list = searched.isNotEmpty
+            ? value.reversed
+                .where((element) =>
+                    element.uri.toLowerCase().contains(state.searchedText))
+                .toList()
+            : value.reversed.toList();
+
+        return state.copyWith(
+          filteredCalls: List.from(list),
+          calls: value.reversed.toList(),
+        );
+      },
     );
   }
 
+  FutureOr<void> _onNetworkLogsSearched(
+      NetworkLogsSearched event, Emitter<NetworksListState> emit) async {
+    emit(state.copyWith(searchedText: event.text));
+
+    final searched = state.searchedText.toLowerCase();
+    if (searched.isEmpty) {
+      emit(state.copyWith(filteredCalls: state.calls));
+      return;
+    }
+
+    final list = state.calls
+        .where(
+            (element) => element.uri.toLowerCase().contains(state.searchedText))
+        .toList();
+
+    emit(state.copyWith(filteredCalls: List.from(list)));
+  }
+
+  /// initial call
   void _onStarted() {
     add(CallsChanged(calls: _infospect.callsSubject.value));
   }

@@ -5,6 +5,7 @@ import 'package:infospect/features/network/ui/list/components/expansion_widget.d
 import 'package:infospect/features/network/ui/list/components/trailing_widget.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
+import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
 
 class InterceptorDetailsRequest extends StatelessWidget {
   final InfospectNetworkCall call;
@@ -33,7 +34,9 @@ class InterceptorDetailsRequest extends StatelessWidget {
             DetailsRowWidget(
               "Time:",
               'Start : ${call.request!.time}',
-              other: 'Finish : ${call.response!.time.toString()}',
+              other: call.response != null
+                  ? 'Finish : ${call.response!.time.toString()}'
+                  : '',
             ),
             DetailsRowWidget("Method: ", call.method),
             DetailsRowWidget(
@@ -91,13 +94,13 @@ class InterceptorDetailsRequest extends StatelessWidget {
 
         /// Body
         if (call.request?.body != null &&
-            (call.request?.body ?? '').toString().isNotEmpty) ...[
+            (call.request?.bodyMap ?? {}).isNotEmpty) ...[
           ExpansionWidget.map(
             title: 'Body',
             trailing: TrailingWidget(
               text: 'View Body',
               infospect: infospect,
-              data: call.request?.body,
+              data: call.request?.bodyMap ?? {},
               beautificationRequired: true,
             ),
             map: {'': call.request?.body?.toString() ?? ''},
@@ -111,7 +114,9 @@ class InterceptorDetailsRequest extends StatelessWidget {
             DetailsRowWidget(
               "Data transmitted",
               "Sent: ${call.request!.size.toReadableBytes}",
-              other: 'Received: ${call.response!.size.toReadableBytes}',
+              other: call.response != null
+                  ? 'Received: ${call.response!.size.toReadableBytes}'
+                  : '',
             ),
             DetailsRowWidget(
               "Client:",

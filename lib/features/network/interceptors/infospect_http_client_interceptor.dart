@@ -22,20 +22,19 @@ class InfospectHttpClientInterceptor extends BaseClient {
     StreamedResponse? response;
     List<int>? responseBytes;
     try {
-      final InfospectNetworkCall httpCall =
-          InfospectNetworkCall(request.hashCode);
-      final InfospectNetworkRequest httpRequest = InfospectNetworkRequest();
-      final InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
-      final InfospectNetworkError httpError = InfospectNetworkError();
+      InfospectNetworkCall httpCall = InfospectNetworkCall(request.hashCode);
+      InfospectNetworkRequest httpRequest = InfospectNetworkRequest();
+      dynamic requestBody = '';
+      int requestSize = 0;
+      final List<InfospectFormDataFile> files = [];
+      final List<InfospectFormDataField> fields = [];
 
       if (request is Request && request.body.isNotEmpty) {
-        httpRequest.body = request.body;
-        httpRequest.size = request.bodyBytes.length;
+        requestBody = request.body;
+        requestSize = request.bodyBytes.length;
       }
 
       if (request is MultipartRequest) {
-        final List<InfospectFormDataFile> files = [];
-        final List<InfospectFormDataField> fields = [];
         request.fields.forEach((key, value) {
           fields.add(InfospectFormDataField(key, value));
         });
@@ -49,50 +48,57 @@ class InfospectHttpClientInterceptor extends BaseClient {
             ),
           );
         }
-        httpRequest.formDataFields = fields;
-        httpRequest.formDataFiles = files;
       } else if (request is Request) {
         try {
           if (request.body.isNotEmpty) {
-            httpRequest.body = request.body;
+            requestBody = request.body;
           }
         } catch (e) {
           infospect.addLog(InfospectLog(message: 'Error in request.body'));
         }
-        httpRequest.size = request.bodyBytes.length;
+        requestSize = request.bodyBytes.length;
       }
 
-      httpRequest.headers = request.headers;
-      httpRequest.time = DateTime.now();
-      httpRequest.contentType = request.headers['content-type'];
-      httpRequest.queryParameters = request.url.queryParameters;
+      httpRequest = httpRequest.copyWith(
+        body: requestBody,
+        size: requestSize,
+        formDataFields: fields,
+        formDataFiles: files,
+        headers: request.headers,
+        contentType: request.headers['content-type'],
+        queryParameters: request.url.queryParameters,
+      );
 
-      httpCall.request = httpRequest;
-      httpCall.method = request.method;
-      httpCall.endpoint = request.url.path;
-      httpCall.loading = true;
-      httpCall.client = client.toString();
-      httpCall.server = request.url.origin;
-      if (request.url.isScheme('https')) {
-        httpCall.secure = true;
-      }
+      infospect.addCall(
+        httpCall.copyWith(
+          request: httpRequest,
+          method: request.method,
+          endpoint: request.url.path,
+          loading: true,
+          client: client.toString(),
+          server: request.url.origin,
+          uri: request.url.toString(),
+          secure: request.url.isScheme('https'),
+        ),
+      );
       response = await client.send(request).onError((e, st) async {
-        httpError.error = e;
-        httpError.stackTrace = st;
-        httpResponse.time = DateTime.now();
-        httpCall.setResponse(httpResponse);
-        httpCall.error = httpError;
-        httpCall.loading = false;
-        httpCall.duration =
-            httpResponse.time.difference(httpRequest.time).inMilliseconds;
+        InfospectNetworkResponse httpResponse =
+            InfospectNetworkResponse(status: -1);
 
-        infospect.addHttpCall(httpCall);
+        infospect.addResponse(httpResponse, request.hashCode);
+        infospect.addError(
+            InfospectNetworkError(error: e, stackTrace: st), request.hashCode);
+
         return StreamedResponse(ByteStream.fromBytes([]), 500);
       });
+      InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
+
       if (request is Request || request is MultipartRequest) {
+        dynamic responseBody = '';
+
         responseBytes = await response.stream.toBytes();
         try {
-          httpResponse.body = utf8.decode(responseBytes);
+          responseBody = utf8.decode(responseBytes);
         } catch (e, st) {
           infospect.addLog(
             InfospectLog(
@@ -103,16 +109,16 @@ class InfospectHttpClientInterceptor extends BaseClient {
             ),
           );
         }
-        httpResponse.size = responseBytes.length;
-        httpResponse.headers = response.headers;
-        httpResponse.status = response.statusCode;
-        httpResponse.time = DateTime.now();
-        httpCall.setResponse(httpResponse);
-        httpCall.loading = false;
-        httpCall.duration =
-            httpResponse.time.difference(httpRequest.time).inMilliseconds;
 
-        infospect.addHttpCall(httpCall);
+        infospect.addResponse(
+          httpResponse.copyWith(
+            size: responseBytes.length,
+            headers: response.headers,
+            status: response.statusCode,
+            body: responseBody,
+          ),
+          request.hashCode,
+        );
 
         return StreamedResponse(
           ByteStream.fromBytes(responseBytes),

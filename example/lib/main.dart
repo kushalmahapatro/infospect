@@ -45,17 +45,17 @@ class _MainAppState extends State<MainApp> {
           body: Center(
             child: ElevatedButton(
               onPressed: () {
-                _dio.get(
-                  'https://official-joke-api.appspot.com/random_joke',
-                  options: Options(headers: {'content-type': 'json'}),
-                  queryParameters: {'id': 1},
-                );
                 Timer.periodic(
                   const Duration(seconds: 2),
                   (timer) {
-                    if (timer.tick >= 30) {
+                    if (timer.tick >= 5) {
                       timer.cancel();
                     }
+                    _dio.get(
+                      'https://official-joke-api.appspot.com/random_joke',
+                      options: Options(headers: {'content-type': 'json'}),
+                      queryParameters: {'id': timer.tick},
+                    );
                     widget.infospect.addLog(
                       InfospectLog(
                         message: 'test log ${timer.tick}',

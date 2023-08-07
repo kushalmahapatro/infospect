@@ -163,29 +163,36 @@ class Infospect {
   }
 
   void addError(InfospectNetworkError error, int requestId) {
-    final InfospectNetworkCall? selectedCall = _selectCall(requestId);
+    final int index = _selectCall(requestId);
 
-    if (selectedCall == null) {
+    if (index == -1) {
       InfospectUtil.log("Selected call is null");
       return;
     }
 
-    selectedCall.error = error;
+    final InfospectNetworkCall selectedCall = callsSubject.value[index];
+    callsSubject.value[index] =
+        selectedCall.copyWith(error: error, loading: false);
     callsSubject.add([...callsSubject.value]);
     sendNetworkCalls();
   }
 
   void addResponse(InfospectNetworkResponse response, int requestId) {
-    final InfospectNetworkCall? selectedCall = _selectCall(requestId);
+    final int index = _selectCall(requestId);
 
-    if (selectedCall == null) {
+    if (index == -1) {
       InfospectUtil.log("Selected call is null");
       return;
     }
-    selectedCall.loading = false;
-    selectedCall.response = response;
-    selectedCall.duration = response.time.millisecondsSinceEpoch -
-        (selectedCall.request!.time).millisecondsSinceEpoch;
+
+    final InfospectNetworkCall selectedCall = callsSubject.value[index];
+
+    callsSubject.value[index] = selectedCall.copyWith(
+      loading: false,
+      response: response,
+      duration: response.time.millisecondsSinceEpoch -
+          (selectedCall.request!.time).millisecondsSinceEpoch,
+    );
 
     callsSubject.add([...callsSubject.value]);
     sendNetworkCalls();
@@ -203,8 +210,8 @@ class Infospect {
     sendNetworkCalls();
   }
 
-  InfospectNetworkCall? _selectCall(int requestId) =>
-      callsSubject.value.firstWhereOrNull((call) => call.id == requestId);
+  int _selectCall(int requestId) =>
+      callsSubject.value.indexWhere((call) => call.id == requestId);
 
   void addLog(InfospectLog log) {
     infospectLogger.add(log);

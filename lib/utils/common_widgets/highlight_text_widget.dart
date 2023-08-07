@@ -7,6 +7,7 @@ class HighlightText extends StatelessWidget {
   final TextStyle? highlightStyle;
   final Color? highlightColor;
   final bool ignoreCase;
+  final bool selectable;
 
   const HighlightText({
     super.key,
@@ -16,12 +17,15 @@ class HighlightText extends StatelessWidget {
     this.highlightColor = Colors.yellow,
     this.highlightStyle,
     this.ignoreCase = false,
+    this.selectable = true,
   });
 
   @override
   Widget build(BuildContext context) {
     if ((highlight?.isEmpty ?? true) || text.isEmpty) {
-      return SelectableText(text, style: style);
+      return selectable
+          ? SelectableText(text, style: style)
+          : Text(text, style: style);
     }
 
     final String sourceText = ignoreCase ? text.toLowerCase() : text;
@@ -45,7 +49,9 @@ class HighlightText extends StatelessWidget {
       spans.add(_highlightSpan(text.substring(indexOfHighlight, start)));
     } while (true);
 
-    return SelectableText.rich(TextSpan(children: spans));
+    return selectable
+        ? SelectableText.rich(TextSpan(children: spans))
+        : Text.rich(TextSpan(children: spans));
   }
 
   TextSpan _highlightSpan(String content) {

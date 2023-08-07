@@ -40,7 +40,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     final index = context.watch<LaunchBloc>().state.selectedTab;
 
     return BlocConsumer<SearchBloc, SearchState>(
-      // listenWhen: (previous, current) => current.text != previous.text,
+      listenWhen: (previous, current) => current.text != previous.text,
       listener: (context, state) {
         _controller.text = state.text;
         _controller.selection = TextSelection.fromPosition(
@@ -109,11 +109,50 @@ class AppBarActionWidget extends StatelessWidget {
       itemBuilder: (_) {
         return [
           PopupMenuItem<String>(
-            child: Container(),
+            child: PopupMenuButton<String>(
+              enableFeedback: true,
+              itemBuilder: (_) {
+                return [
+                  PopupMenuItem<String>(
+                    child: const Text('GET'),
+                    onTap: () {},
+                  ),
+                  PopupMenuItem<String>(
+                    child: const Text('PUT'),
+                    onTap: () {},
+                  ),
+                  const PopupMenuItem<String>(
+                    child: Text('POST'),
+                    value: 'post',
+                  )
+                ];
+              },
+              onSelected: (value) {
+                print(value);
+              },
+              onOpened: () {
+                print('opened');
+              },
+              padding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  const Icon(Icons.circle, color: Colors.red, size: 10),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      color: Colors.transparent,
+                      child: const Text('Method'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           )
         ];
       },
-      icon: const Icon(Icons.more_vert),
+      onSelected: (value) {},
+      icon: const Icon(Icons.filter_alt_outlined),
     );
   }
 }

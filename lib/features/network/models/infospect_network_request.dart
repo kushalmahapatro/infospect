@@ -2,26 +2,29 @@
 
 import 'dart:io';
 
-import 'package:equatable/equatable.dart';
 import 'package:infospect/features/network/models/infospect_form_data.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network request data for the Infospect application.
-class InfospectNetworkRequest extends Equatable {
-  int size = 0; // The size of the request data in bytes.
-
-  DateTime time = DateTime.now(); // The timestamp when the request was made.
-  Map<String, dynamic> headers =
-      <String, dynamic>{}; // The headers of the Network request.
-  dynamic body = ""; // The body of the Network request.
-  String? contentType = ""; // The content type (MIME type) of the request.
-  List<Cookie> cookies = []; // The cookies sent with the request.
-  Map<String, dynamic> queryParameters =
-      <String, dynamic>{}; // The query parameters of the request.
-  List<InfospectFormDataFile>?
-      formDataFiles; // List of file attachments (form data) if any.
-  List<InfospectFormDataField>?
-      formDataFields; // List of form data fields if any.
+class InfospectNetworkRequest {
+  // The size of the request data in bytes.
+  final int size;
+  // The timestamp when the request was made.
+  final DateTime time;
+  // The headers of the Network request.
+  final Map<String, dynamic> headers;
+  // The body of the Network request.
+  final dynamic body;
+  // The content type (MIME type) of the request.
+  final String? contentType;
+  // The cookies sent with the request.
+  final List<Cookie> cookies;
+  // The query parameters of the request.
+  final Map<String, dynamic> queryParameters;
+  // List of file attachments (form data) if any.
+  final List<InfospectFormDataFile>? formDataFiles;
+  // List of form data fields if any.
+  final List<InfospectFormDataField>? formDataFields;
 
   /// Creates an instance of the `InfospectNetworkRequest` class.
   ///
@@ -45,8 +48,30 @@ class InfospectNetworkRequest extends Equatable {
     this.queryParameters = const <String, dynamic>{},
     this.formDataFiles,
     this.formDataFields,
+  }) : time = requestTime ?? DateTime.now();
+
+  InfospectNetworkRequest copyWith({
+    int? size,
+    DateTime? time,
+    Map<String, dynamic>? headers,
+    dynamic body,
+    String? contentType,
+    List<Cookie>? cookies,
+    Map<String, dynamic>? queryParameters,
+    List<InfospectFormDataFile>? formDataFiles,
+    List<InfospectFormDataField>? formDataFields,
   }) {
-    time = requestTime ?? DateTime.now();
+    return InfospectNetworkRequest(
+      size: size ?? this.size,
+      requestTime: time ?? this.time,
+      headers: headers ?? this.headers,
+      body: body ?? this.body,
+      contentType: contentType ?? this.contentType,
+      cookies: cookies ?? this.cookies,
+      queryParameters: queryParameters ?? this.queryParameters,
+      formDataFiles: formDataFiles ?? this.formDataFiles,
+      formDataFields: formDataFields ?? this.formDataFields,
+    );
   }
 
   /// Converts the `InfospectNetworkRequest` object into a Map representation.
@@ -124,16 +149,4 @@ class InfospectNetworkRequest extends Equatable {
               : null,
     );
   }
-
-  @override
-  List<Object?> get props => [
-        size,
-        time,
-        headers,
-        body,
-        contentType,
-        cookies,
-        formDataFields,
-        formDataFiles
-      ];
 }

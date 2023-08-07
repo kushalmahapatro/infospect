@@ -14,7 +14,7 @@ class LogItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final logData = getIconAndColor(log.level);
 
-    final style = TextStyle(color: logData.color, fontSize: 14);
+    final style = TextStyle(color: logData.color, fontSize: 14, height: 1);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(

@@ -17,43 +17,29 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
   /// Handles dio request and creates infospect network call based on it
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final InfospectNetworkCall call = InfospectNetworkCall(options.hashCode);
+    InfospectNetworkCall call = InfospectNetworkCall(options.hashCode);
+    InfospectNetworkRequest request = InfospectNetworkRequest();
 
     final Uri uri = options.uri;
-    call.method = options.method;
-    var path = options.uri.path;
-    if (path.isEmpty) {
-      path = "/";
-    }
-    call.endpoint = path;
-    call.server = uri.host;
-    call.client = "Dio";
-    call.uri = options.uri.toString();
 
-    if (uri.scheme == "https") {
-      call.secure = true;
-    }
+    dynamic body;
+    int size = 0;
+    List<InfospectFormDataField>? formDataFields;
+    List<InfospectFormDataFile>? formDataFiles;
+    if (options.data != null) {
+      if (options.data is FormData) {
+        body += "Form data";
 
-    final InfospectNetworkRequest request = InfospectNetworkRequest();
-
-    final dynamic data = options.data;
-    if (data == null) {
-      request.size = 0;
-      request.body = "";
-    } else {
-      if (data is FormData) {
-        request.body += "Form data";
-
-        if (data.fields.isNotEmpty == true) {
+        if (options.data.fields.isNotEmpty == true) {
           final List<InfospectFormDataField> fields = [];
-          for (var entry in data.fields) {
+          for (var entry in options.data.fields) {
             fields.add(InfospectFormDataField(entry.key, entry.value));
           }
-          request.formDataFields = fields;
+          formDataFields = fields;
         }
-        if (data.files.isNotEmpty == true) {
+        if (options.data.files.isNotEmpty == true) {
           final List<InfospectFormDataFile> files = [];
-          for (var entry in data.files) {
+          for (var entry in options.data.files) {
             files.add(
               InfospectFormDataFile(
                 entry.value.filename,
@@ -63,84 +49,103 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
             );
           }
 
-          request.formDataFiles = files;
+          formDataFiles = files;
         }
       } else {
-        request.size = utf8.encode(data.toString()).length;
-        request.body = data;
+        size = utf8.encode(options.data.toString()).length;
+        body = options.data;
       }
     }
 
-    request.time = DateTime.now();
-    request.headers = options.headers;
-    request.contentType = options.contentType.toString();
-    request.queryParameters = options.queryParameters;
+    request = request.copyWith(
+      headers: options.headers,
+      contentType: options.contentType.toString(),
+      queryParameters: options.queryParameters,
+      formDataFields: formDataFields,
+      formDataFiles: formDataFiles,
+      body: body,
+      size: size,
+    );
 
-    call.request = request;
-    call.response = InfospectNetworkResponse();
-
-    infospect.addCall(call);
+    infospect.addCall(call.copyWith(
+      request: request,
+      secure: uri.scheme == "https",
+      method: options.method,
+      endpoint: options.uri.path,
+      server: uri.host,
+      client: 'Dio',
+      uri: options.uri.toString(),
+    ));
     handler.next(options);
   }
 
   /// Handles dio response and adds data to infospect network call
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final httpResponse = InfospectNetworkResponse();
-    httpResponse.status = response.statusCode;
+    InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
 
-    if (response.data == null) {
-      httpResponse.body = "";
-      httpResponse.size = 0;
-    } else {
-      httpResponse.body = response.data;
-      httpResponse.size = utf8.encode(response.data.toString()).length;
+    dynamic body = '';
+    int size = 0;
+    if (response.data != null) {
+      body = response.data;
+      size = utf8.encode(response.data.toString()).length;
     }
 
-    httpResponse.time = DateTime.now();
     final Map<String, String> headers = {};
     response.headers.forEach((header, values) {
       headers[header] = values.toString();
     });
-    httpResponse.headers = headers;
 
-    infospect.addResponse(httpResponse, response.requestOptions.hashCode);
+    infospect.addResponse(
+        httpResponse.copyWith(
+          status: response.statusCode,
+          body: body,
+          size: size,
+          headers: headers,
+        ),
+        response.requestOptions.hashCode);
     handler.next(response);
   }
 
   /// Handles error and adds data to infospect network call
   @override
   void onError(DioError error, ErrorInterceptorHandler handler) {
-    final httpError = InfospectNetworkError();
-    httpError.error = error.toString();
+    InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
+    dynamic body = '';
+    int size = 0;
+    int? status;
+    final err = error.toString();
+    StackTrace? st;
     if (error is Error) {
       final basicError = error as Error;
-      httpError.stackTrace = basicError.stackTrace;
+      st = basicError.stackTrace;
     }
 
-    infospect.addError(httpError, error.requestOptions.hashCode);
-    final httpResponse = InfospectNetworkResponse();
-    httpResponse.time = DateTime.now();
+    infospect.addError(InfospectNetworkError(error: err, stackTrace: st),
+        error.requestOptions.hashCode);
+
     if (error.response == null) {
-      httpResponse.status = -1;
+      status = -1;
       infospect.addResponse(httpResponse, error.requestOptions.hashCode);
     } else {
-      httpResponse.status = error.response!.statusCode;
+      status = error.response!.statusCode;
 
-      if (error.response!.data == null) {
-        httpResponse.body = "";
-        httpResponse.size = 0;
-      } else {
-        httpResponse.body = error.response!.data;
-        httpResponse.size = utf8.encode(error.response!.data.toString()).length;
+      if (error.response!.data != null) {
+        body = error.response!.data;
+        size = utf8.encode(error.response!.data.toString()).length;
       }
       final Map<String, String> headers = {};
       error.response!.headers.forEach((header, values) {
         headers[header] = values.toString();
       });
-      httpResponse.headers = headers;
+
       infospect.addResponse(
-        httpResponse,
+        httpResponse.copyWith(
+          headers: headers,
+          body: body,
+          size: size,
+          status: status,
+        ),
         error.response!.requestOptions.hashCode,
       );
     }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/bloc/interceptor_details_bloc.dart';
+import 'package:infospect/features/network/ui/details/components/interceptor_details_error.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_request.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_response.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
@@ -37,7 +38,7 @@ class InterceptorDetailsScreen extends StatelessWidget {
             children: [
               InterceptorDetailsRequest(call, infospect: infospect),
               InterceptorDetailsResponse(call, infospect: infospect),
-              const Center(child: Text("Error")),
+              InterceptorDetailsError(call, infospect: infospect),
             ],
           );
         },

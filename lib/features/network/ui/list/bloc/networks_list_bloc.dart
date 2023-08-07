@@ -35,10 +35,12 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
                 .toList()
             : value.reversed.toList();
 
-        return state.copyWith(
-          filteredCalls: List.from(list),
+        final newState = state.copyWith(
+          filteredCalls: list,
           calls: value.reversed.toList(),
         );
+
+        return newState;
       },
     );
   }

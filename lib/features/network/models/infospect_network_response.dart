@@ -1,16 +1,14 @@
 // ignore_for_file: must_be_immutable
 
-import 'package:equatable/equatable.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network response data for the Infospect application.
-class InfospectNetworkResponse extends Equatable {
-  int? status; // The Network status code of the response.
-  int size = 0; // The size of the response data in bytes.
-  DateTime time =
-      DateTime.now(); // The timestamp when the response was received.
-  dynamic body; // The body of the Network response.
-  Map<String, String>? headers; // The headers of the Network response.
+class InfospectNetworkResponse {
+  final int? status; // The Network status code of the response.
+  final int size; // The size of the response data in bytes.
+  final DateTime time; // The timestamp when the response was received.
+  final dynamic body; // The body of the Network response.
+  final Map<String, String>? headers; // The headers of the Network response.
 
   /// Creates an instance of the `InfospectNetworkResponse` class.
   ///
@@ -24,10 +22,24 @@ class InfospectNetworkResponse extends Equatable {
     this.status,
     this.size = 0,
     DateTime? responseTime,
-    this.body,
+    this.body = '',
     this.headers,
+  }) : time = responseTime ?? DateTime.now();
+
+  InfospectNetworkResponse copyWith({
+    int? status,
+    int? size,
+    DateTime? time,
+    dynamic body,
+    Map<String, String>? headers,
   }) {
-    responseTime ??= DateTime.now();
+    return InfospectNetworkResponse(
+      status: status ?? this.status,
+      size: size ?? this.size,
+      responseTime: time ?? this.time,
+      body: body ?? this.body,
+      headers: headers ?? this.headers,
+    );
   }
 
   /// Converts the `InfospectNetworkResponse` object into a Map representation.
@@ -63,7 +75,4 @@ class InfospectNetworkResponse extends Equatable {
       headers: (map['headers'] as Map?)?.getMap<String>(),
     );
   }
-
-  @override
-  List<Object?> get props => [status, size, time, body, headers];
 }

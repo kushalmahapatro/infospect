@@ -1,7 +1,7 @@
 /// Represents an Network error for the Infospect application.
 class InfospectNetworkError {
-  dynamic error; // The error object.
-  StackTrace?
+  final dynamic error; // The error object.
+  final StackTrace?
       stackTrace; // The stack trace associated with the error, if available.
 
   /// Creates an instance of the `InfospectNetworkError` class.
@@ -9,7 +9,7 @@ class InfospectNetworkError {
   /// Parameters:
   /// - [error]: The error object (can be of any type).
   /// - [stackTrace]: The stack trace associated with the error (optional).
-  InfospectNetworkError({
+  const InfospectNetworkError({
     this.error,
     this.stackTrace,
   });

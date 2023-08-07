@@ -33,20 +33,24 @@ class InterceptorDetailsResponse extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               /// General Data
-              ExpansionWidget(
-                title: 'General',
-                children: [
-                  DetailsRowWidget(
-                      'Received at:', call.response!.time.toString()),
-                  DetailsRowWidget(
-                      'Bytes received:', call.response!.size.toReadableBytes),
-                  DetailsRowWidget(
-                    "Status:",
-                    call.response!.statusString,
-                    showDivider: false,
-                  ),
-                ],
-              ),
+              if (call.response != null) ...[
+                ExpansionWidget(
+                  title: 'General',
+                  children: [
+                    DetailsRowWidget(
+                      'Received at:',
+                      call.response!.time.toString(),
+                    ),
+                    DetailsRowWidget(
+                        'Bytes received:', call.response!.size.toReadableBytes),
+                    DetailsRowWidget(
+                      "Status:",
+                      call.response!.statusString,
+                      showDivider: false,
+                    ),
+                  ],
+                ),
+              ],
 
               /// Headers
               if (call.response?.headers?.isNotEmpty ?? false) ...[
@@ -65,13 +69,13 @@ class InterceptorDetailsResponse extends StatelessWidget {
 
           /// Body
           if (call.response?.body != null &&
-              (call.response?.body ?? '').toString().isNotEmpty) ...[
+              (call.response?.bodyMap ?? {}).isNotEmpty) ...[
             ExpansionWidget.map(
               title: 'Body',
               trailing: TrailingWidget(
                 text: 'View Body',
                 infospect: infospect,
-                data: call.response?.body,
+                data: call.response?.bodyMap ?? {},
                 beautificationRequired: true,
               ),
               map: {'': call.response?.body?.toString() ?? ''},

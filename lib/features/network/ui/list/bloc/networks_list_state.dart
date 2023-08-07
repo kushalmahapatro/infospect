@@ -12,7 +12,19 @@ class NetworksListState extends Equatable {
   final String searchedText;
 
   @override
-  List<Object> get props => [calls, filteredCalls, searchedText];
+  List<Object> get props {
+    List<Object?> filteresProps = [];
+    for (var element in filteredCalls) {
+      filteresProps.addAll(element.props);
+    }
+
+    return [
+      calls,
+      filteresProps,
+      searchedText,
+      [...filteredCalls]
+    ];
+  }
 
   NetworksListState copyWith({
     List<InfospectNetworkCall>? calls,

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:infospect/utils/extensions/double_extension.dart';
 
 extension IntExtension on int {
@@ -35,21 +34,5 @@ extension IntExtension on int {
 
   String get formatTimeUnit {
     return (this < 10) ? "0$this" : "$this";
-  }
-
-  Color? getStatusTextColor(BuildContext context) {
-    if (this == -1) {
-      return Colors.red[400];
-    } else if (this < 200) {
-      return Theme.of(context).textTheme.bodyLarge!.color;
-    } else if (this >= 200 && this < 300) {
-      return Colors.green[400];
-    } else if (this >= 300 && this < 400) {
-      return Colors.orange[400];
-    } else if (this >= 400 && this < 600) {
-      return Colors.red[400];
-    } else {
-      return Theme.of(context).textTheme.bodyLarge!.color;
-    }
   }
 }

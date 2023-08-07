@@ -83,8 +83,8 @@ class NetworkCallItem extends StatelessWidget {
                       width: 10,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: networkCall.response?.status
-                            ?.getStatusTextColor(context),
+                        color:
+                            networkCall.response?.getStatusTextColor(context),
                       ),
                     ),
                   ),
@@ -93,6 +93,7 @@ class NetworkCallItem extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 12,
+                      height: 1,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -114,9 +115,11 @@ class NetworkCallItem extends StatelessWidget {
               HighlightText(
                 text: networkCall.uri,
                 highlight: searchedText,
+                selectable: false,
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
+                  height: 1,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -139,7 +142,7 @@ class _ResponseStatusWidget extends StatelessWidget {
       condition: networkCall.loading,
       ifTrue: const SizedBox.shrink(),
       ifFalse: Text(
-        ' • ${networkCall.response!.statusString}',
+        ' • ${networkCall.response?.statusString ?? ''}',
         style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,

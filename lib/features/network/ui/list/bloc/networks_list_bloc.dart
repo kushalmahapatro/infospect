@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/list/models/network_action.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
+import 'package:infospect/utils/models/action_model.dart';
 
 part 'networks_list_event.dart';
 part 'networks_list_state.dart';
@@ -18,6 +22,10 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
 
     on<NetworkLogsSearched>(_onNetworkLogsSearched);
 
+    on<NetowrkLogsFilterAdded>(_onNetworkLogsFilterAdded);
+
+    on<NetowrkLogsFilterRemoved>(_onNetworkLogsFilterRemoved);
+
     _onStarted();
   }
 
@@ -26,21 +34,10 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
     await emit.forEach(
       _infospect.callsSubject,
       onData: (value) {
-        final searched = state.searchedText.toLowerCase();
-
-        final list = searched.isNotEmpty
-            ? value.reversed
-                .where((element) =>
-                    element.uri.toLowerCase().contains(state.searchedText))
-                .toList()
-            : value.reversed.toList();
-
-        final newState = state.copyWith(
-          filteredCalls: list,
-          calls: value.reversed.toList(),
+        return _filterNetworkCalls(
+          List.from(state.filters),
+          value.reversed.toList(),
         );
-
-        return newState;
       },
     );
   }
@@ -49,18 +46,90 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
       NetworkLogsSearched event, Emitter<NetworksListState> emit) async {
     emit(state.copyWith(searchedText: event.text));
 
-    final searched = state.searchedText.toLowerCase();
-    if (searched.isEmpty) {
-      emit(state.copyWith(filteredCalls: state.calls));
-      return;
+    emit(_filterNetworkCalls(List.from(state.filters)));
+  }
+
+  FutureOr<void> _onNetworkLogsFilterAdded(
+      NetowrkLogsFilterAdded event, Emitter<NetworksListState> emit) async {
+    final List<PopupAction> finalFilters = List.from(state.filters);
+
+    if (finalFilters
+            .firstWhereOrNull((element) => element.name == event.action.name) !=
+        null) {
+      finalFilters.remove(event.action);
+    } else {
+      finalFilters.add(event.action);
+    }
+    emit(state.copyWith(filters: finalFilters));
+
+    emit(_filterNetworkCalls(finalFilters));
+  }
+
+  FutureOr<void> _onNetworkLogsFilterRemoved(
+      NetowrkLogsFilterRemoved event, Emitter<NetworksListState> emit) async {
+    final List<PopupAction> finalFilters = List.from(state.filters);
+    if (finalFilters
+            .firstWhereOrNull((element) => element.name == event.action.name) !=
+        null) {
+      finalFilters.remove(event.action);
+      emit(state.copyWith(filters: finalFilters));
+
+      emit(_filterNetworkCalls(finalFilters));
+    }
+  }
+
+  NetworksListState _filterNetworkCalls(
+    List<PopupAction> finalFilters, [
+    List<InfospectNetworkCall>? totalCalls,
+  ]) {
+    List<InfospectNetworkCall> filteredList = [];
+    final List<InfospectNetworkCall> calls = (totalCalls ?? state.calls);
+
+    final String searched = state.searchedText.toLowerCase();
+    if (searched.isNotEmpty) {
+      filteredList = calls
+          .where((element) => element.uri.toLowerCase().contains(searched))
+          .toList();
     }
 
-    final list = state.calls
-        .where(
-            (element) => element.uri.toLowerCase().contains(state.searchedText))
+    if (finalFilters.isEmpty) {
+      return state.copyWith(filteredCalls: calls, calls: totalCalls);
+    }
+
+    final listToCheck = filteredList.isEmpty ? calls : filteredList;
+    List<InfospectNetworkCall> list = listToCheck
+        .where((element) => finalFilters
+            .map((e) => e.name.toLowerCase())
+            .contains(element.method.toLowerCase()))
         .toList();
 
-    emit(state.copyWith(filteredCalls: List.from(list)));
+    final List<PopupAction> statusList = finalFilters
+        .where((e) => e.parentId == NetworkActionType.status)
+        .toList();
+
+    if (statusList.isNotEmpty) {
+      final listToCheck = list.isEmpty ? calls : filteredList;
+
+      for (var element in statusList) {
+        if (element.id == 'success') {
+          list = listToCheck
+              .where((element) =>
+                  (element.response?.statusString ?? '').contains('OK'))
+              .toList();
+        } else if (element.id == 'error') {
+          list = listToCheck
+              .where(
+                (element) =>
+                    !(element.response?.statusString ?? '').contains('OK'),
+              )
+              .toList();
+        }
+      }
+
+      return state.copyWith(filteredCalls: list, calls: totalCalls);
+    }
+
+    return state.copyWith(filteredCalls: list, calls: totalCalls);
   }
 
   /// initial call

@@ -5,24 +5,28 @@ class LogsListState extends Equatable {
     this.logs = const [],
     this.filteredLogs = const [],
     this.searchedText = '',
+    this.filters = const [],
   });
 
   final List<InfospectLog> logs;
   final List<InfospectLog> filteredLogs;
   final String searchedText;
+  final List<PopupAction> filters;
 
   @override
-  List<Object> get props => [...logs, ...filteredLogs, searchedText];
+  List<Object> get props => [logs, filteredLogs, searchedText, filters];
 
   LogsListState copyWith({
     List<InfospectLog>? logs,
     List<InfospectLog>? filteredLogs,
     String? searchedText,
+    List<PopupAction>? filters,
   }) {
     return LogsListState(
       logs: logs ?? this.logs,
       filteredLogs: filteredLogs ?? this.filteredLogs,
       searchedText: searchedText ?? this.searchedText,
+      filters: filters ?? this.filters,
     );
   }
 }

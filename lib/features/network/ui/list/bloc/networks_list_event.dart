@@ -18,3 +18,15 @@ final class NetworkLogsSearched extends NetworksListEvent {
 
   const NetworkLogsSearched({required this.text});
 }
+
+final class NetowrkLogsFilterAdded extends NetworksListEvent {
+  final PopupAction action;
+
+  const NetowrkLogsFilterAdded({required this.action});
+}
+
+final class NetowrkLogsFilterRemoved extends NetworksListEvent {
+  final PopupAction action;
+
+  const NetowrkLogsFilterRemoved({required this.action});
+}

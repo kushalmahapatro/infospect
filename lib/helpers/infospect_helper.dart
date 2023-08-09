@@ -19,7 +19,6 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
-import 'package:infospect/features/search/bloc/search_bloc.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -86,18 +85,15 @@ class Infospect {
         builder: (context) => MultiBlocProvider(
           providers: [
             BlocProvider(
-              create: (context) => LaunchBloc(),
+              create: (_) => LaunchBloc(),
             ),
             BlocProvider(
-              create: (context) => SearchBloc(),
-            ),
-            BlocProvider(
-              create: (context) => NetworksListBloc(
+              create: (_) => NetworksListBloc(
                 infospect: this,
               ),
             ),
             BlocProvider(
-              create: (context) => LogsListBloc(
+              create: (_) => LogsListBloc(
                 infospectLogger: infospectLogger,
               ),
             ),

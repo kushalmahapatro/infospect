@@ -15,3 +15,15 @@ final class TextSearched extends LogsListEvent {
 
   const TextSearched({required this.text});
 }
+
+final class LogsFilterAdded extends LogsListEvent {
+  final PopupAction action;
+
+  const LogsFilterAdded({required this.action});
+}
+
+final class LogsFilterRemoved extends LogsListEvent {
+  final PopupAction action;
+
+  const LogsFilterRemoved({required this.action});
+}

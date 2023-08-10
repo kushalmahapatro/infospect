@@ -6,36 +6,13 @@ import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
 
-part 'desktop_network_call_item.dart';
-
 class NetworkCallItem extends StatelessWidget {
   final InfospectNetworkCall networkCall;
   final Function onItemClicked;
   final String searchedText;
 
-  factory NetworkCallItem.desktop(
-      {required InfospectNetworkCall networkCall,
-      required Function itemClicked,
-      String searchedText = ''}) {
-    return _DesktopNetworkCallItem(
-      networkCall: networkCall,
-      onItemClicked: itemClicked,
-      searchedText: searchedText,
-    );
-  }
-
-  factory NetworkCallItem.mobile(
-      {required InfospectNetworkCall networkCall,
-      required Function(InfospectNetworkCall call) itemClicked,
-      String searchedText = ''}) {
-    return NetworkCallItem._(
-      onItemClicked: itemClicked,
-      networkCall: networkCall,
-      searchedText: searchedText,
-    );
-  }
-
-  const NetworkCallItem._({
+  const NetworkCallItem({
+    super.key,
     required this.networkCall,
     required this.onItemClicked,
     this.searchedText = '',

@@ -19,7 +19,7 @@ class TrailingWidget extends StatelessWidget {
     return TextButton(
       onPressed: () {
         Navigator.push(
-          infospect.context!,
+          infospect.context ?? context,
           MaterialPageRoute(
             builder: (_) {
               return RawDataViewerScreen(

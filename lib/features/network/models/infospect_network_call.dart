@@ -2,7 +2,6 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
-
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_request.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
@@ -97,7 +96,7 @@ class InfospectNetworkCall extends Equatable {
   /// - [map]: A Map containing the key-value pairs representing the `InfospectNetworkCall` object.
   ///
   /// Returns an instance of the `InfospectNetworkCall` class with the data populated from the provided Map.
-  factory InfospectNetworkCall.fromMap(Map<String, dynamic> map) {
+  factory InfospectNetworkCall.fromMap(dynamic map) {
     return InfospectNetworkCall(
       map['id'] as int,
       time: DateTime.fromMillisecondsSinceEpoch(map['createdTime'] as int),
@@ -110,15 +109,13 @@ class InfospectNetworkCall extends Equatable {
       uri: map['uri'] as String,
       duration: map['duration'] as int,
       request: map['request'] != null
-          ? InfospectNetworkRequest.fromMap(
-              map['request'] as Map<String, dynamic>)
+          ? InfospectNetworkRequest.fromMap(map['request'])
           : null,
       response: map['response'] != null
-          ? InfospectNetworkResponse.fromMap(
-              map['response'] as Map<String, dynamic>)
+          ? InfospectNetworkResponse.fromMap(map['response'])
           : null,
       error: map['error'] != null
-          ? InfospectNetworkError.fromMap(map['error'] as Map<String, dynamic>)
+          ? InfospectNetworkError.fromMap(map['error'])
           : null,
     );
   }

@@ -42,7 +42,7 @@ class LogItemWidget extends StatelessWidget {
               ),
 
               /// StackTrace
-              _StackTracewidget(
+              _StackTraceWidget(
                 style: style,
                 stackTrace: log.stackTrace,
                 searchedText: searchedText,
@@ -127,8 +127,8 @@ class _ErrorWidget extends StatelessWidget {
   }
 }
 
-class _StackTracewidget extends StatelessWidget {
-  const _StackTracewidget({
+class _StackTraceWidget extends StatelessWidget {
+  const _StackTraceWidget({
     required this.style,
     required this.stackTrace,
     required this.searchedText,
@@ -146,7 +146,7 @@ class _StackTracewidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.start,
       children: [
         HighlightText(
           text: 'Stack Trace:',

@@ -18,7 +18,7 @@ class NetworksListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: NettworkCallAppBar(
+      appBar: NetworkCallAppBar(
         hasBottom: networkListBloc.state.filters.isNotEmpty,
       ),
       body: BlocBuilder<NetworksListBloc, NetworksListState>(
@@ -30,12 +30,12 @@ class NetworksListScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: state.filteredCalls.length,
             itemBuilder: (context, index) {
-              return NetworkCallItem.mobile(
+              return NetworkCallItem(
                 networkCall: state.filteredCalls[index],
                 searchedText: state.searchedText,
-                itemClicked: (InfospectNetworkCall call) {
+                onItemClicked: (InfospectNetworkCall call) {
                   Navigator.push<void>(
-                    infospect.context!,
+                    infospect.context ?? context,
                     MaterialPageRoute(
                       builder: (context) => BlocProvider(
                         create: (context) => InterceptorDetailsBloc(),

@@ -6,13 +6,13 @@ import 'package:infospect/features/network/ui/list/models/network_action.dart';
 import 'package:infospect/utils/common_widgets/action_widget.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
-class NettworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const NettworkCallAppBar({super.key, this.hasBottom = false});
+class NetworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
+  const NetworkCallAppBar({super.key, this.hasBottom = false});
 
   final bool hasBottom;
 
   @override
-  State<NettworkCallAppBar> createState() => _NettworkCallAppBarState();
+  State<NetworkCallAppBar> createState() => _NetworkCallAppBarState();
 
   @override
   Size get preferredSize => hasBottom
@@ -20,7 +20,7 @@ class NettworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
       : const Size.fromHeight(kTextTabBarHeight);
 }
 
-class _NettworkCallAppBarState extends State<NettworkCallAppBar> {
+class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
   late final TextEditingController _controller = TextEditingController();
   late final FocusNode _focusNode = FocusNode();
 

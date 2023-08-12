@@ -8,6 +8,7 @@ import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
+import 'package:window_manager/window_manager.dart';
 
 class DraggableTable extends StatefulWidget {
   const DraggableTable({
@@ -15,23 +16,27 @@ class DraggableTable extends StatefulWidget {
     required this.infospect,
     required this.onCallSelected,
     this.selectedCall,
+    required this.constraints,
   });
 
   final Infospect infospect;
 
   final ValueChanged<InfospectNetworkCall> onCallSelected;
   final InfospectNetworkCall? selectedCall;
+  final BoxConstraints constraints;
 
   @override
   State<DraggableTable> createState() => _DraggableTableState();
 }
 
-class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
+class _DraggableTableState extends DesktopCallListStates<DraggableTable>
+    with WindowListener {
   final verticalScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
+    checkWidth();
     return Scrollbar(
       thumbVisibility: true,
       trackVisibility: true,
@@ -97,6 +102,9 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                       text: element.label,
                       minWidth: element.minWidth,
                       maxWidth: element.maxWidth,
+                      width: index == dataCellStates.length - 1
+                          ? element.width
+                          : null,
                       onColumnWidthChanged: (width) => updateDataCellStates(
                         id: index,
                         width: width,

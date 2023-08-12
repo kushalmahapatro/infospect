@@ -29,16 +29,44 @@ abstract class DesktopCallListStates<T extends DraggableTable>
     setState(() {});
   }
 
+  void checkWidth() {
+    double width = 0;
+    for (int i = 0; i < dataCellStates.length; i++) {
+      final element = dataCellStates[i];
+
+      double w = widget.constraints.maxWidth - width;
+
+      if (i == dataCellStates.length - 1 && w > 75) {
+        if (dataCellStates[i].width == w) return;
+        double maxWidth = (2 * w) - 50;
+
+        dataCellStates[i] =
+            dataCellStates[i].copyWith(width: w, maxWidth: maxWidth);
+        setState(() {});
+      } else {
+        width = width + element.width;
+      }
+    }
+  }
+
   void init() {
-    for (var element in CellId.values) {
-      dataCellStates.add(
-        DataCellState(
-          id: element.id,
-          label: element.label,
-          minWidth: element.minWidth,
-          maxWidth: element.maxWidth,
-        ),
+    double width = 0;
+    for (int i = 0; i < CellId.values.length; i++) {
+      final element = CellId.values[i];
+      var cellState = DataCellState(
+        id: element.id,
+        label: element.label,
+        minWidth: element.minWidth,
+        maxWidth: element.maxWidth,
       );
+      width = width + cellState.width;
+
+      if (i == CellId.values.length - 1) {
+        double w = widget.constraints.maxWidth - width;
+        double maxWidth = (2 * w) - 50;
+        cellState = cellState.copyWith(width: w, maxWidth: maxWidth);
+      }
+      dataCellStates.add(cellState);
     }
   }
 }

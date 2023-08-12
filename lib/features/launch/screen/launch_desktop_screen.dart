@@ -68,7 +68,9 @@ class _FirstSection extends StatelessWidget {
               (index, item) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: selectedIndex == index ? Colors.black : Colors.white,
+                    color: selectedIndex == index
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   width: double.maxFinite,
@@ -88,8 +90,8 @@ class _FirstSection extends StatelessWidget {
                           item.iconData,
                           size: 14,
                           color: selectedIndex == index
-                              ? Colors.white
-                              : Colors.black,
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onPrimary,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -97,8 +99,8 @@ class _FirstSection extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             color: selectedIndex == index
-                                ? Colors.white
-                                : Colors.black,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                       ],

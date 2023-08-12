@@ -73,10 +73,15 @@ class _DesktopNetworksListScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: DraggableTable(
-            infospect: widget.infospect,
-            onCallSelected: (call) => updateSelectedCall(call),
-            selectedCall: selectedCall,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return DraggableTable(
+                infospect: widget.infospect,
+                onCallSelected: (call) => updateSelectedCall(call),
+                selectedCall: selectedCall,
+                constraints: constraints,
+              );
+            },
           ),
         ),
         AppDivider.horizontal(),

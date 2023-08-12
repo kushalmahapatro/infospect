@@ -1,7 +1,8 @@
 extension ListExt on List<DataCellState> {
-  double width(CellId T) {
-    CellId id = CellId.values.firstWhere((element) => element == T);
-    return this[id.id].width;
+  double width(CellId cell) {
+    final CellId cellId =
+        CellId.values.firstWhere((element) => element == cell);
+    return this[cellId.id].width;
   }
 }
 

@@ -62,12 +62,17 @@ class Infospect {
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       // widget._devOptions.getInterceptorDialog(context);
-      final window = await DesktopMultiWindow.createWindow(jsonEncode({
-        'args1': 'Sub window',
-        'args2': 100,
-        'args3': true,
-        'business': 'business_test',
-      }));
+      final window = await DesktopMultiWindow.createWindow(
+        jsonEncode(
+          {
+            'args1': 'Sub window',
+            'args2': 100,
+            'args3': true,
+            'business': 'business_test',
+            'theme_mode': _themeMode.name,
+          },
+        ),
+      );
       window
         ..setFrame(const Offset(0, 0) & const Size(1280, 720))
         ..center()
@@ -81,11 +86,12 @@ class Infospect {
     }
   }
 
-  MaterialPageRoute get interceptorScreen => MaterialPageRoute<dynamic>(
+  MaterialPageRoute interceptorScreen(ThemeMode? themeMode) =>
+      MaterialPageRoute<dynamic>(
         builder: (context) => MaterialApp(
           theme: _lightTheme,
           darkTheme: _darkTheme,
-          themeMode: _themeMode,
+          themeMode: themeMode ?? _themeMode,
           home: MultiBlocProvider(
             providers: [
               BlocProvider(
@@ -107,10 +113,10 @@ class Infospect {
         ),
       );
 
-  Widget openInterceptor() =>
-      Navigator(onGenerateRoute: (settings) => interceptorScreen);
+  Widget openInterceptor(ThemeMode? themeMode) =>
+      Navigator(onGenerateRoute: (settings) => interceptorScreen(themeMode));
 
-  void navigateToInterceptor() {
+  void navigateToInterceptor([ThemeMode? themeMode]) {
     if (context == null) {
       InfospectUtil.log(
         "Cant start HTTP Inspector. Please add NavigatorKey to your application",
@@ -119,7 +125,10 @@ class Infospect {
     }
     if (!isInspectorOpened.value) {
       isInspectorOpened.value = true;
-      Navigator.push<void>(context!, interceptorScreen).then(
+      Navigator.push<void>(
+        context!,
+        interceptorScreen(themeMode),
+      ).then(
         (onValue) => isInspectorOpened.value = false,
       );
     }
@@ -230,6 +239,16 @@ class Infospect {
 
   void run(List<String> args, {required Widget myApp}) {
     if (args.firstOrNull == 'multi_window') {
+      ThemeMode themeMode = _themeMode;
+      try {
+        if (jsonDecode(args[2])['theme_mode'] == 'dark') {
+          themeMode = ThemeMode.dark;
+        } else {
+          themeMode = ThemeMode.light;
+        }
+      } catch (_) {
+        print(_);
+      }
       runApp(
         MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -239,8 +258,8 @@ class Infospect {
           ],
           theme: _lightTheme,
           darkTheme: _darkTheme,
-          themeMode: _themeMode,
-          home: openInterceptor(),
+          themeMode: themeMode,
+          home: openInterceptor(themeMode),
         ),
       );
     } else {

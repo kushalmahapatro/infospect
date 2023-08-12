@@ -7,6 +7,7 @@ class DraggableCell extends StatefulWidget {
     required this.onColumnWidthChanged,
     this.maxWidth = 100,
     this.minWidth = 50,
+    this.width,
     super.key,
   });
 
@@ -14,6 +15,7 @@ class DraggableCell extends StatefulWidget {
   final ValueChanged<double> onColumnWidthChanged;
   final double minWidth;
   final double maxWidth;
+  final double? width;
 
   @override
   State<DraggableCell> createState() => _DraggableCellState();
@@ -22,6 +24,9 @@ class DraggableCell extends StatefulWidget {
 class _DraggableCellState extends DraggableCellState<DraggableCell> {
   @override
   Widget build(BuildContext context) {
+    if (widget.width != null) {
+      columnWidth = widget.width!;
+    }
     return SizedBox(
       width: columnWidth,
       child: Row(

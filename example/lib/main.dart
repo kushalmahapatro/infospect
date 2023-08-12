@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +40,9 @@ class _MainAppState extends State<MainApp> {
       infospect: widget.infospect,
       child: MaterialApp(
         navigatorKey: widget.infospect.getNavigatorKey,
+        theme: InfospectTheme.lightTheme,
+        darkTheme: InfospectTheme.darkTheme,
+        themeMode: ThemeMode.light,
         home: Scaffold(
           body: Center(
             child: ElevatedButton(
@@ -48,7 +50,7 @@ class _MainAppState extends State<MainApp> {
                 Timer.periodic(
                   const Duration(seconds: 2),
                   (timer) {
-                    if (timer.tick >= 5) {
+                    if (timer.tick >= 8) {
                       timer.cancel();
                     }
                     _dio.get(
@@ -59,8 +61,7 @@ class _MainAppState extends State<MainApp> {
                     widget.infospect.addLog(
                       InfospectLog(
                         message: 'test log ${timer.tick}',
-                        level: DiagnosticLevel.values[
-                            Random().nextInt(DiagnosticLevel.values.length)],
+                        level: DiagnosticLevel.values[timer.tick],
                         error: _getError(timer.tick),
                         stackTrace: StackTrace.current,
                       ),

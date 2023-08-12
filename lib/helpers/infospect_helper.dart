@@ -19,6 +19,7 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -32,25 +33,24 @@ class Infospect {
   final BehaviorSubject<List<InfospectNetworkCall>> callsSubject =
       BehaviorSubject.seeded([]);
 
-  StreamSubscription? _callsSubscription;
+  /// Light Theme
+  ThemeData _lightTheme = InfospectTheme.lightTheme;
+  set lightTheme(ThemeData theme) => _lightTheme = theme;
+
+  /// Dark theme
+  ThemeData _darkTheme = InfospectTheme.lightTheme;
+  set darkthem(ThemeData theme) => _darkTheme = theme;
+
+  /// Theme mode
+  ThemeMode _themeMode = ThemeMode.light;
+  set themeMode(ThemeMode themeMode) => _themeMode = themeMode;
 
   final InfospectLogger infospectLogger = InfospectLogger();
 
   Infospect({
     this.maxCallsCount = 1000,
     GlobalKey<NavigatorState>? navigatorKey,
-  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>() {
-    _callsSubscription =
-        callsSubject.interval(const Duration(milliseconds: 500)).listen(
-              (_) => _onCallsChanged(),
-            );
-  }
-
-  void _onCallsChanged() async {
-    // if (callsSubject.value.isNotEmpty) {
-    //   _onCallsChanged();
-    // }
-  }
+  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>();
 
   GlobalKey<NavigatorState>? get getNavigatorKey => _navigatorKey;
 
@@ -82,23 +82,28 @@ class Infospect {
   }
 
   MaterialPageRoute get interceptorScreen => MaterialPageRoute<dynamic>(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider(
-              create: (_) => LaunchBloc(),
-            ),
-            BlocProvider(
-              create: (_) => NetworksListBloc(
-                infospect: this,
+        builder: (context) => MaterialApp(
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
+          themeMode: _themeMode,
+          home: MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => LaunchBloc(),
               ),
-            ),
-            BlocProvider(
-              create: (_) => LogsListBloc(
-                infospectLogger: infospectLogger,
+              BlocProvider(
+                create: (_) => NetworksListBloc(
+                  infospect: this,
+                ),
               ),
-            ),
-          ],
-          child: InfospectLaunchScreen(this),
+              BlocProvider(
+                create: (_) => LogsListBloc(
+                  infospectLogger: infospectLogger,
+                ),
+              ),
+            ],
+            child: InfospectLaunchScreen(this),
+          ),
         ),
       );
 
@@ -232,6 +237,9 @@ class Infospect {
           supportedLocales: const <Locale>[
             Locale('en', 'US'), // English
           ],
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
+          themeMode: _themeMode,
           home: openInterceptor(),
         ),
       );
@@ -250,6 +258,5 @@ class Infospect {
   void dispose() {
     callsSubject.close();
     isInspectorOpened.dispose();
-    _callsSubscription?.cancel();
   }
 }

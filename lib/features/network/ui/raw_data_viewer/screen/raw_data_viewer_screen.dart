@@ -21,10 +21,8 @@ class RawDataViewerScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => RawDataViewerBloc(),
       child: Scaffold(
-        backgroundColor: Colors.white,
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: Colors.white,
           title: RawDataViewerSelector<RawDataView>(
             selector: (state) => state.view,
             builder: (context, view) {
@@ -41,7 +39,6 @@ class RawDataViewerScreen extends StatelessWidget {
               );
             },
           ),
-          iconTheme: const IconThemeData(color: Colors.black),
         ),
         bottomNavigationBar:
             beautificationRequired ? const BottomNavBarWidget() : null,
@@ -57,6 +54,7 @@ class RawDataViewerScreen extends StatelessWidget {
                 ifTrue: ConditionalWidget(
                   condition: beautificationRequired,
                   ifTrue: HighlightText(
+                    style: Theme.of(context).textTheme.bodyMedium,
                     text: InfospectUtil.encoder.convert(data),
                     highlight: state.searchValue,
                   ),
@@ -88,18 +86,18 @@ class RawDataViewerScreen extends StatelessWidget {
                 ),
                 ifFalse: JsonView.map(
                   data,
-                  theme: const JsonViewTheme(
-                    backgroundColor: Colors.white,
-                    separator: Text(':'),
+                  theme: JsonViewTheme(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    separator: const Text(':'),
                     closeIcon: Icon(
                       Icons.arrow_drop_up,
                       size: 18,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     openIcon: Icon(
                       Icons.arrow_drop_down,
                       size: 18,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ),
@@ -126,7 +124,9 @@ class BottomNavBarWidget extends StatelessWidget {
           key: const Key("BottomBar"),
           barShadow: const [BoxShadow(blurRadius: 0)],
           selectedTab: view.index,
-          inactiveIconColor: Colors.black,
+          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
+          barBackgroundColor: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.primary,
           tabs: RawDataView.values
               .map(
                 (e) => TabData(

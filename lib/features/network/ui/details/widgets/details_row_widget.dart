@@ -18,27 +18,28 @@ class DetailsRowWidget extends StatelessWidget {
         if (name.isNotEmpty) ...[
           SelectableText(
             name,
-            style: const TextStyle(
-                fontWeight: FontWeight.w500, fontSize: 14, color: Colors.black),
+            style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
         ],
         SelectableText(
           value,
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         if (other != null) ...[
           const SizedBox(height: 4),
           SelectableText(
             other ?? '',
-            style: const TextStyle(fontSize: 12, color: Colors.black87),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
         const SizedBox(height: 8),
         Container(
           height: 1,
           width: double.maxFinite,
-          color: showDivider ? Colors.black12 : Colors.transparent,
+          color: showDivider
+              ? Theme.of(context).colorScheme.outline
+              : Colors.transparent,
         ),
       ],
     );

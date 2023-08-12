@@ -17,9 +17,9 @@ class NetworksListScreen extends StatelessWidget {
     final networkListBloc = context.watch<NetworksListBloc>();
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: NetworkCallAppBar(
         hasBottom: networkListBloc.state.filters.isNotEmpty,
+        infospect: infospect,
       ),
       body: BlocBuilder<NetworksListBloc, NetworksListState>(
         builder: (context, state) {

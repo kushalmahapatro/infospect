@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/models/logs_action.dart';
+import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/action_widget.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class LogsListAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const LogsListAppBar({super.key, this.hasBottom = false});
+  const LogsListAppBar(
+      {super.key, this.hasBottom = false, required this.infospect});
 
   final bool hasBottom;
+  final Infospect infospect;
 
   @override
   State<LogsListAppBar> createState() => _LogsListAppBarState();
@@ -35,8 +38,9 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
 
     return AppBar(
       elevation: 0,
-      backgroundColor: Colors.white,
-      iconTheme: const IconThemeData(color: Colors.black),
+      leading: BackButton(
+        onPressed: () => Navigator.of(widget.infospect.context!).pop(),
+      ),
       title: CupertinoSearchTextField(
         controller: _controller,
         focusNode: _focusNode,
@@ -99,14 +103,11 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
                           height: 14,
                           width: 14,
                           decoration: BoxDecoration(
-                              color: Colors.black,
-                              border: Border.all(color: Colors.black),
-                              shape: BoxShape.circle),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 12,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.primary,
+                            border: Border.all(color: Colors.black),
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.close_rounded, size: 12),
                         ),
                         labelPadding: const EdgeInsetsDirectional.only(
                           start: 4,

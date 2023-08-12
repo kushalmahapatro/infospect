@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
+import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/action_widget.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class NetworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const NetworkCallAppBar({super.key, this.hasBottom = false});
+  const NetworkCallAppBar(
+      {super.key, this.hasBottom = false, required this.infospect});
 
   final bool hasBottom;
+  final Infospect infospect;
 
   @override
   State<NetworkCallAppBar> createState() => _NetworkCallAppBarState();
@@ -35,8 +38,9 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
 
     return AppBar(
       elevation: 0,
-      backgroundColor: Colors.white,
-      iconTheme: const IconThemeData(color: Colors.black),
+      leading: BackButton(
+        onPressed: () => Navigator.of(widget.infospect.context!).pop(),
+      ),
       title: CupertinoSearchTextField(
         controller: _controller,
         focusNode: _focusNode,
@@ -99,14 +103,11 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
                           height: 14,
                           width: 14,
                           decoration: BoxDecoration(
-                              color: Colors.black,
-                              border: Border.all(color: Colors.black),
-                              shape: BoxShape.circle),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 12,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.primary,
+                            border: Border.all(),
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.close_rounded, size: 12),
                         ),
                         labelPadding: const EdgeInsetsDirectional.only(
                           start: 4,

@@ -3,23 +3,25 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-({IconData icon, Color color}) getIconAndColor(DiagnosticLevel level) {
+({IconData icon, Color color}) getIconAndColor(
+    DiagnosticLevel level, BuildContext context) {
+  final ColorScheme colorScheme = Theme.of(context).colorScheme;
   return switch (level) {
     DiagnosticLevel.hidden => (
         icon: Icons.hide_source,
-        color: Colors.black.withOpacity(0.6),
+        color: colorScheme.onSurface.withOpacity(0.6),
       ),
     DiagnosticLevel.fine => (
         icon: Icons.bubble_chart_outlined,
-        color: Colors.black.withOpacity(0.6),
+        color: colorScheme.onSurface.withOpacity(0.6),
       ),
     DiagnosticLevel.debug => (
         icon: Icons.bug_report_outlined,
-        color: Colors.black,
+        color: colorScheme.onSurface,
       ),
     DiagnosticLevel.info => (
         icon: Icons.info_outline,
-        color: Colors.black,
+        color: colorScheme.onSurface,
       ),
     DiagnosticLevel.warning => (
         icon: Icons.warning_outlined,
@@ -27,11 +29,11 @@ import 'package:flutter/material.dart';
       ),
     DiagnosticLevel.hint => (
         icon: Icons.privacy_tip_outlined,
-        color: Colors.black.withOpacity(0.6),
+        color: colorScheme.onSurface.withOpacity(0.6),
       ),
     DiagnosticLevel.summary => (
         icon: Icons.subject,
-        color: Colors.black,
+        color: colorScheme.onSurface,
       ),
     DiagnosticLevel.error => (
         icon: Icons.error_outlined,

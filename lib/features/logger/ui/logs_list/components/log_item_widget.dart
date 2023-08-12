@@ -12,9 +12,14 @@ class LogItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logData = getIconAndColor(log.level);
+    final ({IconData icon, Color color}) logData =
+        getIconAndColor(log.level, context);
 
-    final style = TextStyle(color: logData.color, fontSize: 14, height: 1);
+    final style = Theme.of(context).textTheme.titleMedium!.copyWith(
+          color: logData.color,
+        );
+
+    TextStyle(color: logData.color, fontSize: 14, height: 1);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
@@ -76,10 +81,7 @@ class _MessageWidget extends StatelessWidget {
       children: [
         HighlightText(
           text: formattedTimestamp,
-          style: style.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
+          style: style.copyWith(fontWeight: FontWeight.bold),
         ),
         HighlightText(
           text: ' ${log.message}',

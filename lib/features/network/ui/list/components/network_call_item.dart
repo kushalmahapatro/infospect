@@ -20,89 +20,104 @@ class NetworkCallItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(
-      fontSize: 10,
-      fontWeight: FontWeight.bold,
-      height: 1,
-      color: Colors.black45,
-    );
+    final TextTheme textTheme = Theme.of(context).textTheme;
+
     return InkWell(
       onTap: () => onItemClicked(networkCall),
       enableFeedback: true,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: const BoxDecoration(
-            border:
-                Border(bottom: BorderSide(width: 1, color: Colors.black12))),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+                width: 1, color: Theme.of(context).colorScheme.outline),
+          ),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 4),
+
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 4,
                 children: [
-                  ConditionalWidget(
-                    condition: networkCall.loading,
-                    ifTrue: SizedBox(
-                      width: 10,
-                      height: 10,
-                      child: CircularProgressIndicator(
-                        color: Colors.red[400],
-                        strokeWidth: 1,
-                      ),
-                    ),
-                    ifFalse: Container(
-                      height: 10,
-                      width: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            networkCall.response?.getStatusTextColor(context),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    networkCall.method,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      height: 1,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  /// Loader or status indicator
+                  _StatusIndicatorWidget(networkCall: networkCall),
+
+                  /// Method
+                  Text(networkCall.method, style: textTheme.labelMedium),
+
+                  /// Status
                   _ResponseStatusWidget(networkCall),
+
+                  /// Time
                   Text(
                     ' • ${(networkCall.request?.time ?? DateTime.now()).formatTime}',
-                    style: style,
+                    style: textTheme.labelSmall,
                   ),
-                  Text(' • ${networkCall.duration.toReadableTime}',
-                      style: style),
+
+                  /// Duration
+                  Text(
+                    ' • ${networkCall.duration.toReadableTime}',
+                    style: textTheme.labelSmall,
+                  ),
+
+                  /// Transfered bytes
                   Text(
                     " • ${(networkCall.request?.size ?? 0).toReadableBytes} ↑ / "
                     "${(networkCall.response?.size ?? 0).toReadableBytes} ↓",
-                    style: style,
+                    style: textTheme.labelSmall,
                   )
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
+
+              /// Path
               HighlightText(
                 text: networkCall.uri,
                 highlight: searchedText,
                 selectable: false,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  height: 1,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+
+              const SizedBox(height: 10),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusIndicatorWidget extends StatelessWidget {
+  const _StatusIndicatorWidget({
+    required this.networkCall,
+  });
+
+  final InfospectNetworkCall networkCall;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConditionalWidget(
+      condition: networkCall.loading,
+      ifTrue: SizedBox(
+        width: 10,
+        height: 10,
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.error,
+          strokeWidth: 1,
+        ),
+      ),
+      ifFalse: Container(
+        height: 10,
+        width: 10,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: networkCall.response?.getStatusTextColor(context),
         ),
       ),
     );
@@ -120,12 +135,7 @@ class _ResponseStatusWidget extends StatelessWidget {
       ifTrue: const SizedBox.shrink(),
       ifFalse: Text(
         ' • ${networkCall.response?.statusString ?? ''}',
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: Colors.black45,
-          height: 1,
-        ),
+        style: Theme.of(context).textTheme.labelSmall,
       ),
     );
   }

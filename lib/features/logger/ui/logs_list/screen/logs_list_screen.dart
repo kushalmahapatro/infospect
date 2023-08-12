@@ -14,10 +14,9 @@ class LogsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final logsListBloc = context.watch<LogsListBloc>();
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: LogsListAppBar(
-        hasBottom: logsListBloc.state.filters.isNotEmpty,
-      ),
+          hasBottom: logsListBloc.state.filters.isNotEmpty,
+          infospect: infospect),
       body: BlocBuilder<LogsListBloc, LogsListState>(
         builder: (context, state) {
           return ListView.builder(

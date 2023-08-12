@@ -6,12 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
+enum InvokerState { alwaysOpened, collapsable }
+
 class InfospectInvoker extends StatefulWidget {
-  const InfospectInvoker(
-      {super.key, required this.child, required this.infospect});
+  const InfospectInvoker({
+    super.key,
+    required this.child,
+    required this.infospect,
+    this.state = InvokerState.alwaysOpened,
+  });
 
   final Widget child;
   final Infospect infospect;
+  final InvokerState state;
 
   @override
   State<InfospectInvoker> createState() => _DevOptionsBuilderState();
@@ -24,13 +31,19 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
   Timer? timer;
 
   void initialValues({bool isInit = false}) {
-    if (end == 0 && !isInit) return;
-    end = 0;
-    borderRadius = const BorderRadiusDirectional.only(
-      topStart: Radius.circular(5),
-      bottomStart: Radius.circular(5),
-    );
-    width = 5;
+    if (widget.state == InvokerState.alwaysOpened) {
+      end = 2;
+      borderRadius = BorderRadius.circular(25);
+      width = 50;
+    } else {
+      if (end == 0 && !isInit) return;
+      end = 0;
+      borderRadius = const BorderRadiusDirectional.only(
+        topStart: Radius.circular(5),
+        bottomStart: Radius.circular(5),
+      );
+      width = 5;
+    }
     setState(() {});
   }
 
@@ -104,21 +117,27 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanUpdate: (details) {
-                    timer?.cancel();
-                    if (details.delta.dx < 0) {
-                      changedValues();
-                      startTimer();
-                    } else if (details.delta.dx > 0) {
-                      initialValues();
+                    if (widget.state == InvokerState.collapsable) {
+                      timer?.cancel();
+                      if (details.delta.dx < 0) {
+                        changedValues();
+                        startTimer();
+                      } else if (details.delta.dx > 0) {
+                        initialValues();
+                      }
                     }
                   },
                   onTap: () {
-                    timer?.cancel();
-                    if (end == 0) {
-                      changedValues();
-                      startTimer();
+                    if (widget.state == InvokerState.collapsable) {
+                      timer?.cancel();
+                      if (end == 0) {
+                        changedValues();
+                        startTimer();
+                      } else {
+                        initialValues();
+                        widget.infospect.navigateToInterceptor();
+                      }
                     } else {
-                      initialValues();
                       widget.infospect.navigateToInterceptor();
                     }
                   },

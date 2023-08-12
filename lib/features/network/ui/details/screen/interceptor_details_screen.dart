@@ -18,17 +18,13 @@ class InterceptorDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
         title: Text(
           call.server,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.black),
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: BlocSelector<InterceptorDetailsBloc, InterceptorDetailsState, int>(
         selector: (state) => state.selectedTab,
@@ -73,7 +69,9 @@ class BottomNavBarWidget extends StatelessWidget {
           key: const Key("BottomBar"),
           barShadow: const [BoxShadow(blurRadius: 0)],
           selectedTab: index,
-          inactiveIconColor: Colors.black,
+          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
+          barBackgroundColor: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.primary,
           tabs: tabs,
           onTabChangedListener: (position, headline6, backgroundColor) async {
             if (position == tabs.length - 1) {

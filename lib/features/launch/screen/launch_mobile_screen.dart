@@ -14,7 +14,6 @@ class LaunchMobileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: BlocSelector<LaunchBloc, LaunchState, int>(
         selector: (state) => state.selectedTab,
         builder: (context, index) {
@@ -46,7 +45,9 @@ class BottomNavBarWidget extends StatelessWidget {
           key: const Key("BottomBar"),
           barShadow: const [BoxShadow(blurRadius: 0)],
           selectedTab: index,
-          inactiveIconColor: Colors.black,
+          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
+          barBackgroundColor: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.primary,
           tabs: NavigationTabData.tabs,
           onTabChangedListener: (position, headline6, backgroundColor) {
             context.read<LaunchBloc>().add(

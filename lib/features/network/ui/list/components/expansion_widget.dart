@@ -48,9 +48,11 @@ class ExpansionWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       margin: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black, width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onPrimary,
+          width: 1,
+        ),
       ),
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded,
@@ -59,14 +61,14 @@ class ExpansionWidget extends StatelessWidget {
         expandedAlignment: Alignment.center,
         controlAffinity: ListTileControlAffinity.platform,
         shape: Border.all(color: Colors.transparent),
-        textColor: Colors.black,
+        iconColor: Theme.of(context).colorScheme.secondary,
+        collapsedIconColor: Theme.of(context).colorScheme.onPrimary,
         title: Row(
           children: [
             Expanded(
               child: Text(
                 title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             trailing ?? const SizedBox.shrink(),

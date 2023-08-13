@@ -15,7 +15,7 @@ class LogItemWidget extends StatelessWidget {
     final ({IconData icon, Color color}) logData =
         getIconAndColor(log.level, context);
 
-    final style = Theme.of(context).textTheme.titleMedium!.copyWith(
+    final style = Theme.of(context).textTheme.labelMedium!.copyWith(
           color: logData.color,
         );
 

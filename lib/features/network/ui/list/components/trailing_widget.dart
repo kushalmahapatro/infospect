@@ -32,10 +32,7 @@ class TrailingWidget extends StatelessWidget {
       },
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.blue,
-        ),
+        style: Theme.of(context).textTheme.labelSmall,
       ),
     );
   }

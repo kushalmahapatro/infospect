@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
-enum InvokerState { alwaysOpened, collapsable }
+enum InvokerState { alwaysOpened, collapsable, autoCollapse }
 
 class InfospectInvoker extends StatefulWidget {
   const InfospectInvoker({
@@ -35,7 +35,8 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
       end = 2;
       borderRadius = BorderRadius.circular(25);
       width = 50;
-    } else {
+    } else if (widget.state == InvokerState.autoCollapse ||
+        widget.state == InvokerState.collapsable) {
       if (end == 0 && !isInit) return;
       end = 0;
       borderRadius = const BorderRadiusDirectional.only(
@@ -56,11 +57,10 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
   }
 
   void startTimer() {
-    timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      setState(() {
-        initialValues();
-      });
-    });
+    if (widget.state == InvokerState.autoCollapse) {
+      timer = Timer.periodic(
+          const Duration(seconds: 5), (timer) => setState(initialValues));
+    }
   }
 
   @override
@@ -84,7 +84,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                   await widget.infospect.openInspectorInNewWindow();
                 },
                 shortcut: const CharacterActivator('m'),
-                label: 'Show Dev Options',
+                label: 'Infospect',
               ),
             ],
           ),
@@ -117,28 +117,39 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanUpdate: (details) {
-                    if (widget.state == InvokerState.collapsable) {
-                      timer?.cancel();
-                      if (details.delta.dx < 0) {
-                        changedValues();
-                        startTimer();
-                      } else if (details.delta.dx > 0) {
-                        initialValues();
-                      }
+                    switch (widget.state) {
+                      case InvokerState.collapsable ||
+                            InvokerState.autoCollapse:
+                        timer?.cancel();
+                        if (details.delta.dx < 0) {
+                          changedValues();
+                          startTimer();
+                        } else if (details.delta.dx > 0) {
+                          initialValues();
+                        }
+                        break;
+
+                      case InvokerState.alwaysOpened:
+                        break;
                     }
                   },
                   onTap: () {
-                    if (widget.state == InvokerState.collapsable) {
-                      timer?.cancel();
-                      if (end == 0) {
-                        changedValues();
-                        startTimer();
-                      } else {
-                        initialValues();
+                    switch (widget.state) {
+                      case InvokerState.collapsable ||
+                            InvokerState.autoCollapse:
+                        timer?.cancel();
+                        if (end == 0) {
+                          changedValues();
+                          startTimer();
+                        } else {
+                          initialValues();
+                          widget.infospect.navigateToInterceptor();
+                        }
+                        break;
+
+                      case InvokerState.alwaysOpened:
                         widget.infospect.navigateToInterceptor();
-                      }
-                    } else {
-                      widget.infospect.navigateToInterceptor();
+                        break;
                     }
                   },
                   child: Padding(

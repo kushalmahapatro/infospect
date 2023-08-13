@@ -1,4 +1,3 @@
-import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
@@ -7,6 +6,7 @@ import 'package:infospect/features/network/ui/details/components/interceptor_det
 import 'package:infospect/features/network/ui/details/components/interceptor_details_request.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_response.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/app_bottom_bar.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -54,10 +54,10 @@ class BottomNavBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      TabData(iconData: Icons.arrow_upward, title: "Request"),
-      TabData(iconData: Icons.arrow_downward, title: "Response"),
-      TabData(iconData: Icons.warning, title: "Error"),
-      TabData(iconData: Icons.share, title: "Share")
+      (icon: Icons.arrow_upward, title: "Request"),
+      (icon: Icons.arrow_downward, title: "Response"),
+      (icon: Icons.warning, title: "Error"),
+      (icon: Icons.share, title: "Share")
     ];
     if (call.error == null) {
       tabs.removeAt(2);
@@ -65,15 +65,10 @@ class BottomNavBarWidget extends StatelessWidget {
     return BlocSelector<InterceptorDetailsBloc, InterceptorDetailsState, int>(
       selector: (state) => state.selectedTab,
       builder: (context, index) {
-        return CubertoBottomBar(
-          key: const Key("BottomBar"),
-          barShadow: const [BoxShadow(blurRadius: 0)],
-          selectedTab: index,
-          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
-          barBackgroundColor: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.primary,
+        return AppBottomBar(
+          selectedIndex: index,
           tabs: tabs,
-          onTabChangedListener: (position, headline6, backgroundColor) async {
+          tabChangedCallback: (position) async {
             if (position == tabs.length - 1) {
               Share.share(
                 await call.sharableData,

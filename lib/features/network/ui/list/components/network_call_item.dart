@@ -74,7 +74,7 @@ class NetworkCallItem extends StatelessWidget {
                   )
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
 
               /// Path
               HighlightText(

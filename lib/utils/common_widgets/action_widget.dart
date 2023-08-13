@@ -41,6 +41,7 @@ class AppBarActionWidget extends StatelessWidget {
                 Navigator.of(context).pop();
               },
               padding: EdgeInsets.zero,
+              tooltip: '',
               child: _MenuItem(
                 action: action,
                 selectedActions: selectedActions,
@@ -56,6 +57,7 @@ class AppBarActionWidget extends StatelessWidget {
           onItemSelected.call(value);
         }
       },
+      tooltip: '',
       child: Container(
         width: 40,
         height: 40,
@@ -119,7 +121,7 @@ class _MenuItem extends StatelessWidget {
     );
 
     if (action.subActions.isEmpty && !isSubAction) {
-      return InkWell(
+      return GestureDetector(
         onTap: () {
           if (action.subActions.isEmpty) {
             Navigator.of(context).pop();

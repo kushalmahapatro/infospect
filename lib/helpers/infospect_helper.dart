@@ -19,8 +19,10 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
-import 'package:infospect/infospect.dart';
+import 'package:infospect/helpers/model_theme.dart';
 import 'package:infospect/utils/infospect_util.dart';
+// ignore: depend_on_referenced_packages
+import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Infospect {
@@ -32,18 +34,6 @@ class Infospect {
 
   final BehaviorSubject<List<InfospectNetworkCall>> callsSubject =
       BehaviorSubject.seeded([]);
-
-  /// Light Theme
-  ThemeData _lightTheme = InfospectTheme.lightTheme;
-  set lightTheme(ThemeData theme) => _lightTheme = theme;
-
-  /// Dark theme
-  ThemeData _darkTheme = InfospectTheme.lightTheme;
-  set darkthem(ThemeData theme) => _darkTheme = theme;
-
-  /// Theme mode
-  ThemeMode _themeMode = ThemeMode.light;
-  set themeMode(ThemeMode themeMode) => _themeMode = themeMode;
 
   final InfospectLogger infospectLogger = InfospectLogger();
 
@@ -69,14 +59,13 @@ class Infospect {
             'args2': 100,
             'args3': true,
             'business': 'business_test',
-            'theme_mode': _themeMode.name,
           },
         ),
       );
       window
         ..setFrame(const Offset(0, 0) & const Size(1280, 720))
         ..center()
-        ..setTitle('Dev options');
+        ..setTitle('Infospect');
 
       window.show().then((value) {
         this
@@ -86,37 +75,31 @@ class Infospect {
     }
   }
 
-  MaterialPageRoute interceptorScreen(ThemeMode? themeMode) =>
-      MaterialPageRoute<dynamic>(
-        builder: (context) => MaterialApp(
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
-          themeMode: themeMode ?? _themeMode,
-          home: MultiBlocProvider(
-            providers: [
-              BlocProvider(
-                create: (_) => LaunchBloc(),
+  MaterialPageRoute interceptorScreen() => MaterialPageRoute<dynamic>(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => LaunchBloc(),
+            ),
+            BlocProvider(
+              create: (_) => NetworksListBloc(
+                infospect: this,
               ),
-              BlocProvider(
-                create: (_) => NetworksListBloc(
-                  infospect: this,
-                ),
+            ),
+            BlocProvider(
+              create: (_) => LogsListBloc(
+                infospectLogger: infospectLogger,
               ),
-              BlocProvider(
-                create: (_) => LogsListBloc(
-                  infospectLogger: infospectLogger,
-                ),
-              ),
-            ],
-            child: InfospectLaunchScreen(this),
-          ),
+            ),
+          ],
+          child: InfospectLaunchScreen(this),
         ),
       );
 
-  Widget openInterceptor(ThemeMode? themeMode) =>
-      Navigator(onGenerateRoute: (settings) => interceptorScreen(themeMode));
+  Widget openInterceptor() =>
+      Navigator(onGenerateRoute: (settings) => interceptorScreen());
 
-  void navigateToInterceptor([ThemeMode? themeMode]) {
+  void navigateToInterceptor() {
     if (context == null) {
       InfospectUtil.log(
         "Cant start HTTP Inspector. Please add NavigatorKey to your application",
@@ -127,7 +110,7 @@ class Infospect {
       isInspectorOpened.value = true;
       Navigator.push<void>(
         context!,
-        interceptorScreen(themeMode),
+        interceptorScreen(),
       ).then(
         (onValue) => isInspectorOpened.value = false,
       );
@@ -136,7 +119,11 @@ class Infospect {
 
   Future<void> _sendDataToSubWindow({required Map<String, List> data}) async {
     if (Platform.isAndroid || Platform.isIOS) return;
-    List<int> subWindowIds = await DesktopMultiWindow.getAllSubWindowIds();
+    List<int> subWindowIds = [];
+
+    try {
+      subWindowIds = await DesktopMultiWindow.getAllSubWindowIds();
+    } catch (_) {}
 
     /// Return if there's no sub windows
     if (subWindowIds.isEmpty) return;
@@ -224,42 +211,49 @@ class Infospect {
       callsSubject.value.indexWhere((call) => call.id == requestId);
 
   void addLog(InfospectLog log) {
-    infospectLogger.add(log);
-    sendLogs();
+    if (Platform.isAndroid || Platform.isIOS) {
+      infospectLogger.add(log);
+    }
+    sendLogs([log]);
   }
 
   void addLogs(List<InfospectLog> logs) {
-    infospectLogger.logs.addAll(logs);
-    sendLogs();
+    if (Platform.isAndroid || Platform.isIOS) {
+      infospectLogger.logs.addAll(logs);
+    }
+    sendLogs(logs);
   }
 
-  void sendLogs() {
-    _sendDataToSubWindow(data: infospectLogger.logsMap);
+  void sendLogs([List<InfospectLog>? logs]) {
+    if (logs == null) {
+      _sendDataToSubWindow(data: infospectLogger.logsMap);
+    } else {
+      _sendDataToSubWindow(data: {
+        'logs': logs.map<Map<String, dynamic>>((e) => e.toMap()).toList()
+      });
+    }
   }
 
   void run(List<String> args, {required Widget myApp}) {
     if (args.firstOrNull == 'multi_window') {
-      ThemeMode themeMode = _themeMode;
-      try {
-        if (jsonDecode(args[2])['theme_mode'] == 'dark') {
-          themeMode = ThemeMode.dark;
-        } else {
-          themeMode = ThemeMode.light;
-        }
-      } catch (_) {
-        print(_);
-      }
       runApp(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          localizationsDelegates: const <LocalizationsDelegate<Object>>[],
-          supportedLocales: const <Locale>[
-            Locale('en', 'US'), // English
-          ],
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
-          themeMode: themeMode,
-          home: openInterceptor(themeMode),
+        ChangeNotifierProvider(
+          create: (_) => ModelTheme(),
+          child: Consumer<ModelTheme>(
+            builder: (context, ModelTheme themeNotifier, child) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                localizationsDelegates: const <LocalizationsDelegate<Object>>[],
+                supportedLocales: const <Locale>[
+                  Locale('en', 'US'), // English
+                ],
+                theme: themeNotifier.isDark
+                    ? ThemeData.dark(useMaterial3: true)
+                    : ThemeData(useMaterial3: true),
+                home: openInterceptor(),
+              );
+            },
+          ),
         ),
       );
     } else {

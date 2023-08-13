@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:infospect/utils/common_widgets/conditional_widget.dart';
 
 class HighlightText extends StatelessWidget {
   final String text;
@@ -9,23 +10,42 @@ class HighlightText extends StatelessWidget {
   final bool ignoreCase;
   final bool selectable;
 
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final bool? softWrap;
+
   const HighlightText({
     super.key,
     required this.text,
     this.highlight,
     this.style,
-    this.highlightColor = Colors.yellow,
+    this.highlightColor = const Color.fromRGBO(255, 255, 0, 0.3),
     this.highlightStyle,
     this.ignoreCase = false,
     this.selectable = true,
+    this.maxLines,
+    this.overflow,
+    this.softWrap,
   });
 
   @override
   Widget build(BuildContext context) {
     if ((highlight?.isEmpty ?? true) || text.isEmpty) {
-      return selectable
-          ? SelectableText(text, style: style)
-          : Text(text, style: style);
+      return ConditionalWidget(
+        condition: selectable,
+        ifTrue: SelectableText(
+          text,
+          style: style,
+          maxLines: maxLines,
+        ),
+        ifFalse: Text(
+          text,
+          style: style,
+          maxLines: maxLines,
+          overflow: overflow,
+          softWrap: softWrap,
+        ),
+      );
     }
 
     final String sourceText = ignoreCase ? text.toLowerCase() : text;
@@ -49,9 +69,19 @@ class HighlightText extends StatelessWidget {
       spans.add(_highlightSpan(text.substring(indexOfHighlight, start)));
     } while (true);
 
-    return selectable
-        ? SelectableText.rich(TextSpan(children: spans))
-        : Text.rich(TextSpan(children: spans));
+    return ConditionalWidget(
+      condition: selectable,
+      ifTrue: SelectableText.rich(
+        TextSpan(children: spans),
+        maxLines: maxLines,
+      ),
+      ifFalse: Text.rich(
+        TextSpan(children: spans),
+        maxLines: maxLines,
+        overflow: overflow,
+        softWrap: softWrap,
+      ),
+    );
   }
 
   TextSpan _highlightSpan(String content) {

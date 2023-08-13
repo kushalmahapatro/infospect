@@ -1,9 +1,12 @@
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/logger/models/infospect_log.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/screen/desktop_details_screen.dart';
+import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/features/network/ui/list/components/network_call_app_bar.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_table.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
@@ -68,30 +71,38 @@ class _DesktopNetworksListScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return DraggableTable(
-                infospect: widget.infospect,
-                onCallSelected: (call) => updateSelectedCall(call),
-                selectedCall: selectedCall,
-                constraints: constraints,
-              );
-            },
+    final networkListBloc = context.watch<NetworksListBloc>();
+
+    return Scaffold(
+      appBar: NetworkCallAppBar.desktop(
+        infospect: widget.infospect,
+        hasBottom: networkListBloc.state.filters.isNotEmpty,
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return DraggableTable(
+                  infospect: widget.infospect,
+                  onCallSelected: (call) => updateSelectedCall(call),
+                  selectedCall: selectedCall,
+                  constraints: constraints,
+                );
+              },
+            ),
           ),
-        ),
-        AppDivider.horizontal(),
-        Expanded(
-          child: DesktopDetailsScreen(
-            selectedCall: selectedCall,
-            infospect: widget.infospect,
+          AppDivider.horizontal(),
+          Expanded(
+            child: DesktopDetailsScreen(
+              selectedCall: selectedCall,
+              infospect: widget.infospect,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

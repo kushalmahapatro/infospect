@@ -5,8 +5,8 @@ import 'package:infospect/features/logger/ui/logs_list/components/log_item_widge
 import 'package:infospect/features/logger/ui/logs_list/components/logs_list_app_bar.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
-class LogsListScreen extends StatelessWidget {
-  const LogsListScreen(this.infospect, {super.key});
+class DesktopLogsListScreen extends StatelessWidget {
+  const DesktopLogsListScreen(this.infospect, {super.key});
 
   final Infospect infospect;
 
@@ -14,7 +14,7 @@ class LogsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final logsListBloc = context.watch<LogsListBloc>();
     return Scaffold(
-      appBar: LogsListAppBar(
+      appBar: LogsListAppBar.desktop(
         hasBottom: logsListBloc.state.filters.isNotEmpty,
         infospect: infospect,
       ),

@@ -1,11 +1,11 @@
-import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:infospect/utils/common_widgets/app_bottom_bar.dart';
 
 abstract class NavigationTabData {
-  static List<TabData> get tabs {
+  static List<BottomBarItem> get tabs {
     return [
-      TabData(iconData: FontAwesomeIcons.globe, title: "Network calls"),
-      TabData(iconData: FontAwesomeIcons.list, title: "Logs")
+      (icon: FontAwesomeIcons.globe, title: "Network calls"),
+      (icon: FontAwesomeIcons.list, title: "Logs")
     ];
   }
 }

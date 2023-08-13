@@ -93,7 +93,9 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
     }
 
     if (finalFilters.isEmpty) {
-      return state.copyWith(filteredCalls: calls, calls: totalCalls);
+      final callsToShow = searched.isEmpty ? calls : filteredList;
+
+      return state.copyWith(filteredCalls: callsToShow, calls: totalCalls);
     }
 
     final listToCheck = filteredList.isEmpty ? calls : filteredList;

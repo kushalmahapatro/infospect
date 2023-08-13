@@ -1,26 +1,30 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
-import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/action_widget.dart';
+import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class NetworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
   const NetworkCallAppBar(
-      {super.key, this.hasBottom = false, required this.infospect});
+      {super.key, this.hasBottom = false, required this.infospect})
+      : isDesktop = false;
+
+  const NetworkCallAppBar.desktop(
+      {super.key, this.hasBottom = false, required this.infospect})
+      : isDesktop = true;
 
   final bool hasBottom;
   final Infospect infospect;
+  final bool isDesktop;
 
   @override
   State<NetworkCallAppBar> createState() => _NetworkCallAppBarState();
 
   @override
   Size get preferredSize => hasBottom
-      ? const Size.fromHeight(kToolbarHeight + 40)
-      : const Size.fromHeight(kTextTabBarHeight);
+      ? Size.fromHeight(isDesktop ? 74 : kToolbarHeight + 40)
+      : Size.fromHeight(isDesktop ? 40 : kToolbarHeight);
 }
 
 class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
@@ -38,15 +42,18 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
 
     return AppBar(
       elevation: 0,
-      leading: BackButton(
-        onPressed: () => Navigator.of(widget.infospect.context!).pop(),
-      ),
-      title: CupertinoSearchTextField(
+      leading: widget.isDesktop
+          ? null
+          : BackButton(
+              onPressed: () => Navigator.of(widget.infospect.context!).pop(),
+            ),
+      title: AppSearchBar(
         controller: _controller,
         focusNode: _focusNode,
-        onChanged: (value) {
-          networkListBloc.add(NetworkLogsSearched(text: value));
-        },
+        isDesktop: widget.isDesktop,
+        onChanged: (value) => networkListBloc.add(
+          NetworkLogsSearched(text: value),
+        ),
       ),
       actions: [
         AppBarActionWidget(
@@ -62,7 +69,7 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
           onItemSelected: (value) {},
         ),
       ],
-      bottom: widget.hasBottom ? const _BottomWidget() : null,
+      bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,
     );
   }
 
@@ -76,7 +83,9 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
 }
 
 class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
-  const _BottomWidget();
+  const _BottomWidget(this.isDesktop);
+
+  final bool isDesktop;
 
   @override
   Size get preferredSize => const Size.fromHeight(30);
@@ -88,43 +97,58 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
         return state.filters;
       },
       builder: (context, filters) {
-        return SizedBox(
-          width: MediaQuery.sizeOf(context).width - 10,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: filters
-                  .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Chip(
-                        label: Text(e.name),
-                        deleteIcon: Container(
-                          height: 14,
-                          width: 14,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            border: Border.all(),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.close_rounded, size: 12),
-                        ),
-                        labelPadding: const EdgeInsetsDirectional.only(
-                          start: 4,
-                        ),
-                        onDeleted: () {
-                          context.read<NetworksListBloc>().add(
-                                NetowrkLogsFilterRemoved(action: e),
-                              );
-                        },
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SizedBox(
+              width: constraints.maxWidth - 10,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: filters.map(
+                    (e) {
+                      return ConditionalWidget(
+                          condition: isDesktop,
+                          ifTrue: Transform(
+                              transform: Matrix4.identity()..scale(0.8),
+                              child: chip(e, context)),
+                          ifFalse: chip(e, context));
+                    },
+                  ).toList(),
+                ),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Padding chip(PopupAction<dynamic> e, BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 0 : 8,
+      ),
+      child: Chip(
+        label: Text(e.name),
+        deleteIcon: Container(
+          height: 14,
+          width: 14,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            border: Border.all(),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.close_rounded, size: 12),
+        ),
+        labelPadding: const EdgeInsetsDirectional.only(
+          start: 4,
+        ),
+        onDeleted: () {
+          context.read<NetworksListBloc>().add(
+                NetowrkLogsFilterRemoved(action: e),
+              );
+        },
+      ),
     );
   }
 }

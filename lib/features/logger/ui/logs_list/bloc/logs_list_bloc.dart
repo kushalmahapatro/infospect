@@ -81,19 +81,23 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     final searched = state.searchedText.toLowerCase();
 
     if (searched.isNotEmpty) {
-      filteredList = logs.where((element) {
-        return element.error.toString().toLowerCase().contains(searched) ||
-            element.message.toLowerCase().contains(searched) ||
-            element.stackTrace.toString().toLowerCase().contains(searched) ||
-            element.timestamp.toString().toLowerCase().contains(searched);
-      }).toList();
+      filteredList = logs.where(
+        (element) {
+          return element.error.toString().toLowerCase().contains(searched) ||
+              element.message.toLowerCase().contains(searched) ||
+              element.stackTrace.toString().toLowerCase().contains(searched) ||
+              element.timestamp.toString().toLowerCase().contains(searched);
+        },
+      ).toList();
     }
 
     if (filter.isEmpty) {
-      return state.copyWith(filteredLogs: logs, logs: totalLogs);
+      final logsToShow = searched.isEmpty ? logs : filteredList;
+      return state.copyWith(filteredLogs: logsToShow, logs: totalLogs);
     }
 
-    final listToCheck = filteredList.isEmpty ? logs : filteredList;
+    final listToCheck =
+        filteredList.isEmpty && searched.isEmpty ? logs : filteredList;
 
     final list = listToCheck
         .where((element) => filter

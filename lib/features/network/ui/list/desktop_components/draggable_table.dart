@@ -1,14 +1,16 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
-import 'package:window_manager/window_manager.dart';
 
 class DraggableTable extends StatefulWidget {
   const DraggableTable({
@@ -29,8 +31,7 @@ class DraggableTable extends StatefulWidget {
   State<DraggableTable> createState() => _DraggableTableState();
 }
 
-class _DraggableTableState extends DesktopCallListStates<DraggableTable>
-    with WindowListener {
+class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
   final verticalScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
 
@@ -63,10 +64,10 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable>
   }
 
   Widget _resizableColumnWidth() {
-    return StreamBuilder<List<InfospectNetworkCall>>(
-      stream: widget.infospect.callsSubject,
-      builder: (context, snapshot) {
-        List<InfospectNetworkCall> calls = snapshot.data ?? [];
+    return BlocBuilder<NetworksListBloc, NetworksListState>(
+      builder: (context, state) {
+        List<InfospectNetworkCall> calls = state.filteredCalls;
+        final color = Theme.of(context).colorScheme.onBackground;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -79,21 +80,22 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable>
               columnSpacing: 4,
               horizontalMargin: 0,
               showCheckboxColumn: false,
-              headingRowColor:
-                  MaterialStateProperty.all(Colors.black.withOpacity(0.2)),
-              headingTextStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold),
+              headingRowColor: MaterialStateProperty.all(
+                color.withOpacity(0.2),
+              ),
+              headingTextStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
               border: const TableBorder(
                 horizontalInside: BorderSide(
                   width: 0.1,
-                  color: Colors.black,
                 ),
               ),
-              dataTextStyle: const TextStyle(
+              dataTextStyle: TextStyle(
                 fontSize: 12,
-                color: Colors.black,
+                color: color,
               ),
               columns: dataCellStates.mapIndexed(
                 (index, element) {
@@ -133,6 +135,7 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable>
                     dataCellWidget(
                       data: element.uri,
                       width: dataCellStates.width(CellId.Url),
+                      highlight: state.searchedText,
                     ),
                     dataCellWidget(
                       data: element.client,
@@ -196,14 +199,18 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable>
 }
 
 DataCell dataCellWidget(
-    {required String data, required double width, Widget? widget}) {
+    {required String data,
+    required double width,
+    Widget? widget,
+    String? highlight}) {
   return DataCell(
     Container(
       constraints: BoxConstraints(maxWidth: width),
       padding: const EdgeInsetsDirectional.only(start: 2),
       child: widget ??
-          Text(
-            data,
+          HighlightText(
+            text: data,
+            highlight: highlight,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: true,

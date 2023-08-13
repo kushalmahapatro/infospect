@@ -1,26 +1,30 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/models/logs_action.dart';
-import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/action_widget.dart';
+import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class LogsListAppBar extends StatefulWidget implements PreferredSizeWidget {
   const LogsListAppBar(
-      {super.key, this.hasBottom = false, required this.infospect});
+      {super.key, this.hasBottom = false, required this.infospect})
+      : isDesktop = false;
+
+  const LogsListAppBar.desktop(
+      {super.key, this.hasBottom = false, required this.infospect})
+      : isDesktop = true;
 
   final bool hasBottom;
   final Infospect infospect;
+  final bool isDesktop;
 
   @override
   State<LogsListAppBar> createState() => _LogsListAppBarState();
 
   @override
   Size get preferredSize => hasBottom
-      ? const Size.fromHeight(kToolbarHeight + 40)
-      : const Size.fromHeight(kTextTabBarHeight);
+      ? Size.fromHeight(isDesktop ? 74 : kToolbarHeight + 40)
+      : Size.fromHeight(isDesktop ? 40 : kToolbarHeight);
 }
 
 class _LogsListAppBarState extends State<LogsListAppBar> {
@@ -38,15 +42,18 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
 
     return AppBar(
       elevation: 0,
-      leading: BackButton(
-        onPressed: () => Navigator.of(widget.infospect.context!).pop(),
-      ),
-      title: CupertinoSearchTextField(
+      leading: widget.isDesktop
+          ? null
+          : BackButton(
+              onPressed: () => Navigator.of(widget.infospect.context!).pop(),
+            ),
+      title: AppSearchBar(
         controller: _controller,
         focusNode: _focusNode,
-        onChanged: (value) {
-          logsBloc.add(TextSearched(text: value));
-        },
+        isDesktop: widget.isDesktop,
+        onChanged: (value) => logsBloc.add(
+          TextSearched(text: value),
+        ),
       ),
       actions: [
         AppBarActionWidget(
@@ -62,7 +69,7 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
           onItemSelected: (value) {},
         ),
       ],
-      bottom: widget.hasBottom ? const _BottomWidget() : null,
+      bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,
     );
   }
 
@@ -76,7 +83,9 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
 }
 
 class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
-  const _BottomWidget();
+  const _BottomWidget(this.isDesktop);
+
+  final bool isDesktop;
 
   @override
   Size get preferredSize => const Size.fromHeight(30);
@@ -95,28 +104,36 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
             child: Row(
               children: filters
                   .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Chip(
-                        label: Text(e.name),
-                        deleteIcon: Container(
-                          height: 14,
-                          width: 14,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            border: Border.all(color: Colors.black),
-                            shape: BoxShape.circle,
+                    (e) => Transform(
+                      transform: Matrix4.identity()..scale(isDesktop ? 0.8 : 1),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? 0 : 8,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Chip(
+                            label: Text(e.name),
+                            deleteIcon: Container(
+                              height: 14,
+                              width: 14,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                border: Border.all(color: Colors.black),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close_rounded, size: 12),
+                            ),
+                            labelPadding: const EdgeInsetsDirectional.only(
+                              start: 4,
+                            ),
+                            onDeleted: () {
+                              context.read<LogsListBloc>().add(
+                                    LogsFilterRemoved(action: e),
+                                  );
+                            },
                           ),
-                          child: const Icon(Icons.close_rounded, size: 12),
                         ),
-                        labelPadding: const EdgeInsetsDirectional.only(
-                          start: 4,
-                        ),
-                        onDeleted: () {
-                          context.read<LogsListBloc>().add(
-                                LogsFilterRemoved(action: e),
-                              );
-                        },
                       ),
                     ),
                   )

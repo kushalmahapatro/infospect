@@ -41,12 +41,12 @@ class DataCellState {
 enum CellId {
   State(0, '', minWidth: 26, maxWidth: 26),
   Id(1, 'Id', minWidth: 30, maxWidth: 40),
-  Url(2, 'Url', maxWidth: 400),
+  Url(2, 'Url', maxWidth: 400, minWidth: 300),
   Client(3, 'Client'),
   Method(4, 'Method'),
   Status(5, 'Status'),
   Code(6, 'Code'),
-  Time(7, 'Time'),
+  Time(7, 'Time', minWidth: 80, maxWidth: 200),
   Duration(8, 'Duration'),
   Secure(9, 'Secure');
 

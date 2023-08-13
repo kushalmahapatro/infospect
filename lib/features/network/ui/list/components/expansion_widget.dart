@@ -50,7 +50,7 @@ class ExpansionWidget extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.onPrimary,
+          color: Theme.of(context).colorScheme.onBackground,
           width: 1,
         ),
       ),
@@ -61,8 +61,8 @@ class ExpansionWidget extends StatelessWidget {
         expandedAlignment: Alignment.center,
         controlAffinity: ListTileControlAffinity.platform,
         shape: Border.all(color: Colors.transparent),
-        iconColor: Theme.of(context).colorScheme.secondary,
-        collapsedIconColor: Theme.of(context).colorScheme.onPrimary,
+        iconColor: Theme.of(context).colorScheme.primary,
+        collapsedIconColor: Theme.of(context).colorScheme.primary,
         title: Row(
           children: [
             Expanded(

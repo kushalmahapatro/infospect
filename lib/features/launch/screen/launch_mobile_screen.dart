@@ -1,11 +1,10 @@
-import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/launch/bloc/launch_bloc.dart';
 import 'package:infospect/features/launch/models/navigation_tab_data.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/logs_list_screen.dart';
 import 'package:infospect/features/network/ui/list/screen/networks_list_screen.dart';
-import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/infospect.dart';
 
 class LaunchMobileScreen extends StatelessWidget {
   final Infospect infospect;
@@ -41,18 +40,13 @@ class BottomNavBarWidget extends StatelessWidget {
     return BlocSelector<LaunchBloc, LaunchState, int>(
       selector: (state) => state.selectedTab,
       builder: (context, index) {
-        return CubertoBottomBar(
-          key: const Key("BottomBar"),
-          barShadow: const [BoxShadow(blurRadius: 0)],
-          selectedTab: index,
-          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
-          barBackgroundColor: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.primary,
+        return AppBottomBar(
+          selectedIndex: index,
           tabs: NavigationTabData.tabs,
-          onTabChangedListener: (position, headline6, backgroundColor) {
+          tabChangedCallback: (value) {
             context.read<LaunchBloc>().add(
                   TabChanged(
-                    selectedTab: position,
+                    selectedTab: value,
                   ),
                 );
           },

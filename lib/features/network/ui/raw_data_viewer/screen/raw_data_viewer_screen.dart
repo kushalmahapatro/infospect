@@ -1,12 +1,10 @@
-import 'package:cuberto_bottom_bar/cuberto_bottom_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_json_view/flutter_json_view.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/bloc/raw_data_viewer_bloc.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/models/raw_data_view.dart';
-import 'package:infospect/utils/common_widgets/conditional_widget.dart';
-import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
+import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
 class RawDataViewerScreen extends StatelessWidget {
@@ -87,17 +85,17 @@ class RawDataViewerScreen extends StatelessWidget {
                 ifFalse: JsonView.map(
                   data,
                   theme: JsonViewTheme(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor: Theme.of(context).colorScheme.background,
                     separator: const Text(':'),
                     closeIcon: Icon(
                       Icons.arrow_drop_up,
                       size: 18,
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onBackground,
                     ),
                     openIcon: Icon(
                       Icons.arrow_drop_down,
                       size: 18,
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onBackground,
                     ),
                   ),
                 ),
@@ -120,22 +118,17 @@ class BottomNavBarWidget extends StatelessWidget {
     return RawDataViewerSelector<RawDataView>(
       selector: (state) => state.view,
       builder: (context, view) {
-        return CubertoBottomBar(
-          key: const Key("BottomBar"),
-          barShadow: const [BoxShadow(blurRadius: 0)],
-          selectedTab: view.index,
-          inactiveIconColor: Theme.of(context).colorScheme.onSurface,
-          barBackgroundColor: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.primary,
+        return AppBottomBar(
+          selectedIndex: view.index,
           tabs: RawDataView.values
               .map(
-                (e) => TabData(
-                  iconData: e.icon,
+                (e) => (
+                  icon: e.icon,
                   title: e.value,
                 ),
               )
               .toList(),
-          onTabChangedListener: (position, headline, backgroundColor) {
+          tabChangedCallback: (position) {
             context
                 .read<RawDataViewerBloc>()
                 .add(RawDataViewChanged(RawDataView.values[position]));

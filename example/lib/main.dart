@@ -36,13 +36,13 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-    widget.infospect.themeMode = ThemeMode.dark;
     return InfospectInvoker(
       infospect: widget.infospect,
+      state: InvokerState.collapsable,
       child: MaterialApp(
         navigatorKey: widget.infospect.getNavigatorKey,
-        theme: InfospectTheme.lightTheme,
-        darkTheme: InfospectTheme.darkTheme,
+        theme: ThemeData(useMaterial3: true),
+        darkTheme: ThemeData.dark(useMaterial3: true),
         themeMode: ThemeMode.dark,
         home: Scaffold(
           body: Center(

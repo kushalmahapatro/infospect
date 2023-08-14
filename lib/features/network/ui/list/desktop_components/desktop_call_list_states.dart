@@ -1,5 +1,7 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/details/models/request_body_details_topic_helper.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_table.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
@@ -74,20 +76,39 @@ abstract class DesktopCallListStates<T extends DraggableTable>
 abstract class DesktopNetworksListScreenState<
     T extends DesktopNetworksListScreen> extends State<T> {
   InfospectNetworkCall? _selectedCall;
+  RequestBodyDetailsTopicHelper? _topicHelper;
+  TopicData? _selectedTopic;
 
   InfospectNetworkCall? get selectedCall => _selectedCall;
+  RequestBodyDetailsTopicHelper? get topicHelper => _topicHelper;
+  TopicData? get selectedTopic => _selectedTopic;
 
   void updateSelectedCall(InfospectNetworkCall? value) {
     /// return if selected call is not changed
     if (_selectedCall == value) return;
 
     _selectedCall = value;
+    if (value != null) {
+      _topicHelper = RequestBodyDetailsTopicHelper(value);
+      _selectedTopic = _topicHelper?.topics.firstWhereOrNull(
+          (element) => element.topic == _selectedTopic?.topic);
+    }
+    setState(() {});
+  }
+
+  void updateSelectedTopic(TopicData? value) {
+    /// return if selected topic is not changed
+    if (_selectedTopic == value) return;
+
+    _selectedTopic = value;
     setState(() {});
   }
 
   @override
   void dispose() {
     _selectedCall = null;
+    _selectedTopic = null;
+    _topicHelper = null;
     super.dispose();
   }
 }

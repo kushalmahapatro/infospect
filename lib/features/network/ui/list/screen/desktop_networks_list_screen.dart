@@ -99,6 +99,9 @@ class _DesktopNetworksListScreenState
             child: DesktopDetailsScreen(
               selectedCall: selectedCall,
               infospect: widget.infospect,
+              topicHelper: topicHelper,
+              selectedTopic: selectedTopic,
+              onTopicSelected: (value) => updateSelectedTopic(value),
             ),
           ),
         ],

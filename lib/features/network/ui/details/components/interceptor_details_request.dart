@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/details/models/request_body_details_topic_helper.dart';
 import 'package:infospect/features/network/ui/details/widgets/details_row_widget.dart';
 import 'package:infospect/features/network/ui/list/components/expansion_widget.dart';
 import 'package:infospect/features/network/ui/list/components/trailing_widget.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/extensions/int_extension.dart';
-import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
 
 class InterceptorDetailsRequest extends StatelessWidget {
   final InfospectNetworkCall call;
@@ -19,113 +18,55 @@ class InterceptorDetailsRequest extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final RequestBodyDetailsTopicHelper topicHelper =
+        RequestBodyDetailsTopicHelper(call);
+
     return ListView(
       shrinkWrap: true,
-      children: [
-        /// General data
-        ExpansionWidget(
-          title: 'General',
-          children: [
-            DetailsRowWidget(
-              "Url: ",
-              'Server: ${call.server}',
-              other: 'Endpoint: ${call.endpoint}',
-            ),
-            DetailsRowWidget(
-              "Time:",
-              'Start : ${call.request!.time}',
-              other: call.response != null
-                  ? 'Finish : ${call.response!.time.toString()}'
-                  : '',
-            ),
-            DetailsRowWidget("Method: ", call.method),
-            DetailsRowWidget(
-              "Duration:",
-              call.duration.toReadableTime,
-              showDivider: false,
-            ),
-          ],
-        ),
+      children: topicHelper.topics.map((e) {
+        return switch (e.body) {
+          /// expansion widget with map
+          NetworkRequestDetailsBodyMap(
+            map: Map<String, dynamic> map,
+            trailing: TrailingData? trailing
+          ) =>
+            _getExpansionMap(e, map, trailing),
 
-        /// Headers
-        if (call.request?.headers.isNotEmpty ?? false) ...[
-          ExpansionWidget.map(
-            title: 'Headers',
-            trailing: TrailingWidget(
-              text: 'View raw',
+          /// expansion widget with list
+          NetworkRequestDetailsBodyList(list: List<ListData> list) =>
+            _getExpansionList(e, list)
+        };
+      }).toList(),
+    );
+  }
+
+  ExpansionWidget _getExpansionList(TopicData e, List<ListData> list) {
+    return ExpansionWidget(
+      title: e.topic,
+      children: list
+          .map(
+            (e) => DetailsRowWidget(
+              e.title,
+              e.subtitle,
+              other: e.other,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  ExpansionWidget _getExpansionMap(
+      TopicData e, Map<String, dynamic> map, TrailingData? trailing) {
+    return ExpansionWidget.map(
+      title: e.topic,
+      map: map,
+      trailing: trailing != null
+          ? TrailingWidget(
+              text: trailing.trailing,
               infospect: infospect,
-              data: call.request?.headers ?? {},
-            ),
-            map: call.request?.headers ?? {},
-          ),
-        ],
-
-        /// Query params
-        if (call.request?.queryParameters.isNotEmpty ?? false) ...[
-          ExpansionWidget.map(
-            title: 'Query Params',
-            trailing: TrailingWidget(
-              text: 'View raw',
-              infospect: infospect,
-              data: call.request?.queryParameters ?? {},
-            ),
-            map: call.request?.queryParameters ?? {},
-          ),
-        ],
-
-        /// Form data fields
-        if (call.request?.formDataFields?.isNotEmpty ?? false) ...[
-          ExpansionWidget.map(
-            title: 'Form Data Fields',
-            map: {for (var e in call.request!.formDataFields!) e.name: e.value},
-          ),
-        ],
-
-        /// Form data files
-        if (call.request?.formDataFiles?.isNotEmpty ?? false) ...[
-          ExpansionWidget.map(
-            title: 'Form Data Files',
-            map: {
-              for (var e in call.request!.formDataFiles!)
-                e.fileName ?? '': '${e.contentType} / ${e.length} B'
-            },
-          ),
-        ],
-
-        /// Body
-        if (call.request?.body != null &&
-            (call.request?.bodyMap ?? {}).isNotEmpty) ...[
-          ExpansionWidget.map(
-            title: 'Body',
-            trailing: TrailingWidget(
-              text: 'View Body',
-              infospect: infospect,
-              data: call.request?.bodyMap ?? {},
-              beautificationRequired: true,
-            ),
-            map: {'': call.request?.body?.toString() ?? ''},
-          ),
-        ],
-
-        /// Summary
-        ExpansionWidget(
-          title: 'Summary',
-          children: [
-            DetailsRowWidget(
-              "Data transmitted",
-              "Sent: ${call.request!.size.toReadableBytes}",
-              other: call.response != null
-                  ? 'Received: ${call.response!.size.toReadableBytes}'
-                  : '',
-            ),
-            DetailsRowWidget(
-              "Client:",
-              call.client,
-              showDivider: false,
-            ),
-          ],
-        ),
-      ],
+              data: trailing.data,
+            )
+          : null,
     );
   }
 }

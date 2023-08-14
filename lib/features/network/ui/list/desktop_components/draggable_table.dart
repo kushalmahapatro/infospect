@@ -123,46 +123,74 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                   },
                   selected: widget.selectedCall?.id == element.id,
                   cells: [
+                    /// State
                     dataCellWidget(
-                      widget: _getStateColor(context, element),
+                      widget: element.loading
+                          ? SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.error,
+                                strokeWidth: 1,
+                              ),
+                            )
+                          : _getStateColor(context, element),
                       data: '',
                       width: dataCellStates.width(CellId.State),
                     ),
+
+                    /// Index
                     dataCellWidget(
                       data: '${index + 1}',
                       width: dataCellStates.width(CellId.Id),
                     ),
+
+                    /// url
                     dataCellWidget(
                       data: element.uri,
                       width: dataCellStates.width(CellId.Url),
                       highlight: state.searchedText,
                     ),
+
+                    /// Client name
                     dataCellWidget(
                       data: element.client,
                       width: dataCellStates.width(CellId.Client),
                     ),
+
+                    /// Method
                     dataCellWidget(
                       data: element.method,
                       width: dataCellStates.width(CellId.Method),
                     ),
+
+                    /// status
                     dataCellWidget(
                       data: _getStatusText(element),
                       width: dataCellStates.width(CellId.Status),
                     ),
+
+                    /// code
                     dataCellWidget(
                       data: element.response?.status != -1
                           ? (element.response?.status ?? '').toString()
                           : '',
                       width: dataCellStates.width(CellId.Status),
                     ),
+
+                    /// Time
                     dataCellWidget(
                       data: element.createdTime.formatTime,
                       width: dataCellStates.width(CellId.Time),
                     ),
+
+                    /// duration
                     dataCellWidget(
                       data: element.duration.toReadableTime,
                       width: dataCellStates.width(CellId.Duration),
                     ),
+
+                    /// is secure connection
                     dataCellWidget(
                       data: element.secure.toString(),
                       width: dataCellStates.width(CellId.Secure),
@@ -214,6 +242,7 @@ DataCell dataCellWidget(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: true,
+            selectable: false,
           ),
     ),
   );

@@ -135,14 +135,21 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                   },
                   onTap: () {
                     switch (widget.state) {
-                      case InvokerState.collapsable ||
-                            InvokerState.autoCollapse:
+                      case InvokerState.autoCollapse:
                         timer?.cancel();
                         if (end == 0) {
                           changedValues();
                           startTimer();
                         } else {
                           initialValues();
+                          widget.infospect.navigateToInterceptor();
+                        }
+                        break;
+
+                      case InvokerState.collapsable:
+                        if (end == 0) {
+                          changedValues();
+                        } else {
                           widget.infospect.navigateToInterceptor();
                         }
                         break;

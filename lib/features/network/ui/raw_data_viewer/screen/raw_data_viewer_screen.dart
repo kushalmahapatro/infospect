@@ -27,6 +27,11 @@ class RawDataViewerScreen extends StatelessWidget {
               return ConditionalWidget(
                 condition: view == RawDataView.beautified,
                 ifTrue: CupertinoSearchTextField(
+                  padding: const EdgeInsetsDirectional.fromSTEB(5.5, 8, 5.5, 8),
+                  style: Theme.of(context).textTheme.labelLarge,
+                  itemSize: 20,
+                  prefixInsets:
+                      const EdgeInsetsDirectional.fromSTEB(6, 0, 0, 3),
                   onChanged: (search) {
                     context
                         .read<RawDataViewerBloc>()

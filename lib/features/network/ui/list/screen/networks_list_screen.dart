@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/bloc/interceptor_details_bloc.dart';
-import 'package:infospect/features/network/ui/details/screen/interceptor_details_screen.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_app_bar.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_item.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/routes/routes.dart';
 
 class NetworksListScreen extends StatelessWidget {
   final Infospect infospect;
@@ -34,18 +33,7 @@ class NetworksListScreen extends StatelessWidget {
                 networkCall: state.filteredCalls[index],
                 searchedText: state.searchedText,
                 onItemClicked: (InfospectNetworkCall call) {
-                  Navigator.push<void>(
-                    infospect.context ?? context,
-                    MaterialPageRoute(
-                      builder: (context) => BlocProvider(
-                        create: (context) => InterceptorDetailsBloc(),
-                        child: InterceptorDetailsScreen(
-                          infospect,
-                          call,
-                        ),
-                      ),
-                    ),
-                  );
+                  mobileRoutes.logsList(context, infospect, call);
                 },
               );
             },

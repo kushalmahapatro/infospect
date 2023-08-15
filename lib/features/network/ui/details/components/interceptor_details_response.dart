@@ -81,6 +81,7 @@ class InterceptorDetailsResponse extends StatelessWidget {
               text: trailing.trailing,
               infospect: infospect,
               data: trailing.data,
+              beautificationRequired: trailing.beautificationRequired,
             )
           : null,
     );

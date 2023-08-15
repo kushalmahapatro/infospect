@@ -97,51 +97,58 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
         return state.filters;
       },
       builder: (context, filters) {
-        return SizedBox(
-          width: MediaQuery.sizeOf(context).width - 10,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: filters
-                  .map(
-                    (e) => Transform(
-                      transform: Matrix4.identity()..scale(isDesktop ? 0.8 : 1),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isDesktop ? 0 : 8,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SizedBox(
+              width: constraints.maxWidth - 10,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: filters.map(
+                    (e) {
+                      return ConditionalWidget(
+                        condition: isDesktop,
+                        ifTrue: Transform(
+                          transform: Matrix4.identity()..scale(0.8),
+                          child: chipWidget(e, context),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Chip(
-                            label: Text(e.name),
-                            deleteIcon: Container(
-                              height: 14,
-                              width: 14,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                border: Border.all(color: Colors.black),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.close_rounded, size: 12),
-                            ),
-                            labelPadding: const EdgeInsetsDirectional.only(
-                              start: 4,
-                            ),
-                            onDeleted: () {
-                              context.read<LogsListBloc>().add(
-                                    LogsFilterRemoved(action: e),
-                                  );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
+                        ifFalse: chipWidget(e, context),
+                      );
+                    },
+                  ).toList(),
+                ),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Padding chipWidget(PopupAction<dynamic> e, BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 0 : 8),
+      child: Chip(
+        label: Text(e.name),
+        deleteIcon: Container(
+          height: 14,
+          width: 14,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            border: Border.all(color: Colors.black),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.close_rounded, size: 12),
+        ),
+        labelPadding: const EdgeInsetsDirectional.only(
+          start: 4,
+        ),
+        onDeleted: () {
+          context.read<LogsListBloc>().add(
+                LogsFilterRemoved(action: e),
+              );
+        },
+      ),
     );
   }
 }

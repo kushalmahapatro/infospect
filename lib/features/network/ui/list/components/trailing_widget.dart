@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:infospect/features/network/ui/raw_data_viewer/screen/raw_data_viewer_screen.dart';
 import 'package:infospect/infospect.dart';
+import 'package:infospect/routes/routes.dart';
 
 class TrailingWidget extends StatelessWidget {
   final String text;
@@ -17,19 +17,11 @@ class TrailingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () {
-        Navigator.push(
-          infospect.context ?? context,
-          MaterialPageRoute(
-            builder: (_) {
-              return RawDataViewerScreen(
-                data: data,
-                beautificationRequired: beautificationRequired,
-              );
-            },
-          ),
-        );
-      },
+      onPressed: () => mobileRoutes.rawData(
+        context,
+        data,
+        beautificationRequired,
+      ),
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelSmall,

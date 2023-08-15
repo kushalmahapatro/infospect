@@ -6,7 +6,27 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
-enum InvokerState { alwaysOpened, collapsable, autoCollapse }
+/// state for the invoker widget (defaults to alwaysOpened)
+enum InvokerState {
+  /// alwaysOpened: This will force the the invoker widget to be opened always
+  alwaysOpened,
+
+  /// collapsable: This will make the widget to collapse and expand on demand
+  /// By default it will be in collapsed state
+  /// Tap or outwards will expand the widget
+  /// When expanded, tapping on it will navigate to Infospect screen.
+  /// And swiping it inwards will change it to collapsed state
+  collapsable,
+
+  /// autoCollapse: This will auto change the widget state from expanded to collapse after 5 seconds
+  /// By default it will be in collapsed state
+  /// Tap or outwards will expand the widget and if not tapped within 5 secs, it will change to
+  /// collapsed state.
+  /// When expanded, tapping on it will navigate to Infospect screen and will change it to
+  /// collapsed state
+  /// And swiping it inwards will change it to collapsed state
+  autoCollapse
+}
 
 class InfospectInvoker extends StatefulWidget {
   const InfospectInvoker({

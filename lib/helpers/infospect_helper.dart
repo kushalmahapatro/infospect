@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart';
 import 'package:infospect/features/launch/bloc/launch_bloc.dart';
-import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
 import 'package:infospect/features/logger/infospect_logger.dart';
 import 'package:infospect/features/logger/models/infospect_log.dart';
 import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
@@ -20,6 +19,7 @@ import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/helpers/model_theme.dart';
+import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/infospect_util.dart';
 // ignore: depend_on_referenced_packages
 import 'package:provider/provider.dart';
@@ -92,7 +92,7 @@ class Infospect {
               ),
             ),
           ],
-          child: InfospectLaunchScreen(this),
+          child: mobileRoutes.launch(this),
         ),
       );
 

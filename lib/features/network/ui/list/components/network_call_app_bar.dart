@@ -107,11 +107,13 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
                   children: filters.map(
                     (e) {
                       return ConditionalWidget(
-                          condition: isDesktop,
-                          ifTrue: Transform(
-                              transform: Matrix4.identity()..scale(0.8),
-                              child: chip(e, context)),
-                          ifFalse: chip(e, context));
+                        condition: isDesktop,
+                        ifTrue: Transform(
+                          transform: Matrix4.identity()..scale(0.8),
+                          child: chipWidget(e, context),
+                        ),
+                        ifFalse: chipWidget(e, context),
+                      );
                     },
                   ).toList(),
                 ),
@@ -123,11 +125,9 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Padding chip(PopupAction<dynamic> e, BuildContext context) {
+  Padding chipWidget(PopupAction<dynamic> e, BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 0 : 8,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 0 : 8),
       child: Chip(
         label: Text(e.name),
         deleteIcon: Container(

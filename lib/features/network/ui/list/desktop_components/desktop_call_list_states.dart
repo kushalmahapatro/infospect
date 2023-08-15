@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/models/request_body_details_topic_helper.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_table.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
@@ -76,12 +76,22 @@ abstract class DesktopCallListStates<T extends DraggableTable>
 abstract class DesktopNetworksListScreenState<
     T extends DesktopNetworksListScreen> extends State<T> {
   InfospectNetworkCall? _selectedCall;
-  RequestBodyDetailsTopicHelper? _topicHelper;
+
+  RequestDetailsTopicHelper? _topicHelper;
+  ResponseDetailsTopicHelper? _responseTopicHelper;
+
   TopicData? _selectedTopic;
+  TopicData? _selectedResponseTopic;
 
   InfospectNetworkCall? get selectedCall => _selectedCall;
-  RequestBodyDetailsTopicHelper? get topicHelper => _topicHelper;
+
+  RequestDetailsTopicHelper? get topicHelper => _topicHelper;
+
+  ResponseDetailsTopicHelper? get responseTopicHelper => _responseTopicHelper;
+
   TopicData? get selectedTopic => _selectedTopic;
+
+  TopicData? get selectedResponseTopic => _selectedResponseTopic;
 
   void updateSelectedCall(InfospectNetworkCall? value) {
     /// return if selected call is not changed
@@ -89,9 +99,14 @@ abstract class DesktopNetworksListScreenState<
 
     _selectedCall = value;
     if (value != null) {
-      _topicHelper = RequestBodyDetailsTopicHelper(value);
+      _topicHelper = RequestDetailsTopicHelper(value);
       _selectedTopic = _topicHelper?.topics.firstWhereOrNull(
-          (element) => element.topic == _selectedTopic?.topic);
+        (element) => element.topic == _selectedTopic?.topic,
+      );
+      _responseTopicHelper = ResponseDetailsTopicHelper(value);
+      _selectedResponseTopic = _responseTopicHelper?.topics.firstWhereOrNull(
+        (element) => element.topic == _selectedResponseTopic?.topic,
+      );
     }
     setState(() {});
   }
@@ -104,11 +119,21 @@ abstract class DesktopNetworksListScreenState<
     setState(() {});
   }
 
+  void updateSelectedResponseTopic(TopicData? value) {
+    /// return if selected topic is not changed
+    if (_selectedResponseTopic == value) return;
+
+    _selectedResponseTopic = value;
+    setState(() {});
+  }
+
   @override
   void dispose() {
     _selectedCall = null;
     _selectedTopic = null;
+    _selectedResponseTopic = null;
     _topicHelper = null;
+    _responseTopicHelper = null;
     super.dispose();
   }
 }

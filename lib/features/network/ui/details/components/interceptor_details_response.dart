@@ -1,16 +1,17 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/details/widgets/details_row_widget.dart';
 import 'package:infospect/features/network/ui/list/components/expansion_widget.dart';
 import 'package:infospect/features/network/ui/list/components/trailing_widget.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/conditional_widget.dart';
-import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
-import 'package:infospect/utils/extensions/int_extension.dart';
 
 class InterceptorDetailsResponse extends StatelessWidget {
   final InfospectNetworkCall call;
   final Infospect infospect;
+
   const InterceptorDetailsResponse(
     this.call, {
     super.key,
@@ -24,65 +25,64 @@ class InterceptorDetailsResponse extends StatelessWidget {
       ifTrue: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [CircularProgressIndicator(), Text("Waiting for response")],
+          children: [CircularProgressIndicator(), Text("Awaiting response")],
         ),
       ),
-      ifFalse: ListView(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// General Data
-              if (call.response != null) ...[
-                ExpansionWidget(
-                  title: 'General',
-                  children: [
-                    DetailsRowWidget(
-                      'Received at:',
-                      call.response!.time.toString(),
-                    ),
-                    DetailsRowWidget(
-                        'Bytes received:', call.response!.size.toReadableBytes),
-                    DetailsRowWidget(
-                      "Status:",
-                      call.response!.statusString,
-                      showDivider: false,
-                    ),
-                  ],
-                ),
-              ],
+      ifFalse: Builder(
+        builder: (context) {
+          final ResponseDetailsTopicHelper topicHelper =
+              ResponseDetailsTopicHelper(call);
+          return ListView(
+            children: topicHelper.topics.map(
+              (e) {
+                return switch (e.body) {
+                  /// expansion widget with map
+                  TopicDetailsBodyMap(
+                    map: Map<String, dynamic> map,
+                    trailing: TrailingData? trailing
+                  ) =>
+                    _getExpansionMap(e, map, trailing),
 
-              /// Headers
-              if (call.response?.headers?.isNotEmpty ?? false) ...[
-                ExpansionWidget.map(
-                  title: 'Headers',
-                  trailing: TrailingWidget(
-                    text: 'View raw',
-                    infospect: infospect,
-                    data: call.response?.headers ?? {},
-                  ),
-                  map: call.response?.headers ?? {},
-                ),
-              ],
-            ],
-          ),
-
-          /// Body
-          if (call.response?.body != null &&
-              (call.response?.bodyMap ?? {}).isNotEmpty) ...[
-            ExpansionWidget.map(
-              title: 'Body',
-              trailing: TrailingWidget(
-                text: 'View Body',
-                infospect: infospect,
-                data: call.response?.bodyMap ?? {},
-                beautificationRequired: true,
-              ),
-              map: {'': call.response?.body?.toString() ?? ''},
-            ),
-          ]
-        ],
+                  /// expansion widget with list
+                  TopicDetailsBodyList(list: List<ListData> list) =>
+                    _getExpansionList(e, list)
+                };
+              },
+            ).toList(),
+          );
+        },
       ),
+    );
+  }
+
+  ExpansionWidget _getExpansionList(TopicData e, List<ListData> list) {
+    return ExpansionWidget(
+      title: e.topic,
+      children: list
+          .mapIndexed(
+            (index, e) => DetailsRowWidget(
+              e.title,
+              e.subtitle,
+              other: e.other,
+              showDivider: index != list.length - 1,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  ExpansionWidget _getExpansionMap(
+      TopicData e, Map<String, dynamic> map, TrailingData? trailing) {
+    return ExpansionWidget.map(
+      title: e.topic,
+      map: map,
+      trailing: trailing != null
+          ? TrailingWidget(
+              text: trailing.trailing,
+              infospect: infospect,
+              data: trailing.data,
+            )
+          : null,
     );
   }
 }

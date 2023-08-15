@@ -1,6 +1,7 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/models/request_body_details_topic_helper.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/details/widgets/details_row_widget.dart';
 import 'package:infospect/features/network/ui/list/components/expansion_widget.dart';
 import 'package:infospect/features/network/ui/list/components/trailing_widget.dart';
@@ -18,22 +19,22 @@ class InterceptorDetailsRequest extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final RequestBodyDetailsTopicHelper topicHelper =
-        RequestBodyDetailsTopicHelper(call);
+    final RequestDetailsTopicHelper topicHelper =
+        RequestDetailsTopicHelper(call);
 
     return ListView(
       shrinkWrap: true,
       children: topicHelper.topics.map((e) {
         return switch (e.body) {
           /// expansion widget with map
-          NetworkRequestDetailsBodyMap(
+          TopicDetailsBodyMap(
             map: Map<String, dynamic> map,
             trailing: TrailingData? trailing
           ) =>
             _getExpansionMap(e, map, trailing),
 
           /// expansion widget with list
-          NetworkRequestDetailsBodyList(list: List<ListData> list) =>
+          TopicDetailsBodyList(list: List<ListData> list) =>
             _getExpansionList(e, list)
         };
       }).toList(),
@@ -44,11 +45,12 @@ class InterceptorDetailsRequest extends StatelessWidget {
     return ExpansionWidget(
       title: e.topic,
       children: list
-          .map(
-            (e) => DetailsRowWidget(
+          .mapIndexed(
+            (index, e) => DetailsRowWidget(
               e.title,
               e.subtitle,
               other: e.other,
+              showDivider: index != list.length - 1,
             ),
           )
           .toList(),

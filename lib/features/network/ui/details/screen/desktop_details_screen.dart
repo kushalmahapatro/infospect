@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/components/interceptor_details_response.dart';
-import 'package:infospect/features/network/ui/details/models/request_body_details_topic_helper.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/conditional_widget.dart';
 import 'package:infospect/utils/common_widgets/divider.dart';
@@ -13,15 +12,21 @@ class DesktopDetailsScreen extends StatelessWidget {
     required this.infospect,
     this.selectedCall,
     this.topicHelper,
+    this.responseTopicHelper,
     this.selectedTopic,
+    this.selectedResponseTopic,
     required this.onTopicSelected,
+    required this.onResponseTopicSelected,
   });
 
   final InfospectNetworkCall? selectedCall;
   final Infospect infospect;
-  final RequestBodyDetailsTopicHelper? topicHelper;
+  final RequestDetailsTopicHelper? topicHelper;
+  final ResponseDetailsTopicHelper? responseTopicHelper;
   final TopicData? selectedTopic;
+  final TopicData? selectedResponseTopic;
   final ValueChanged<TopicData> onTopicSelected;
+  final ValueChanged<TopicData> onResponseTopicSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -84,37 +89,22 @@ class DesktopDetailsScreen extends StatelessWidget {
           child: Row(
             children: [
               if (selectedCall != null && topicHelper != null)
-                _RequestWidget(
+                _DetailsDataWidget(
                   selectedCall: selectedCall!,
                   infospect: infospect,
-                  topicHelper: topicHelper!,
+                  desktopTopics: topicHelper!.desktopTopics,
                   selectedTopicData: selectedTopic,
                   onTopicSelected: (topic) => onTopicSelected(topic),
                 ),
               AppDivider.vertical(),
-              Expanded(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Response',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    AppDivider.horizontal(),
-                    if (selectedCall != null)
-                      Expanded(
-                        child: InterceptorDetailsResponse(
-                          selectedCall!,
-                          infospect: infospect,
-                        ),
-                      )
-                  ],
+              if (selectedCall != null && responseTopicHelper != null)
+                _DetailsDataWidget(
+                  selectedCall: selectedCall!,
+                  infospect: infospect,
+                  desktopTopics: responseTopicHelper!.desktopTopics,
+                  selectedTopicData: selectedResponseTopic,
+                  onTopicSelected: (topic) => onResponseTopicSelected(topic),
                 ),
-              ),
             ],
           ),
         ),
@@ -123,23 +113,23 @@ class DesktopDetailsScreen extends StatelessWidget {
   }
 }
 
-class _RequestWidget extends StatelessWidget {
-  const _RequestWidget(
+class _DetailsDataWidget extends StatelessWidget {
+  const _DetailsDataWidget(
       {required this.infospect,
       required this.onTopicSelected,
       required this.selectedCall,
-      required this.topicHelper,
+      required this.desktopTopics,
       this.selectedTopicData});
 
   final InfospectNetworkCall selectedCall;
   final Infospect infospect;
-  final RequestBodyDetailsTopicHelper topicHelper;
+  final List<TopicData> desktopTopics;
   final TopicData? selectedTopicData;
   final ValueChanged<TopicData> onTopicSelected;
 
   @override
   Widget build(BuildContext context) {
-    TopicData selected = selectedTopicData ?? topicHelper.desktopTopics.first;
+    TopicData selected = selectedTopicData ?? desktopTopics.first;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,7 +153,12 @@ class _RequestWidget extends StatelessWidget {
             ),
           ),
           AppDivider.horizontal(),
-          Expanded(child: _topicBody(selected)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _topicBody(selected),
+            ),
+          ),
         ],
       ),
     );
@@ -171,7 +166,7 @@ class _RequestWidget extends StatelessWidget {
 
   ListView _topicBody(TopicData selected) {
     return switch (selected.body) {
-      NetworkRequestDetailsBodyMap(
+      TopicDetailsBodyMap(
         map: Map<String, dynamic> map,
       ) =>
         ListView(
@@ -198,7 +193,7 @@ class _RequestWidget extends StatelessWidget {
         ),
 
       /// expansion widget with list
-      NetworkRequestDetailsBodyList(list: List<ListData> list) => ListView(
+      TopicDetailsBodyList(list: List<ListData> list) => ListView(
           children: list
               .map(
                 (e) => Padding(
@@ -249,7 +244,7 @@ class _RequestWidget extends StatelessWidget {
 
   List<Widget> _topics(BuildContext context, TopicData selected) {
     List<Widget> list = [];
-    for (final e in topicHelper.desktopTopics) {
+    for (final e in desktopTopics) {
       list.add(
         InkWell(
           onTap: () => onTopicSelected.call(e),

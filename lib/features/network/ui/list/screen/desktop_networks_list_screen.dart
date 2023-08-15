@@ -100,7 +100,11 @@ class _DesktopNetworksListScreenState
               selectedCall: selectedCall,
               infospect: widget.infospect,
               topicHelper: topicHelper,
+              responseTopicHelper: responseTopicHelper,
               selectedTopic: selectedTopic,
+              selectedResponseTopic: selectedResponseTopic,
+              onResponseTopicSelected: (value) =>
+                  updateSelectedResponseTopic(value),
               onTopicSelected: (value) => updateSelectedTopic(value),
             ),
           ),

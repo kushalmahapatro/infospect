@@ -1,19 +1,13 @@
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
 
-typedef TopicData = ({String topic, NetworkRequestDetailsBody body});
-typedef TrailingData = ({
-  String trailing,
-  Map<String, dynamic> data,
-  bool beautificationRequired
-});
-typedef ListData = ({String title, String subtitle, String? other});
-
-class RequestBodyDetailsTopicHelper {
-  RequestBodyDetailsTopicHelper(this.call) {
+class RequestDetailsTopicHelper {
+  RequestDetailsTopicHelper(this.call) {
     initTopics();
   }
+
   final InfospectNetworkCall call;
 
   late TopicData _generalTopics;
@@ -80,10 +74,10 @@ class RequestBodyDetailsTopicHelper {
   void _setupGeneralTopics() {
     _generalTopics = (
       topic: 'General',
-      body: NetworkRequestDetailsBodyList(
+      body: TopicDetailsBodyList(
         [
           (
-            title: 'Url: ',
+            title: 'Url:',
             subtitle: 'Server: ${call.server}',
             other: 'Endpoint: ${call.endpoint}',
           ),
@@ -109,7 +103,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupSummaryTopics() {
     _summaryTopics = (
       topic: 'Summary',
-      body: NetworkRequestDetailsBodyList(
+      body: TopicDetailsBodyList(
         [
           (
             title: 'Data transmitted:',
@@ -132,7 +126,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupHeaderTopics() {
     _headerTopics = (
       topic: 'Headers',
-      body: NetworkRequestDetailsBodyMap(
+      body: TopicDetailsBodyMap(
         map: call.request?.headers ?? {},
         trailing: (
           trailing: 'View raw',
@@ -146,7 +140,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupQueryTopics() {
     _queryTopics = (
       topic: 'Query',
-      body: NetworkRequestDetailsBodyMap(
+      body: TopicDetailsBodyMap(
         map: call.request?.queryParameters ?? {},
         trailing: (
           trailing: 'View raw',
@@ -161,7 +155,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupFormDataFieldsTopics() {
     _formDataFieldsTopics = (
       topic: 'Form Data Fields',
-      body: NetworkRequestDetailsBodyMap(
+      body: TopicDetailsBodyMap(
         map: {for (var e in call.request!.formDataFields!) e.name: e.value},
       )
     );
@@ -171,7 +165,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupFormDataTopics() {
     _formDataFilesTopics = (
       topic: 'Form Data Files',
-      body: NetworkRequestDetailsBodyMap(
+      body: TopicDetailsBodyMap(
         map: {
           for (var e in call.request!.formDataFiles!)
             e.fileName ?? '': '${e.contentType} / ${e.length} B'
@@ -184,7 +178,7 @@ class RequestBodyDetailsTopicHelper {
   void _setupBodyTopics() {
     _bodyTopics = (
       topic: 'Body',
-      body: NetworkRequestDetailsBodyMap(
+      body: TopicDetailsBodyMap(
         map: {'': call.request?.body?.toString() ?? ''},
         trailing: (
           trailing: 'View Body',
@@ -194,19 +188,4 @@ class RequestBodyDetailsTopicHelper {
       )
     );
   }
-}
-
-sealed class NetworkRequestDetailsBody {}
-
-class NetworkRequestDetailsBodyMap extends NetworkRequestDetailsBody {
-  final Map<String, dynamic> map;
-  final TrailingData? trailing;
-
-  NetworkRequestDetailsBodyMap({required this.map, this.trailing});
-}
-
-class NetworkRequestDetailsBodyList extends NetworkRequestDetailsBody {
-  final List<ListData> list;
-
-  NetworkRequestDetailsBodyList(this.list);
 }

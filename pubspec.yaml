@@ -29,6 +29,7 @@ dependencies:
   rxdart: ^0.27.7
   share_plus: ^7.0.2
   shared_preferences: ^2.2.0
+  menu_bar: ^0.5.3
 
 
 dev_dependencies:

@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:menu_bar/menu_bar.dart';
 
 /// state for the invoker widget (defaults to alwaysOpened)
 enum InvokerState {
@@ -93,7 +95,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
   Widget build(BuildContext context) {
     if (kIsWeb) return widget.child;
 
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    if (Platform.isMacOS) {
       return PlatformMenuBar(
         menus: <PlatformMenuItem>[
           PlatformMenu(
@@ -103,11 +105,38 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                 onSelected: () async {
                   await widget.infospect.openInspectorInNewWindow();
                 },
-                shortcut: const CharacterActivator('m'),
+                shortcut: const SingleActivator(
+                  LogicalKeyboardKey.keyI,
+                  meta: true,
+                ),
                 label: 'Infospect',
               ),
             ],
           ),
+        ],
+        child: widget.child,
+      );
+    } else if (Platform.isWindows || Platform.isLinux) {
+      return MenuBarWidget(
+        barButtons: [
+          BarButton(
+            text: const Text('Options'),
+            submenu: SubMenu(
+              menuItems: [
+                MenuButton(
+                  text: const Text('Infospect'),
+                  shortcutText: 'Ctrl+I',
+                  shortcut: SingleActivator(
+                    LogicalKeyboardKey.keyI,
+                    meta: Platform.isMacOS,
+                    control: !Platform.isMacOS,
+                  ),
+                  onTap: () async =>
+                      await widget.infospect.openInspectorInNewWindow(),
+                )
+              ],
+            ),
+          )
         ],
         child: widget.child,
       );

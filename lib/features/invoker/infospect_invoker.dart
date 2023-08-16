@@ -96,49 +96,12 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
     if (kIsWeb) return widget.child;
 
     if (Platform.isMacOS) {
-      return PlatformMenuBar(
-        menus: <PlatformMenuItem>[
-          PlatformMenu(
-            label: 'Options',
-            menus: <PlatformMenuItem>[
-              PlatformMenuItem(
-                onSelected: () async {
-                  await widget.infospect.openInspectorInNewWindow();
-                },
-                shortcut: const SingleActivator(
-                  LogicalKeyboardKey.keyI,
-                  meta: true,
-                ),
-                label: 'Infospect',
-              ),
-            ],
-          ),
-        ],
-        child: widget.child,
+      return _MacOsMenuBarWidget(
+        widget: widget,
       );
     } else if (Platform.isWindows || Platform.isLinux) {
-      return MenuBarWidget(
-        barButtons: [
-          BarButton(
-            text: const Text('Options'),
-            submenu: SubMenu(
-              menuItems: [
-                MenuButton(
-                  text: const Text('Infospect'),
-                  shortcutText: 'Ctrl+I',
-                  shortcut: SingleActivator(
-                    LogicalKeyboardKey.keyI,
-                    meta: Platform.isMacOS,
-                    control: !Platform.isMacOS,
-                  ),
-                  onTap: () async =>
-                      await widget.infospect.openInspectorInNewWindow(),
-                )
-              ],
-            ),
-          )
-        ],
-        child: widget.child,
+      return _OtherDesktopMenuBarWidget(
+        widget: widget,
       );
     }
 
@@ -240,6 +203,81 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OtherDesktopMenuBarWidget extends StatelessWidget {
+  const _OtherDesktopMenuBarWidget({
+    required this.widget,
+  });
+
+  final InfospectInvoker widget;
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) {
+            return MenuBarWidget(
+              barButtons: [
+                BarButton(
+                  text: const Text('Options'),
+                  submenu: SubMenu(
+                    menuItems: [
+                      MenuButton(
+                        text: const Text('Infospect'),
+                        shortcutText: 'Ctrl+I',
+                        shortcut: SingleActivator(
+                          LogicalKeyboardKey.keyI,
+                          meta: Platform.isMacOS,
+                          control: !Platform.isMacOS,
+                        ),
+                        onTap: () async =>
+                            await widget.infospect.openInspectorInNewWindow(),
+                      )
+                    ],
+                  ),
+                )
+              ],
+              child: widget.child,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MacOsMenuBarWidget extends StatelessWidget {
+  const _MacOsMenuBarWidget({
+    required this.widget,
+  });
+
+  final InfospectInvoker widget;
+
+  @override
+  Widget build(BuildContext context) {
+    return PlatformMenuBar(
+      menus: <PlatformMenuItem>[
+        PlatformMenu(
+          label: 'Options',
+          menus: <PlatformMenuItem>[
+            PlatformMenuItem(
+              onSelected: () async {
+                await widget.infospect.openInspectorInNewWindow();
+              },
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyI,
+                meta: true,
+              ),
+              label: 'Infospect',
+            ),
+          ],
+        ),
+      ],
+      child: widget.child,
     );
   }
 }

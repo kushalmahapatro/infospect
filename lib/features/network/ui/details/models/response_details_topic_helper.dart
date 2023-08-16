@@ -34,7 +34,7 @@ class ResponseDetailsTopicHelper {
 
   List<TopicData> get topics {
     final List<TopicData> list = [];
-    list.add(_summaryTopics);
+    if (call.response != null) list.add(_summaryTopics);
     if (_headerTopics != null) list.add(_headerTopics!);
     if (_bodyTopics != null) list.add(_bodyTopics!);
 
@@ -46,7 +46,7 @@ class ResponseDetailsTopicHelper {
     if (_headerTopics != null) list.add(_headerTopics!);
     if (_bodyTopics != null) list.add(_bodyTopics!);
     if (_errorTopics != null) list.add(_errorTopics!);
-    list.add(_summaryTopics);
+    if (call.response != null) list.add(_summaryTopics);
 
     return list;
   }

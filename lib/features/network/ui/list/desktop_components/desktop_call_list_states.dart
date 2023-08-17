@@ -62,9 +62,9 @@ abstract class DesktopCallListStates<T extends DraggableTable>
         maxWidth: element.maxWidth,
       );
       width = width + cellState.width;
+      double w = widget.constraints.maxWidth - width;
 
-      if (i == CellId.values.length - 1) {
-        double w = widget.constraints.maxWidth - width;
+      if (i == CellId.values.length - 1 && w > 75) {
         double maxWidth = (2 * w) - 50;
         cellState = cellState.copyWith(width: w, maxWidth: maxWidth);
       }

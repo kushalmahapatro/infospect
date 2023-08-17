@@ -41,6 +41,7 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
     final logsBloc = context.read<LogsListBloc>();
 
     return AppBar(
+      automaticallyImplyLeading: false,
       elevation: 0,
       leading: widget.isDesktop
           ? null

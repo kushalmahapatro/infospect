@@ -37,11 +37,13 @@ class InterceptorDetailsError extends StatelessWidget {
                     DetailsRowWidget(
                       'Message',
                       call.error?.error.toString() ?? '',
+                      showDivider: call.error?.stackTrace != null,
                     ),
                     if (call.error?.stackTrace != null)
                       DetailsRowWidget(
                         'Stack Trace',
                         call.error?.stackTrace.toString() ?? '',
+                        showDivider: false,
                       ),
                   ],
                 ),

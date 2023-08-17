@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io';
 
 class InfospectUtil {
+  static bool get isDesktop =>
+      (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
   static void log(
     String message, {
     Object? error,

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -26,8 +25,17 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Infospect {
-  final int maxCallsCount;
+  Infospect._({
+    this.maxCallsCount = 1000,
+    GlobalKey<NavigatorState>? navigatorKey,
+  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>() {
+    _instance = this;
+  }
 
+  static Infospect get instance => checkInstance(_instance);
+  static Infospect? _instance;
+
+  final int maxCallsCount;
   final GlobalKey<NavigatorState>? _navigatorKey;
 
   ValueNotifier<bool> isInspectorOpened = ValueNotifier(false);
@@ -36,11 +44,6 @@ class Infospect {
       BehaviorSubject.seeded([]);
 
   final InfospectLogger infospectLogger = InfospectLogger();
-
-  Infospect({
-    this.maxCallsCount = 1000,
-    GlobalKey<NavigatorState>? navigatorKey,
-  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>();
 
   GlobalKey<NavigatorState>? get getNavigatorKey => _navigatorKey;
 
@@ -51,17 +54,7 @@ class Infospect {
   /// This will open inspector in new window. This will work only on desktop
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // widget._devOptions.getInterceptorDialog(context);
-      final window = await DesktopMultiWindow.createWindow(
-        jsonEncode(
-          {
-            'args1': 'Sub window',
-            'args2': 100,
-            'args3': true,
-            'business': 'business_test',
-          },
-        ),
-      );
+      final window = await DesktopMultiWindow.createWindow();
       window
         ..setFrame(const Offset(0, 0) & const Size(1280, 720))
         ..center()
@@ -211,9 +204,9 @@ class Infospect {
       callsSubject.value.indexWhere((call) => call.id == requestId);
 
   void addLog(InfospectLog log) {
-    if (Platform.isAndroid || Platform.isIOS) {
-      infospectLogger.add(log);
-    }
+    // if (Platform.isAndroid || Platform.isIOS) {
+    infospectLogger.add(log);
+    // }
     sendLogs([log]);
   }
 
@@ -239,6 +232,7 @@ class Infospect {
       runApp(
         ChangeNotifierProvider(
           create: (_) => ModelTheme(),
+          builder: (context, child) => child ?? const SizedBox.shrink(),
           child: Consumer<ModelTheme>(
             builder: (context, ModelTheme themeNotifier, child) {
               return MaterialApp(
@@ -257,7 +251,12 @@ class Infospect {
         ),
       );
     } else {
-      runApp(myApp);
+      runApp(
+        ChangeNotifierProvider(
+            create: (_) => ModelTheme(),
+            builder: (context, child) => child ?? const SizedBox.shrink(),
+            child: myApp),
+      );
     }
   }
 
@@ -271,5 +270,29 @@ class Infospect {
   void dispose() {
     callsSubject.close();
     isInspectorOpened.dispose();
+  }
+
+  static Infospect ensureInitialized(
+      {int maxCallsCount = 1000, GlobalKey<NavigatorState>? navigatorKey}) {
+    if (Infospect._instance == null) {
+      Infospect._(
+        maxCallsCount: maxCallsCount,
+        navigatorKey: navigatorKey,
+      );
+    }
+    return Infospect.instance;
+  }
+
+  static checkInstance(Infospect? instance) {
+    if (instance == null) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary('Infospect is not yet initialized'),
+        ErrorDescription(
+            'This probably indicates that Infospect.instance was used but was not initialized'),
+        ErrorHint('To fix this use Infospect.ensureInitialized() at the main'),
+      ]);
+    }
+
+    return instance;
   }
 }

@@ -233,7 +233,6 @@ DataCell dataCellWidget(
     String? highlight}) {
   return DataCell(
     Container(
-      constraints: BoxConstraints(maxWidth: width),
       padding: const EdgeInsetsDirectional.only(start: 2),
       child: widget ??
           HighlightText(

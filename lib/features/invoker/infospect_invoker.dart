@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:menu_bar/menu_bar.dart';
+import 'package:infospect/utils/infospect_util.dart';
 
 /// state for the invoker widget (defaults to alwaysOpened)
 enum InvokerState {
@@ -34,13 +32,13 @@ class InfospectInvoker extends StatefulWidget {
   const InfospectInvoker({
     super.key,
     required this.child,
-    required this.infospect,
     this.state = InvokerState.alwaysOpened,
+    this.newWindowInDesktop = true,
   });
 
   final Widget child;
-  final Infospect infospect;
   final InvokerState state;
+  final bool newWindowInDesktop;
 
   @override
   State<InfospectInvoker> createState() => _DevOptionsBuilderState();
@@ -95,103 +93,103 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
   Widget build(BuildContext context) {
     if (kIsWeb) return widget.child;
 
-    if (Platform.isMacOS) {
-      return _MacOsMenuBarWidget(
-        widget: widget,
-      );
-    } else if (Platform.isWindows || Platform.isLinux) {
-      return _OtherDesktopMenuBarWidget(
-        widget: widget,
-      );
-    }
-
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        fit: StackFit.loose,
-        children: [
-          widget.child,
-          ValueListenableBuilder<bool>(
-            valueListenable: widget.infospect.isInspectorOpened,
-            builder: (context, value, child) {
-              if (value) {
-                return const SizedBox();
-              } else {
-                return child ?? const SizedBox();
-              }
-            },
-            child: AnimatedPositionedDirectional(
-              duration: const Duration(milliseconds: 300),
-              bottom: 30,
-              end: end,
-              child: SafeArea(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanUpdate: (details) {
-                    switch (widget.state) {
-                      case InvokerState.collapsable ||
-                            InvokerState.autoCollapse:
-                        timer?.cancel();
-                        if (details.delta.dx < 0) {
-                          changedValues();
-                          startTimer();
-                        } else if (details.delta.dx > 0) {
-                          initialValues();
-                        }
-                        break;
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyI,
+                  alt: true, meta: true, control: false):
+              () => Infospect.instance.openInspectorInNewWindow(),
+          const SingleActivator(LogicalKeyboardKey.keyI,
+                  alt: true, meta: false, control: true):
+              () => Infospect.instance.openInspectorInNewWindow(),
+        },
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          fit: StackFit.loose,
+          children: [
+            widget.child,
+            ValueListenableBuilder<bool>(
+              valueListenable: Infospect.instance.isInspectorOpened,
+              builder: (context, value, child) {
+                if (value) {
+                  return const SizedBox();
+                } else {
+                  return child ?? const SizedBox();
+                }
+              },
+              child: AnimatedPositionedDirectional(
+                duration: const Duration(milliseconds: 300),
+                bottom: 30,
+                end: end,
+                child: SafeArea(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanUpdate: (details) {
+                      switch (widget.state) {
+                        case InvokerState.collapsable ||
+                              InvokerState.autoCollapse:
+                          timer?.cancel();
+                          if (details.delta.dx < 0) {
+                            changedValues();
+                            startTimer();
+                          } else if (details.delta.dx > 0) {
+                            initialValues();
+                          }
+                          break;
 
-                      case InvokerState.alwaysOpened:
-                        break;
-                    }
-                  },
-                  onTap: () {
-                    switch (widget.state) {
-                      case InvokerState.autoCollapse:
-                        timer?.cancel();
-                        if (end == 0) {
-                          changedValues();
-                          startTimer();
-                        } else {
-                          initialValues();
-                          widget.infospect.navigateToInterceptor();
-                        }
-                        break;
+                        case InvokerState.alwaysOpened:
+                          break;
+                      }
+                    },
+                    onTap: () {
+                      switch (widget.state) {
+                        case InvokerState.autoCollapse:
+                          timer?.cancel();
+                          if (end == 0) {
+                            changedValues();
+                            startTimer();
+                          } else {
+                            initialValues();
+                            _launchInfospect();
+                          }
+                          break;
 
-                      case InvokerState.collapsable:
-                        if (end == 0) {
-                          changedValues();
-                        } else {
-                          widget.infospect.navigateToInterceptor();
-                        }
-                        break;
+                        case InvokerState.collapsable:
+                          if (end == 0) {
+                            changedValues();
+                          } else {
+                            _launchInfospect();
+                          }
+                          break;
 
-                      case InvokerState.alwaysOpened:
-                        widget.infospect.navigateToInterceptor();
-                        break;
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsetsDirectional.only(start: 20),
-                    child: Theme(
-                      data: Theme.of(context),
+                        case InvokerState.alwaysOpened:
+                          _launchInfospect();
+
+                          break;
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 20),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         decoration: BoxDecoration(
                           color: Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style
-                                  ?.backgroundColor
-                                  ?.resolve({MaterialState.focused}) ??
+                                  .buttonTheme
+                                  .colorScheme
+                                  ?.onBackground ??
                               Colors.red,
                           borderRadius: borderRadius,
                         ),
                         height: 50,
                         width: width,
                         child: width == 50
-                            ? const Icon(
-                                FontAwesomeIcons.code,
-                                color: Colors.white,
+                            ? Icon(
+                                Icons.search_sharp,
+                                color: Theme.of(context)
+                                    .buttonTheme
+                                    .colorScheme
+                                    ?.background,
                               )
                             : null,
                       ),
@@ -200,84 +198,17 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-}
 
-class _OtherDesktopMenuBarWidget extends StatelessWidget {
-  const _OtherDesktopMenuBarWidget({
-    required this.widget,
-  });
-
-  final InfospectInvoker widget;
-
-  @override
-  Widget build(BuildContext context) {
-    return Navigator(
-      onGenerateRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) {
-            return MenuBarWidget(
-              barButtons: [
-                BarButton(
-                  text: const Text('Options'),
-                  submenu: SubMenu(
-                    menuItems: [
-                      MenuButton(
-                        text: const Text('Infospect'),
-                        shortcutText: 'Ctrl+I',
-                        shortcut: SingleActivator(
-                          LogicalKeyboardKey.keyI,
-                          meta: Platform.isMacOS,
-                          control: !Platform.isMacOS,
-                        ),
-                        onTap: () async =>
-                            await widget.infospect.openInspectorInNewWindow(),
-                      )
-                    ],
-                  ),
-                )
-              ],
-              child: widget.child,
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _MacOsMenuBarWidget extends StatelessWidget {
-  const _MacOsMenuBarWidget({
-    required this.widget,
-  });
-
-  final InfospectInvoker widget;
-
-  @override
-  Widget build(BuildContext context) {
-    return PlatformMenuBar(
-      menus: <PlatformMenuItem>[
-        PlatformMenu(
-          label: 'Options',
-          menus: <PlatformMenuItem>[
-            PlatformMenuItem(
-              onSelected: () async {
-                await widget.infospect.openInspectorInNewWindow();
-              },
-              shortcut: const SingleActivator(
-                LogicalKeyboardKey.keyI,
-                meta: true,
-              ),
-              label: 'Infospect',
-            ),
-          ],
-        ),
-      ],
-      child: widget.child,
-    );
+  void _launchInfospect() {
+    if (InfospectUtil.isDesktop && widget.newWindowInDesktop) {
+      Infospect.instance.openInspectorInNewWindow();
+    } else {
+      Infospect.instance.navigateToInterceptor();
+    }
   }
 }

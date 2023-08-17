@@ -8,17 +8,13 @@ class ModelTheme extends ChangeNotifier {
   ModelTheme() {
     _isDark = false;
 
-    getPreferences();
+    notifyListeners();
   }
 
 //Switching the themes
   set isDark(bool value) {
     _isDark = value;
 
-    notifyListeners();
-  }
-
-  getPreferences() async {
     notifyListeners();
   }
 }

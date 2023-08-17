@@ -41,6 +41,7 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
     final networkListBloc = context.read<NetworksListBloc>();
 
     return AppBar(
+      automaticallyImplyLeading: false,
       elevation: 0,
       leading: widget.isDesktop
           ? null

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -54,7 +55,9 @@ class Infospect {
   /// This will open inspector in new window. This will work only on desktop
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      final window = await DesktopMultiWindow.createWindow();
+      final WindowController window = await DesktopMultiWindow.createWindow(
+        jsonEncode({'args1': 'Sub window'}),
+      );
       window
         ..setFrame(const Offset(0, 0) & const Size(1280, 720))
         ..center()

@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:example/app_logger.dart';
 import 'package:flutter/material.dart';
-import 'package:infospect/features/logger/models/infospect_log.dart';
+import 'package:http/http.dart' as http;
 import 'package:infospect/infospect.dart';
 
 void main(List<String> args) {
@@ -19,19 +20,21 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-class _MainAppState extends State<MainApp> {
+class _MainAppState extends State<MainApp> with AppLoggerMixin {
   late Dio _dio;
 
   @override
   void initState() {
-    _dio = Dio(
-      BaseOptions(
-        followRedirects: false,
-      ),
-    );
+    _dio = Dio(BaseOptions(followRedirects: false));
     _dio.interceptors.add(Infospect.instance.dioInterceptor);
     super.initState();
+
+    http.Client client = http.Client();
+    client = Infospect.instance.httpClientInterceptor(client: client);
   }
+
+  @override
+  String get tag => 'MainApp';
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +45,7 @@ class _MainAppState extends State<MainApp> {
       themeMode: ThemeMode.dark,
       builder: (context, child) {
         return InfospectInvoker(
-          state: InvokerState.collapsable,
+          state: InvokerState.collapsible,
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -109,13 +112,11 @@ class _MainAppState extends State<MainApp> {
                       break;
                   }
 
-                  Infospect.instance.addLog(
-                    InfospectLog(
-                      message: 'test log ${timer.tick}',
-                      level: DiagnosticLevel.values[timer.tick],
-                      error: _getError(timer.tick),
-                      stackTrace: StackTrace.current,
-                    ),
+                  lgoOthers(
+                    DiagnosticLevel.values[timer.tick],
+                    'test log ${timer.tick}',
+                    error: _getError(timer.tick),
+                    stackTrace: StackTrace.current,
                   );
                 },
               );

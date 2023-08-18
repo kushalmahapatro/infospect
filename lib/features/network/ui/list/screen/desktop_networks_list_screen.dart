@@ -62,7 +62,7 @@ class _DesktopNetworksListScreenState
         }
         if (events.isNotEmpty) {
           widget.infospect.removeCalls();
-          widget.infospect.callsSubject.add(events.reversed.toList());
+          widget.infospect.networkCallsSubject.add(events.reversed.toList());
           setState(() {});
         }
       }

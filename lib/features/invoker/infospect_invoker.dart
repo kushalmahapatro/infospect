@@ -7,24 +7,29 @@ import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
 /// state for the invoker widget (defaults to alwaysOpened)
+///
+/// alwaysOpened:
+/// This will force the the invoker widget to be opened always
+///
+/// collapsible:
+/// This will make the widget to collapse and expand on demand
+/// By default it will be in collapsed state
+/// Tap or outwards will expand the widget
+/// When expanded, tapping on it will navigate to Infospect screen.
+/// And swiping it inwards will change it to collapsed state
+///
+/// autoCollapse: This will auto change the widget state from expanded to collapse after 5 seconds
+/// By default it will be in collapsed state
+/// Tap or outwards will expand the widget and if not tapped within 5 secs, it will change to
+/// collapsed state.
+/// When expanded, tapping on it will navigate to Infospect screen and will change it to
+/// collapsed state
+/// And swiping it inwards will change it to collapsed state
 enum InvokerState {
-  /// alwaysOpened: This will force the the invoker widget to be opened always
   alwaysOpened,
 
-  /// collapsable: This will make the widget to collapse and expand on demand
-  /// By default it will be in collapsed state
-  /// Tap or outwards will expand the widget
-  /// When expanded, tapping on it will navigate to Infospect screen.
-  /// And swiping it inwards will change it to collapsed state
-  collapsable,
+  collapsible,
 
-  /// autoCollapse: This will auto change the widget state from expanded to collapse after 5 seconds
-  /// By default it will be in collapsed state
-  /// Tap or outwards will expand the widget and if not tapped within 5 secs, it will change to
-  /// collapsed state.
-  /// When expanded, tapping on it will navigate to Infospect screen and will change it to
-  /// collapsed state
-  /// And swiping it inwards will change it to collapsed state
   autoCollapse
 }
 
@@ -56,7 +61,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
       borderRadius = BorderRadius.circular(25);
       width = 50;
     } else if (widget.state == InvokerState.autoCollapse ||
-        widget.state == InvokerState.collapsable) {
+        widget.state == InvokerState.collapsible) {
       if (end == 0 && !isInit) return;
       end = 0;
       borderRadius = const BorderRadiusDirectional.only(
@@ -110,7 +115,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
           children: [
             widget.child,
             ValueListenableBuilder<bool>(
-              valueListenable: Infospect.instance.isInspectorOpened,
+              valueListenable: Infospect.instance.isInfospectOpened,
               builder: (context, value, child) {
                 if (value) {
                   return const SizedBox();
@@ -127,7 +132,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                     behavior: HitTestBehavior.opaque,
                     onPanUpdate: (details) {
                       switch (widget.state) {
-                        case InvokerState.collapsable ||
+                        case InvokerState.collapsible ||
                               InvokerState.autoCollapse:
                           timer?.cancel();
                           if (details.delta.dx < 0) {
@@ -155,7 +160,7 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                           }
                           break;
 
-                        case InvokerState.collapsable:
+                        case InvokerState.collapsible:
                           if (end == 0) {
                             changedValues();
                           } else {

@@ -32,7 +32,7 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
   FutureOr<void> _onCallsChanged(
       CallsChanged event, Emitter<NetworksListState> emit) async {
     await emit.forEach(
-      _infospect.callsSubject,
+      _infospect.networkCallsSubject,
       onData: (value) {
         return _filterNetworkCalls(
           List.from(state.filters),
@@ -136,6 +136,6 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
 
   /// initial call
   void _onStarted() {
-    add(CallsChanged(calls: _infospect.callsSubject.value));
+    add(CallsChanged(calls: _infospect.networkCallsSubject.value));
   }
 }

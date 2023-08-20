@@ -1,11 +1,18 @@
 part of 'infospect_helper.dart';
 
+/// `InfospectMultiWindowHelper` aids the `Infospect` class in managing multi-window communication.
+/// It provides functionalities for sending and receiving data between different windows,
+/// especially in a desktop environment.
 class InfospectMultiWindowHelper {
+  /// The private constructor.
+  ///
+  /// - `infospect`: Reference to the main `Infospect` instance.
   const InfospectMultiWindowHelper._(Infospect infospect)
       : _infospect = infospect;
 
   final Infospect _infospect;
 
+  /// Sends specified data to all sub windows.
   Future<void> _sendDataToSubWindow({required Map<String, List> data}) async {
     if (Platform.isAndroid || Platform.isIOS) return;
     List<int> subWindowIds = [];
@@ -22,6 +29,7 @@ class InfospectMultiWindowHelper {
     }
   }
 
+  /// Sends current network calls to all sub windows.
   void sendNetworkCalls() {
     final List data = (_infospect.networkCallsSubject.value)
         .map<Map<String, dynamic>>((e) => e.toMap())
@@ -30,6 +38,7 @@ class InfospectMultiWindowHelper {
     _sendDataToSubWindow(data: {'network': data});
   }
 
+  /// Sends the provided logs or all logs to all sub windows.
   void sendLogs([List<InfospectLog>? logs]) {
     if (logs == null) {
       _sendDataToSubWindow(data: _infospect.infospectLogger.logsMap);
@@ -42,17 +51,20 @@ class InfospectMultiWindowHelper {
     }
   }
 
+  /// Sends the current theme mode to all sub windows.
   void sendThemeMode(bool isDarkTheme) {
     _sendDataToSubWindow(data: {
       'themeType': [isDarkTheme]
     });
   }
 
+  /// Sets up the method handler to listen to data received by the main window.
   void handleMultiWindowReceivedData(BuildContext context) {
     DesktopMultiWindow.setMethodHandler((call, fromWindowId) =>
         _handleMethodCallback(context, call, fromWindowId));
   }
 
+  /// Handles the data received from a sub window.
   Future<dynamic> _handleMethodCallback(
       BuildContext context, MethodCall call, int fromWindowId) async {
     _updateTheme(context, call);
@@ -60,6 +72,7 @@ class InfospectMultiWindowHelper {
     _updateNetworkCalls(call);
   }
 
+  /// Updates the network calls based on received data.
   void _updateNetworkCalls(MethodCall call) {
     if (call.arguments is Map &&
         (call.arguments as Map).containsKey('network')) {
@@ -91,6 +104,7 @@ class InfospectMultiWindowHelper {
     }
   }
 
+  /// Updates the logs based on received data.
   void _updateLogs(MethodCall call) {
     if (call.arguments is Map && (call.arguments as Map).containsKey('logs')) {
       for (final log in ((call.arguments as Map)['logs'] as List)) {
@@ -99,6 +113,7 @@ class InfospectMultiWindowHelper {
     }
   }
 
+  /// Updates the theme based on received data.
   void _updateTheme(BuildContext context, MethodCall call) {
     if (call.arguments is Map &&
         (call.arguments as Map).containsKey('themeType')) {
@@ -108,10 +123,12 @@ class InfospectMultiWindowHelper {
     }
   }
 
+  /// Sets up the method handler for the main window to process incoming data.
   void handleMainWindowReceiveData() {
     DesktopMultiWindow.setMethodHandler(_handleMainWindowReceiveData);
   }
 
+  /// Processes the incoming data for the main window.
   Future _handleMainWindowReceiveData(MethodCall call, int fromWindowId) async {
     if (call.method == 'onSend') {
       if (call.arguments == MainWindowArguments.shareNetworkCallLogs.name) {

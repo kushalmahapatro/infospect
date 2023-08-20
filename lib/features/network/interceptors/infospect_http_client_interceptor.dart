@@ -10,13 +10,38 @@ import 'package:infospect/features/network/models/infospect_network_request.dart
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 
+/// `InfospectHttpClientInterceptor` provides a mechanism to intercept and
+/// monitor HTTP requests and their responses within a Flutter application.
+/// This class is an integral part of the `Infospect` toolset, providing detailed
+/// insights into the network operations of the application.
+///
+/// **Example Usage:**
+/// ```dart
+/// final http.Client client = http.Client();
+/// client = Infospect.instance.httpClientInterceptor(client: client);
+/// ```
 class InfospectHttpClientInterceptor extends BaseClient {
   final Infospect infospect;
   final Client client;
 
+  /// Constructs a new instance of `InfospectHttpClientInterceptor`.
+  ///
+  /// The [client] is the original HTTP client that the application would
+  /// typically use to make network requests.
+  ///
+  /// The [infospect] is the primary system that manages and logs network activities.
   InfospectHttpClientInterceptor(
       {required this.client, required this.infospect});
 
+  /// Intercepts outgoing HTTP requests made using the provided [client].
+  ///
+  /// The interceptor captures details about the request and its corresponding response,
+  /// if any, then logs this information using the `Infospect` system.
+  ///
+  /// - [request]: The outgoing HTTP request.
+  ///
+  /// Returns a [Future] that completes with the corresponding [StreamedResponse] once
+  /// the request completes.
   @override
   Future<StreamedResponse> send(BaseRequest request) async {
     StreamedResponse? response;

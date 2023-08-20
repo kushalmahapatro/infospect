@@ -3,6 +3,22 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// Retrieves the corresponding [IconData] and [Color] based on the given
+/// [DiagnosticLevel].
+///
+/// The method uses the theme data provided by the `BuildContext` to determine
+/// the appropriate icon and color values for each diagnostic level.
+///
+/// - [level]: The `DiagnosticLevel` which determines the output icon and color.
+/// - [context]: The build context which is used to obtain theme information.
+///
+/// **Returns:** A tuple containing the corresponding icon and color for the given level.
+///
+/// **Example usage:**
+/// ```dart
+/// final result = getIconAndColor(DiagnosticLevel.warning, context);
+/// Icon icon = Icon(result.icon, color: result.color);
+/// ```
 ({IconData icon, Color color}) getIconAndColor(
     DiagnosticLevel level, BuildContext context) {
   final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -46,6 +62,23 @@ import 'package:flutter/material.dart';
   };
 }
 
+/// Converts the given [object] into its string representation.
+///
+/// The method attempts multiple strategies to stringify the provided object.
+/// If the object is a `String`, it is trimmed. If the object is a `DiagnosticsNode`,
+/// a deep string representation is returned. If the object provides a `toJson` method,
+/// the object is stringified using JSON serialization.
+///
+/// - [object]: The object to be stringified.
+///
+/// **Returns:** The string representation of the object or `null` if the object is null.
+///
+/// **Example usage:**
+/// ```dart
+/// final object = {"key": "value"};
+/// final stringRepresentation = stringifiedLog(object);
+/// print(stringRepresentation);  // Outputs: '{\n  "key": "value"\n}'
+/// ```
 String? stringifiedLog(dynamic object) {
   if (object == null) return null;
   if (object is String) return object.trim();

@@ -12,9 +12,6 @@ class InfospectLogger {
   /// be removed.
   int? _maximumSize;
 
-  /// A list of logs represented as [ValueNotifier] to enable listeners for log changes.
-  // final _logs = ValueNotifier<List<InfospectLog>>([]);
-
   /// Creates an instance of the `InfospectLogger` class.
   ///
   /// Parameters:

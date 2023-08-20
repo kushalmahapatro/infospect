@@ -1,14 +1,21 @@
 part of 'infospect_helper.dart';
 
+/// `InfospectNavigationHelper` aids the `Infospect` class in navigation and window management tasks.
+/// This class provides functionalities to open new windows (useful in a desktop environment),
+/// navigate to certain screens, and handle the launching of multiple instances of the app.
 class InfospectNavigationHelper {
+  /// Private constructor for the `InfospectNavigationHelper`.
+  ///
+  /// - `infospect`: Reference to the main `Infospect` instance.
   const InfospectNavigationHelper._(Infospect infospect)
       : _infospect = infospect;
   final Infospect _infospect;
 
+  /// Determines whether the current theme mode is dark.
   bool get isDarkTheme =>
       Theme.of(_infospect.context!).brightness == Brightness.dark;
 
-  /// This will open inspector in new window. This will work only on desktop
+  /// Opens the inspector in a new window (applicable only on desktop platforms).
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final WindowController window = await DesktopMultiWindow.createWindow(
@@ -28,6 +35,10 @@ class InfospectNavigationHelper {
     }
   }
 
+  /// Provides the main widget for the interceptor screen.
+  ///
+  /// - `isDarkTheme`: Whether to use dark theme. Defaults to `true`.
+  /// - `isMultiWindow`: Whether the screen is part of a multi-window environment.
   Widget interceptorScreen({
     bool isDarkTheme = true,
     bool isMultiWindow = false,
@@ -64,6 +75,7 @@ class InfospectNavigationHelper {
     );
   }
 
+  /// Navigates to the interceptor screen.
   void navigateToInterceptor() {
     if (Infospect.instance.context == null) {
       InfospectUtil.log(
@@ -84,6 +96,10 @@ class InfospectNavigationHelper {
     }
   }
 
+  /// Initiates the app with specified arguments.
+  ///
+  /// - `args`: A list of arguments.
+  /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) {
     if (args.firstOrNull == 'multi_window') {
       runNewWindowInstance(args);
@@ -93,6 +109,9 @@ class InfospectNavigationHelper {
     _infospect._runAppCompleter.complete(true);
   }
 
+  /// Initiates a new instance of the app in a new window (useful for multi-window scenarios).
+  ///
+  /// - `args`: A list of arguments.
   void runNewWindowInstance(List<String> args) {
     runApp(
       BlocProvider(

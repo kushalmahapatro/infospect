@@ -1,15 +1,22 @@
-// ignore_for_file: must_be_immutable
-
 import 'package:dio/dio.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network response data for the Infospect application.
 class InfospectNetworkResponse {
-  final int? status; // The Network status code of the response.
-  final int size; // The size of the response data in bytes.
-  final DateTime time; // The timestamp when the response was received.
-  final dynamic body; // The body of the Network response.
-  final Map<String, String>? headers; // The headers of the Network response.
+  /// The Network status code of the response.
+  final int? status;
+
+  /// The size of the response data in bytes.
+  final int size;
+
+  /// The timestamp when the response was received.
+  final DateTime time;
+
+  /// The body of the Network response.
+  final dynamic body;
+
+  /// The headers of the Network response.
+  final Map<String, String>? headers;
 
   /// Creates an instance of the `InfospectNetworkResponse` class.
   ///

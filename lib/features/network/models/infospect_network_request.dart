@@ -1,5 +1,3 @@
-// ignore_for_file: must_be_immutable
-
 import 'dart:io';
 
 import 'package:infospect/features/network/models/infospect_form_data.dart';
@@ -7,23 +5,31 @@ import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network request data for the Infospect application.
 class InfospectNetworkRequest {
-  // The size of the request data in bytes.
+  /// The size of the request data in bytes.
   final int size;
-  // The timestamp when the request was made.
+
+  /// The timestamp when the request was made.
   final DateTime time;
-  // The headers of the Network request.
+
+  /// The headers of the Network request.
   final Map<String, dynamic> headers;
-  // The body of the Network request.
+
+  /// The body of the Network request.
   final dynamic body;
-  // The content type (MIME type) of the request.
+
+  /// The content type (MIME type) of the request.
   final String? contentType;
-  // The cookies sent with the request.
+
+  /// The cookies sent with the request.
   final List<Cookie> cookies;
-  // The query parameters of the request.
+
+  /// The query parameters of the request.
   final Map<String, dynamic> queryParameters;
-  // List of file attachments (form data) if any.
+
+  /// List of file attachments (form data) if any.
   final List<InfospectFormDataFile>? formDataFiles;
-  // List of form data fields if any.
+
+  /// List of form data fields if any.
   final List<InfospectFormDataField>? formDataFields;
 
   /// Creates an instance of the `InfospectNetworkRequest` class.

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
+/// Enum that lists the types of actions that can be performed related to logs.
 enum LogsActionType {
   level,
   share,
   clear,
 }
 
+/// An abstract class that provides data models for actions related to logs.
 abstract class LogsAction {
   static ActionModel get filterModel {
     return ActionModel(

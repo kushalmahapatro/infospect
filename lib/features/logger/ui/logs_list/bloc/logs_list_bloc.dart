@@ -13,10 +13,21 @@ import 'package:infospect/utils/models/action_model.dart';
 part 'logs_list_event.dart';
 part 'logs_list_state.dart';
 
+/// `LogsListBloc` is responsible for managing the state of the logs list.
+///
+/// This Bloc responds to various events to filter logs, search for text within logs,
+/// add or remove filters, share logs, and clear logs.
+///
+/// - The `_infospectLogger` instance provides logs for the application.
+/// - The `_isMultiWindow` flag checks if the app runs in a multi-window environment.
 class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
   final InfospectLogger _infospectLogger;
   final bool _isMultiWindow;
 
+  /// Creates a new instance of `LogsListBloc`.
+  ///
+  /// - [infospectLogger]: The logger instance used to fetch logs.
+  /// - [isMultiWindow]: Indicates whether the application is running in a multi-window environment.
   LogsListBloc(
       {required InfospectLogger infospectLogger, required bool isMultiWindow})
       : _infospectLogger = infospectLogger,
@@ -43,11 +54,12 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     _onStarted();
   }
 
-  /// initial call
+  /// Handles the initialization logic when the Bloc starts.
   void _onStarted() {
     add(LogsChanged(logs: _infospectLogger.callsSubject.value));
   }
 
+  /// Responds to the `LogsChanged` event by updating the current logs list.
   FutureOr<void> _onLogsChanged(
       LogsChanged event, Emitter<LogsListState> emit) async {
     await emit.forEach(
@@ -58,6 +70,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     );
   }
 
+  /// Responds to the `TextSearched` event to filter logs based on the searched text.
   FutureOr<void> _onTextSearched(
       TextSearched event, Emitter<LogsListState> emit) async {
     emit(state.copyWith(searchedText: event.text));
@@ -65,6 +78,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     emit(_filterLogs(List.from(state.filters)));
   }
 
+  /// Handles the addition of a log filter based on the `LogsFilterAdded` event.
   FutureOr<void> _onLogsFilterAdded(
       LogsFilterAdded event, Emitter<LogsListState> emit) {
     final List<PopupAction> finalFilters = List.from(state.filters);
@@ -81,6 +95,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     emit(_filterLogs(finalFilters));
   }
 
+  /// Handles the removal of a log filter based on the `LogsFilterRemoved` event.
   FutureOr<void> _onLogsFilterRemoved(
       LogsFilterRemoved event, Emitter<LogsListState> emit) {
     final List<PopupAction> finalFilters = List.from(state.filters);
@@ -94,6 +109,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     }
   }
 
+  /// Returns a state containing logs filtered based on the provided criteria.
   LogsListState _filterLogs(
     List<PopupAction> filter, [
     List<InfospectLog>? totalLogs,
@@ -134,6 +150,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     );
   }
 
+  /// Shares all logs based on the `ShareAllLogsClicked` event.
   FutureOr<void> _onShareAllLogsClicked(
       ShareAllLogsClicked event, Emitter<LogsListState> emit) async {
     if (_isMultiWindow) {
@@ -158,6 +175,7 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     }
   }
 
+  /// Clears all logs based on the `ClearAllLogsClicked` event.
   FutureOr<void> _onClearAllLogsClicked(
       ClearAllLogsClicked event, Emitter<LogsListState> emit) {
     if (_isMultiWindow) {

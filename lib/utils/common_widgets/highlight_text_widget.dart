@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/utils/common_widgets/conditional_widget.dart';
 
+/// A widget that displays text with a highlighted section.
+///
+/// This widget provides an easy way to display a piece of text with
+/// highlighted sections. The highlight is based on the string provided
+/// to the [highlight] parameter.
 class HighlightText extends StatelessWidget {
+  /// The text to display.
   final String text;
+
+  /// The text to be highlighted.
   final String? highlight;
+
+  /// The base style for the text.
   final TextStyle? style;
+
+  /// The style for the highlighted text. If not provided, [highlightColor] will be used.
   final TextStyle? highlightStyle;
+
+  /// The background color of the highlighted text.
   final Color? highlightColor;
+
+  /// Determines if the text matching should be case insensitive.
   final bool ignoreCase;
+
+  /// Whether the text can be selected or not.
   final bool selectable;
 
   final int? maxLines;
   final TextOverflow? overflow;
   final bool? softWrap;
 
+  /// Creates a [HighlightText] widget.
   const HighlightText({
     super.key,
     required this.text,

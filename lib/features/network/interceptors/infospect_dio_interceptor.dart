@@ -8,13 +8,33 @@ import 'package:infospect/features/network/models/infospect_network_request.dart
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/infospect.dart';
 
+/// `InfospectDioInterceptor` is an implementation of the `InterceptorsWrapper`
+/// provided by the `dio` package. This interceptor allows you to monitor and log
+/// HTTP requests and responses made using `Dio`.
+///
+/// The class works with the `Infospect` system to provide detailed logging and
+/// insights into the network operations of the application.
+///
+/// **Usage Example:**
+/// ```dart
+/// final _dio = Dio(BaseOptions());
+/// _dio.interceptors.add(Infospect.instance.dioInterceptor);
+/// ```
 class InfospectDioInterceptor extends InterceptorsWrapper {
+  /// The primary system used for logging and managing network activities.
   final Infospect infospect;
 
-  /// Creates dio interceptor
+  /// Constructs a new instance of `InfospectDioInterceptor`.
   InfospectDioInterceptor(this.infospect);
 
-  /// Handles dio request and creates infospect network call based on it
+  /// Intercepts outgoing HTTP requests made using `Dio`.
+  ///
+  /// This method logs request details using the `Infospect` system before
+  /// the actual request is made.
+  ///
+  /// - [options]: The request options.
+  /// - [handler]: A request interceptor handler, which determines how
+  /// the request should be handled.
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     InfospectNetworkCall call = InfospectNetworkCall(options.hashCode);
@@ -79,7 +99,14 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
     handler.next(options);
   }
 
-  /// Handles dio response and adds data to infospect network call
+  /// Intercepts the response for an HTTP request made using `Dio`.
+  ///
+  /// This method logs response details using the `Infospect` system after
+  /// receiving a response.
+  ///
+  /// - [response]: The HTTP response.
+  /// - [handler]: A response interceptor handler, which determines how
+  /// the response should be handled.
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
@@ -107,7 +134,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
     handler.next(response);
   }
 
-  /// Handles error and adds data to infospect network call
+  /// Intercepts any errors that occur when making an HTTP request using `Dio`.
+  ///
+  /// This method logs error details using the `Infospect` system.
+  ///
+  /// - [error]: The error details.
+  /// - [handler]: An error interceptor handler, which determines how
+  /// the error should be handled.
   @override
   void onError(DioError error, ErrorInterceptorHandler handler) {
     InfospectNetworkResponse httpResponse = InfospectNetworkResponse();

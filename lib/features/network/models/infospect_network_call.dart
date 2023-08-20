@@ -1,4 +1,3 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
@@ -8,31 +7,43 @@ import 'package:infospect/features/network/models/infospect_network_response.dar
 
 /// Represents an Network call data for the Infospect application.
 class InfospectNetworkCall extends Equatable {
-  // The unique identifier for the Network call.
+  /// The unique identifier for the Network call.
   final int id;
-  // The timestamp when the Network call was created.
+
+  /// The timestamp when the Network call was created.
   final DateTime createdTime;
-  // The client information associated with the Network call.
+
+  /// The client information associated with the Network call.
   final String client;
-  // A flag indicating if the call is still in progress (loading) or completed.
+
+  /// A flag indicating if the call is still in progress (loading) or completed.
   final bool loading;
-  // A flag indicating if the call is made over a secure (NetworkS) connection.
+
+  /// A flag indicating if the call is made over a secure (NetworkS) connection.
   final bool secure;
-  // The Network method used in the call (e.g., GET, POST, etc.).
+
+  /// The Network method used in the call (e.g., GET, POST, etc.).
   final String method;
-  // The endpoint (URL path) used in the Network call.
+
+  /// The endpoint (URL path) used in the Network call.
   final String endpoint;
-  // The server URL (domain) to which the call is made.
+
+  /// The server URL (domain) to which the call is made.
   final String server;
-  // The full URI (server + endpoint) used in the Network call.
+
+  /// The full URI (server + endpoint) used in the Network call.
   final String uri;
-  // The duration of the Network call in milliseconds.
+
+  /// The duration of the Network call in milliseconds.
   final int duration;
-  // The Network request data associated with the call.
+
+  /// The Network request data associated with the call.
   final InfospectNetworkRequest? request;
-  // The Network response data associated with the call.
+
+  /// The Network response data associated with the call.
   final InfospectNetworkResponse? response;
-  // The Network error data associated with the call (if any).
+
+  /// The Network error data associated with the call (if any).
   final InfospectNetworkError? error;
 
   /// Creates an instance of the `InfospectNetworkCall` class.

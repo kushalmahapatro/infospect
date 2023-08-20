@@ -29,7 +29,17 @@ part 'multi_window_helper.dart';
 part 'navigation_helper.dart';
 part 'network_call_helper.dart';
 
+/// `Infospect` is a utility class designed to facilitate monitoring and debugging activities,
+/// such as logging network calls, navigating within the app, managing multi-window actions,
+/// and handling application logs.
 class Infospect {
+  /// The private constructor for the `Infospect` class.
+  ///
+  /// - `maxCallsCount`: The maximum number of network calls to retain. Defaults to 1000.
+  /// - `navigatorKey`: Optional key for the navigator.
+  /// - `logAppLaunch`: Flag to determine if app launch should be logged.
+  /// - `onShareAllNetworkCalls`: Callback triggered to share all network calls.
+  /// - `onShareAllLogs`: Callback triggered to share all logs.
   Infospect._({
     this.maxCallsCount = 1000,
     GlobalKey<NavigatorState>? navigatorKey,
@@ -78,6 +88,10 @@ class Infospect {
 
   final InfospectLogger infospectLogger;
 
+  /// Ensures the `Infospect` instance is initialized.
+  /// If it's not initialized, it will initialize it with the provided arguments.
+  ///
+  /// Returns the initialized instance of `Infospect`.
   static Infospect ensureInitialized({
     int maxCallsCount = 1000,
     GlobalKey<NavigatorState>? navigatorKey,
@@ -97,6 +111,7 @@ class Infospect {
     return Infospect.instance;
   }
 
+  /// Checks if the `Infospect` instance is initialized and throws an error
   static checkInstance(Infospect? instance) {
     if (instance == null) {
       throw FlutterError.fromParts(<DiagnosticsNode>[
@@ -121,14 +136,14 @@ class Infospect {
   void run(List<String> args, {required Widget myApp}) =>
       _infospectNavigationHelper.run(args, myApp: myApp);
 
-  /// Logs
+  /// Logs an instance of `InfospectLog`.
   void addLog(InfospectLog log) => _infospectLogHelper.addLog(log);
 
   void addLogs(List<InfospectLog> logs) => _infospectLogHelper.addLogs(logs);
 
   void clearAllLogs() => _infospectLogHelper.clearAllLogs();
 
-  /// Navigation
+  /// Navigates to the interceptor.
   Future<void> openInspectorInNewWindow() =>
       _infospectNavigationHelper.openInspectorInNewWindow();
 

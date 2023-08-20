@@ -1,8 +1,10 @@
 /// Represents an Network error for the Infospect application.
 class InfospectNetworkError {
-  final dynamic error; // The error object.
-  final StackTrace?
-      stackTrace; // The stack trace associated with the error, if available.
+  /// The error object.
+  final dynamic error;
+
+  /// The stack trace associated with the error, if available.
+  final StackTrace? stackTrace;
 
   /// Creates an instance of the `InfospectNetworkError` class.
   ///

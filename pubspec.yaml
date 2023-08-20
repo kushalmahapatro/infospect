@@ -1,6 +1,6 @@
 name: infospect
-description: Infospect meaning Information Inspector is a Flutter plugin for thats empowers the developers to debug the network calls and logs in the app.
-version: 0.0.1-alpha
+description: Infospect meaning Information Inspector is a Flutter plugin for that empowers the developers to debug the network calls and logs in the app.
+version: 0.0.2-alpha
 repository: https://github.com/kushalmahapatro/infospect
 
 environment:
@@ -8,22 +8,26 @@ environment:
   flutter: ">=1.17.0"
 
 screenshots:
- - description: 'Infospect Desktop Multi Window'
-   path: images/screenshot/desktop_multi_window.png
- - description: 'Infospect network calls screen - Mobile'
-   path: images/screenshot/network_calls_screen.png
- - description: 'Infospect logs screen - Mobile'
-   path: images/screenshot/logs.png
- - description: 'Infospect network calls screen - Desktop'
-   path: images/screenshot/network_calls_screen_desktop.png
- - description: 'Infospect logs screen - Desktop'
-   path: images/screenshot/logs_desktop.png
- - description: 'Infospect invoker open state'
-   path: images/screenshot/expanded.png
- - description: 'Infospect share UI - Mobile'
-   path: images/screenshot/share.png
- - description: 'Infospect share UI - Desktop'
-   path: images/screenshot/share_desktop.png
+  - description: 'Infospect Desktop Multi Window- macOS'
+    path: images/screenshot/desktop_multi_window.png
+  - description: 'Infospect Desktop Multi Window- Linux'
+    path: images/screenshot/linux.png
+  - description: 'Infospect Desktop Multi Window- Windows'
+    path: images/screenshot/windows.png
+  - description: 'Infospect network calls screen - Mobile'
+    path: images/screenshot/network_calls_screen.png
+  - description: 'Infospect logs screen - Mobile'
+    path: images/screenshot/logs.png
+  - description: 'Infospect network calls screen - Desktop'
+    path: images/screenshot/network_calls_screen_desktop.png
+  - description: 'Infospect logs screen - Desktop'
+    path: images/screenshot/logs_desktop.png
+  - description: 'Infospect invoker open state'
+    path: images/screenshot/expanded.png
+  - description: 'Infospect share UI - Mobile'
+    path: images/screenshot/share.png
+  - description: 'Infospect share UI - Desktop'
+    path: images/screenshot/share_desktop.png
 
 
 dependencies:

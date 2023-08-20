@@ -129,7 +129,6 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                 },
               ).toList(),
               rows: calls.reversed.mapIndexed((index, element) {
-                CellType.columnId;
                 return DataRow(
                   onSelectChanged: (value) {
                     if (element.loading) return;

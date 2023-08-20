@@ -142,7 +142,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
   /// - [handler]: An error interceptor handler, which determines how
   /// the error should be handled.
   @override
-  void onError(DioError error, ErrorInterceptorHandler handler) {
+  void onError(DioException error, ErrorInterceptorHandler handler) {
     InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
     dynamic body = '';
     int size = 0;

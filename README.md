@@ -9,13 +9,13 @@ to faster bug resolution.
 
 ## Preview
 
-iOS
+##### iOS
 ![](images/preview/ios.gif)
-macOS - Opening Infospect in new Window
+##### macOS - Opening Infospect in new Window
 ![](images/preview/mac.gif)
-Linus (Ubuntu VM in mac)- Opening Infospect in new Window
+##### Linus (Ubuntu VM in mac)- Opening Infospect in new Window
 ![](images/preview/linux(ubuntu%20vm).gif)
-Window 10 - (VM in mac) - Opening Infospect in new Window
+##### Window 10 - (VM in mac) - Opening Infospect in new Window
 ![](images/preview/windows.gif)
 
 ## Getting started
@@ -46,11 +46,8 @@ or using the below command
 2. Initialize the plugin in main.dart
 
   ```dart
-    WidgetsFlutterBinding.ensureInitialized
-();
-
-Infospect.ensureInitialized
-();
+    WidgetsFlutterBinding.ensureInitialized();
+    Infospect.ensureInitialized();
   ```
 
 In ensureInitialized we can configure the maxCallCount `int` for both network calls and logs,
@@ -81,34 +78,34 @@ If not provided, the default platform share option will be invoked.
 3. As in desktop a new window is used to show the infospect window, we need to add the following
    code in main.dart, as this will help to handle the data received to the main window from the
    infospect window.
-    ```dart
+  ```dart
     Infospect.ensureInitialized();
     Infospect.instance.handleMainWindowReceiveData();
-    ```
+  ```
 
 else can be also combined with ensureInitialized
-```dart
-Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
-```
+  ```dart
+    Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData()
+  ```
 
 4. Rather using runApp using, use `Infospect.instance.run(args, myApp: EntryWidget())`;
    This will help to set the args and use it when launching the infospect window in Desktop
-    ```dart
+  ```dart
     Infospect.instance.run(args, myApp: const MainApp());
-    ```
+  ```
 5. Adding network call interceptor
    a. dio:
-    ```dart
+  ```dart
     _dio = Dio(BaseOptions());
     _dio.interceptors.add(Infospect.instance.dioInterceptor);
-    ```
+  ```
    b. http:
-    ```dart
+  ```dart
     http.Client client = http.Client();
     client = Infospect.instance.httpClientInterceptor(client: client);
-    ```
+  ```
 6. Adding logs
-    ```dart
+  ```dart
     Infospect.instance.addLog(
       InfospectLog(
         message: logMessage,
@@ -117,7 +114,7 @@ Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
         stackTrace: stackTrace,
       ),
     );
-    ```
+  ```
 
 ## Upcoming Feature
 

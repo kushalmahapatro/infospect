@@ -1,7 +1,13 @@
 name: infospect
 description: Infospect meaning Information Inspector is a Flutter plugin for that empowers the developers to debug the network calls and logs in the app.
-version: 0.0.2-alpha
+version: 0.1.0
 repository: https://github.com/kushalmahapatro/infospect
+topics:
+  - interceptor
+  - dio
+  - http
+  - information-inspector
+  - multi-window
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -63,4 +69,5 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^2.0.0
   bloc_test: ^9.1.4
+  lints: ^2.1.1
 

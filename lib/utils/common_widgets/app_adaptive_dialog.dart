@@ -11,12 +11,11 @@ class AppAdaptiveDialog {
     required String body,
     required VoidCallback onPositiveActionClick,
   }) {
-    final String version = Platform.version;
-    if (version.split(' ').first.removeDotAndToInt >= 310) {
-      showAdaptiveDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog.adaptive(
+    showDialog(
+      context: context,
+      builder: (context) {
+        if (Platform.isMacOS || Platform.isIOS) {
+          return CupertinoAlertDialog(
             title: Text(title),
             content: Text(body),
             actions: <Widget>[
@@ -33,52 +32,27 @@ class AppAdaptiveDialog {
               ),
             ],
           );
-        },
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          if (Platform.isMacOS || Platform.isIOS) {
-            return CupertinoAlertDialog(
-              title: Text(title),
-              content: Text(body),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.pop(context, '${tag}_cancel'),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    onPositiveActionClick.call();
-                    Navigator.pop(context, '${tag}_clear');
-                  },
-                  child: const Text('Go ahead'),
-                ),
-              ],
-            );
-          } else {
-            return AlertDialog(
-              title: Text(title),
-              content: Text(body),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.pop(context, '${tag}_cancel'),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    onPositiveActionClick.call();
-                    Navigator.pop(context, '${tag}_clear');
-                  },
-                  child: const Text('Go ahead'),
-                ),
-              ],
-            );
-          }
-        },
-      );
-    }
+        } else {
+          return AlertDialog(
+            title: Text(title),
+            content: Text(body),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(context, '${tag}_cancel'),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  onPositiveActionClick.call();
+                  Navigator.pop(context, '${tag}_clear');
+                },
+                child: const Text('Go ahead'),
+              ),
+            ],
+          );
+        }
+      },
+    );
   }
 }
 

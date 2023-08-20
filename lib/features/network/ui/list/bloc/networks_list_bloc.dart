@@ -1,38 +1,57 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:collection/collection.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:equatable/equatable.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
+import 'package:infospect/utils/infospect_util.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 part 'networks_list_event.dart';
 part 'networks_list_state.dart';
 
 class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
-  final Infospect _infospect;
+  final bool _isMultiWindow;
 
-  NetworksListBloc({required Infospect infospect})
-      : _infospect = infospect,
+  NetworksListBloc({required bool isMultiWindow})
+      : _isMultiWindow = isMultiWindow,
         super(const NetworksListState()) {
+    /// Listen to the logs changes
     on<CallsChanged>(_onCallsChanged);
 
+    /// Listen to the text searched
     on<NetworkLogsSearched>(_onNetworkLogsSearched);
 
-    on<NetowrkLogsFilterAdded>(_onNetworkLogsFilterAdded);
+    /// Listen to the logs filter added
+    on<NetworkLogsFilterAdded>(_onNetworkLogsFilterAdded);
 
-    on<NetowrkLogsFilterRemoved>(_onNetworkLogsFilterRemoved);
+    /// Listen to the logs filter removed
+    on<NetworkLogsFilterRemoved>(_onNetworkLogsFilterRemoved);
 
+    /// Listen to the share all logs clicked
+    on<ShareNetworkLogsClicked>(_onShareNetworkLogs);
+
+    /// Listen to the clear all logs clicked
+    on<ClearNetworkLogsClicked>(_onClearNetworkLogs);
+
+    /// Listen to the started event
     _onStarted();
+  }
+
+  /// initial call
+  void _onStarted() {
+    add(CallsChanged(calls: Infospect.instance.networkCallsSubject.value));
   }
 
   FutureOr<void> _onCallsChanged(
       CallsChanged event, Emitter<NetworksListState> emit) async {
     await emit.forEach(
-      _infospect.networkCallsSubject,
+      Infospect.instance.networkCallsSubject,
       onData: (value) {
         return _filterNetworkCalls(
           List.from(state.filters),
@@ -50,7 +69,7 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
   }
 
   FutureOr<void> _onNetworkLogsFilterAdded(
-      NetowrkLogsFilterAdded event, Emitter<NetworksListState> emit) async {
+      NetworkLogsFilterAdded event, Emitter<NetworksListState> emit) async {
     final List<PopupAction> finalFilters = List.from(state.filters);
 
     if (finalFilters
@@ -66,7 +85,7 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
   }
 
   FutureOr<void> _onNetworkLogsFilterRemoved(
-      NetowrkLogsFilterRemoved event, Emitter<NetworksListState> emit) async {
+      NetworkLogsFilterRemoved event, Emitter<NetworksListState> emit) async {
     final List<PopupAction> finalFilters = List.from(state.filters);
     if (finalFilters
             .firstWhereOrNull((element) => element.name == event.action.name) !=
@@ -134,8 +153,39 @@ class NetworksListBloc extends Bloc<NetworksListEvent, NetworksListState> {
     return state.copyWith(filteredCalls: list, calls: totalCalls);
   }
 
-  /// initial call
-  void _onStarted() {
-    add(CallsChanged(calls: _infospect.networkCallsSubject.value));
+  FutureOr<void> _onShareNetworkLogs(
+      ShareNetworkLogsClicked event, Emitter<NetworksListState> emit) async {
+    if (_isMultiWindow) {
+      DesktopMultiWindow.invokeMethod(
+        0,
+        'onSend',
+        MainWindowArguments.shareNetworkCallLogs.name,
+      );
+      return;
+    }
+    final File? networkLogsFile = await InfospectUtil.shareNetworkCallLogs();
+    if (networkLogsFile != null) {
+      emit(
+        CompressedNetworkCallLogsFile(
+          sharableFile: networkLogsFile,
+          calls: state.calls,
+          filteredCalls: state.filteredCalls,
+          filters: state.filters,
+          searchedText: state.searchedText,
+        ),
+      );
+    }
+  }
+
+  FutureOr<void> _onClearNetworkLogs(
+      ClearNetworkLogsClicked event, Emitter<NetworksListState> emit) {
+    if (_isMultiWindow) {
+      DesktopMultiWindow.invokeMethod(
+        0,
+        'onSend',
+        MainWindowArguments.clearNetworkCallLogs.name,
+      );
+    }
+    Infospect.instance.clearAllNetworkCalls();
   }
 }

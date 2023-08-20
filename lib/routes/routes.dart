@@ -9,16 +9,10 @@ import 'package:infospect/features/network/ui/raw_data_viewer/screen/raw_data_vi
 import 'package:infospect/infospect.dart';
 
 class MobileRoutes {
-  late ThemeData _themeData;
+  ThemeData? _themeData;
+  set themeData(ThemeData themeData) => _themeData = themeData;
 
-  MobileRoutes._() {
-    final Brightness brightness =
-        SchedulerBinding.instance.platformDispatcher.platformBrightness;
-    _themeData = InfospectTheme.darkTheme;
-    if (brightness == Brightness.light) {
-      _themeData = InfospectTheme.lightTheme;
-    }
-  }
+  MobileRoutes._();
 
   /// launch screen
   Widget launch(Infospect infospect) =>
@@ -57,8 +51,17 @@ class MobileRoutes {
       );
 
   Widget _themeWidget(Widget widget) {
+    if (_themeData == null) {
+      final Brightness brightness =
+          SchedulerBinding.instance.platformDispatcher.platformBrightness;
+      _themeData = InfospectTheme.darkTheme;
+      if (brightness == Brightness.light) {
+        _themeData = InfospectTheme.lightTheme;
+      }
+    }
+
     return Theme(
-      data: _themeData,
+      data: _themeData!,
       child: widget,
     );
   }

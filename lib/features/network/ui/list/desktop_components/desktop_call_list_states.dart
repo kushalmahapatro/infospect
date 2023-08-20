@@ -53,8 +53,8 @@ abstract class DesktopCallListStates<T extends DraggableTable>
 
   void init() {
     double width = 0;
-    for (int i = 0; i < CellId.values.length; i++) {
-      final element = CellId.values[i];
+    for (int i = 0; i < CellType.values.length; i++) {
+      final element = CellType.values[i];
       var cellState = DataCellState(
         id: element.id,
         label: element.label,
@@ -64,7 +64,7 @@ abstract class DesktopCallListStates<T extends DraggableTable>
       width = width + cellState.width;
       double w = widget.constraints.maxWidth - width;
 
-      if (i == CellId.values.length - 1 && w > 75) {
+      if (i == CellType.values.length - 1 && w > 75) {
         double maxWidth = (2 * w) - 50;
         cellState = cellState.copyWith(width: w, maxWidth: maxWidth);
       }

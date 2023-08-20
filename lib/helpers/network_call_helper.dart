@@ -73,9 +73,8 @@ class InfospectNetworkCallHelper {
     _infospect.sendNetworkCalls();
   }
 
-  void removeCalls() {
+  void clearAllNetworkCalls() {
     _infospect.networkCallsSubject.add([]);
-    _infospect.sendNetworkCalls();
   }
 
   int _selectCall(int requestId) => _infospect.networkCallsSubject.value

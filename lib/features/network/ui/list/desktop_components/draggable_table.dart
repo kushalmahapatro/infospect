@@ -11,6 +11,7 @@ import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DraggableTable extends StatefulWidget {
   const DraggableTable({
@@ -64,7 +65,19 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
   }
 
   Widget _resizableColumnWidth() {
-    return BlocBuilder<NetworksListBloc, NetworksListState>(
+    return BlocConsumer<NetworksListBloc, NetworksListState>(
+      listenWhen: (previous, current) =>
+          current is CompressedNetworkCallLogsFile,
+      listener: (context, state) {
+        if (state is CompressedNetworkCallLogsFile) {
+          if (Infospect.instance.onShareAllNetworkCalls != null) {
+            Infospect.instance.onShareAllNetworkCalls!(state.sharableFile.path);
+            return;
+          }
+          final XFile file = XFile(state.sharableFile.path);
+          Share.shareXFiles([file]);
+        }
+      },
       builder: (context, state) {
         List<InfospectNetworkCall> calls = state.filteredCalls;
         final color = Theme.of(context).colorScheme.onBackground;
@@ -116,9 +129,10 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                 },
               ).toList(),
               rows: calls.reversed.mapIndexed((index, element) {
-                CellId.Id;
+                CellType.columnId;
                 return DataRow(
                   onSelectChanged: (value) {
+                    if (element.loading) return;
                     widget.onCallSelected(element);
                   },
                   selected: widget.selectedCall?.id == element.id,
@@ -136,38 +150,38 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                             )
                           : _getStateColor(context, element),
                       data: '',
-                      width: dataCellStates.width(CellId.State),
+                      width: dataCellStates.width(CellType.columnState),
                     ),
 
                     /// Index
                     dataCellWidget(
                       data: '${index + 1}',
-                      width: dataCellStates.width(CellId.Id),
+                      width: dataCellStates.width(CellType.columnId),
                     ),
 
                     /// url
                     dataCellWidget(
                       data: element.uri,
-                      width: dataCellStates.width(CellId.Url),
+                      width: dataCellStates.width(CellType.columnUrl),
                       highlight: state.searchedText,
                     ),
 
                     /// Client name
                     dataCellWidget(
                       data: element.client,
-                      width: dataCellStates.width(CellId.Client),
+                      width: dataCellStates.width(CellType.columnClient),
                     ),
 
                     /// Method
                     dataCellWidget(
                       data: element.method,
-                      width: dataCellStates.width(CellId.Method),
+                      width: dataCellStates.width(CellType.columnMethod),
                     ),
 
                     /// status
                     dataCellWidget(
                       data: _getStatusText(element),
-                      width: dataCellStates.width(CellId.Status),
+                      width: dataCellStates.width(CellType.columnStatus),
                     ),
 
                     /// code
@@ -175,25 +189,25 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                       data: element.response?.status != -1
                           ? (element.response?.status ?? '').toString()
                           : '',
-                      width: dataCellStates.width(CellId.Status),
+                      width: dataCellStates.width(CellType.columnCode),
                     ),
 
                     /// Time
                     dataCellWidget(
                       data: element.createdTime.formatTime,
-                      width: dataCellStates.width(CellId.Time),
+                      width: dataCellStates.width(CellType.columnTime),
                     ),
 
                     /// duration
                     dataCellWidget(
                       data: element.duration.toReadableTime,
-                      width: dataCellStates.width(CellId.Duration),
+                      width: dataCellStates.width(CellType.columnDuration),
                     ),
 
                     /// is secure connection
                     dataCellWidget(
                       data: element.secure.toString(),
-                      width: dataCellStates.width(CellId.Secure),
+                      width: dataCellStates.width(CellType.columnSecure),
                     ),
                   ],
                 );

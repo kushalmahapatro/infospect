@@ -27,3 +27,11 @@ final class LogsFilterRemoved extends LogsListEvent {
 
   const LogsFilterRemoved({required this.action});
 }
+
+final class ShareAllLogsClicked extends LogsListEvent {
+  const ShareAllLogsClicked();
+}
+
+final class ClearAllLogsClicked extends LogsListEvent {
+  const ClearAllLogsClicked();
+}

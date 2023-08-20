@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
 import 'package:infospect/features/logger/ui/logs_list/models/logs_action.dart';
 import 'package:infospect/infospect.dart';
+import 'package:infospect/utils/common_widgets/app_adaptive_dialog.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class LogsListAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -65,9 +66,24 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
           },
           selected: logsBloc.state.filters.isNotEmpty,
         ),
-        AppBarActionWidget(
+        AppBarActionWidget<LogsActionType>(
           actionModel: LogsAction.menuModel,
-          onItemSelected: (value) {},
+          onItemSelected: (value) {
+            if (value.id == LogsActionType.share) {
+              logsBloc.add(const ShareAllLogsClicked());
+            } else if (value.id == LogsActionType.clear) {
+              AppAdaptiveDialog.show(
+                context,
+                tag: 'logs',
+                title: 'Clear Network Logs?',
+                body:
+                    'Are you sure you want to clear all logs? This will clear up the list.',
+                onPositiveActionClick: () {
+                  logsBloc.add(const ClearAllLogsClicked());
+                },
+              );
+            }
+          },
         ),
       ],
       bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,

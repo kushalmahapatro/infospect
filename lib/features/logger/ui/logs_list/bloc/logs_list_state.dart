@@ -30,3 +30,18 @@ class LogsListState extends Equatable {
     );
   }
 }
+
+final class CompressedLogsFile extends LogsListState {
+  const CompressedLogsFile({
+    super.logs,
+    super.filteredLogs,
+    super.searchedText,
+    super.filters,
+    required this.sharableFile,
+  });
+
+  final File sharableFile;
+
+  @override
+  List<Object> get props => super.props..add(sharableFile);
+}

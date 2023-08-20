@@ -57,7 +57,7 @@ abstract class NetworkAction {
     );
   }
 
-  static ActionModel get menuModel {
+  static ActionModel<NetworkActionType> get menuModel {
     return ActionModel(
       icon: Icons.more_vert,
       actions: const [

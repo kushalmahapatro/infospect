@@ -6,7 +6,6 @@ import 'package:infospect/features/launch/models/navigation_tab_data.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
 import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_screen.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/helpers/model_theme.dart';
 import 'package:infospect/utils/common_widgets/divider.dart';
 
 class LaunchDesktopScreen extends StatelessWidget {
@@ -15,15 +14,7 @@ class LaunchDesktopScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) {
-        var brightness = MediaQuery.of(context).platformBrightness;
-        if (context.read<ModelTheme>().isDark !=
-            (brightness == Brightness.dark)) {
-          context.read<ModelTheme>().isDark = brightness == Brightness.dark;
-        }
-      },
-    );
+    infospect.handleMultiWindowReceivedData(context);
 
     return Scaffold(
       body: Row(

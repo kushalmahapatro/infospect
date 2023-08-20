@@ -5,6 +5,9 @@ class InfospectNavigationHelper {
       : _infospect = infospect;
   final Infospect _infospect;
 
+  bool get isDarkTheme =>
+      Theme.of(_infospect.context!).brightness == Brightness.dark;
+
   /// This will open inspector in new window. This will work only on desktop
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -19,34 +22,47 @@ class InfospectNavigationHelper {
       window.show().then((value) {
         Infospect.instance
           ..sendNetworkCalls()
-          ..sendLogs();
+          ..sendLogs()
+          ..sendThemeMode(isDarkTheme: isDarkTheme);
       });
     }
   }
 
-  MaterialPageRoute interceptorScreen() => MaterialPageRoute<dynamic>(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider(
-              create: (_) => LaunchBloc(),
+  Widget interceptorScreen({
+    bool isDarkTheme = true,
+    bool isMultiWindow = false,
+  }) {
+    final ThemeData themeData =
+        isDarkTheme ? InfospectTheme.darkTheme : InfospectTheme.lightTheme;
+    mobileRoutes.themeData = themeData;
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const <LocalizationsDelegate<Object>>[],
+      supportedLocales: const <Locale>[
+        Locale('en', 'US'), // English
+      ],
+      theme: themeData,
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => LaunchBloc(),
+          ),
+          BlocProvider(
+            create: (_) => NetworksListBloc(
+              isMultiWindow: isMultiWindow,
             ),
-            BlocProvider(
-              create: (_) => NetworksListBloc(
-                infospect: Infospect.instance,
-              ),
+          ),
+          BlocProvider(
+            create: (_) => LogsListBloc(
+              infospectLogger: Infospect.instance.infospectLogger,
+              isMultiWindow: isMultiWindow,
             ),
-            BlocProvider(
-              create: (_) => LogsListBloc(
-                infospectLogger: Infospect.instance.infospectLogger,
-              ),
-            ),
-          ],
-          child: mobileRoutes.launch(Infospect.instance),
-        ),
-      );
-
-  Widget openInterceptor() =>
-      Navigator(onGenerateRoute: (settings) => interceptorScreen());
+          ),
+        ],
+        child: mobileRoutes.launch(Infospect.instance),
+      ),
+    );
+  }
 
   void navigateToInterceptor() {
     if (Infospect.instance.context == null) {
@@ -59,7 +75,9 @@ class InfospectNavigationHelper {
       _infospect.isInfospectOpened.value = true;
       Navigator.push<void>(
         _infospect.context!,
-        interceptorScreen(),
+        MaterialPageRoute<dynamic>(
+          builder: (context) => interceptorScreen(isDarkTheme: isDarkTheme),
+        ),
       ).then(
         (onValue) => _infospect.isInfospectOpened.value = false,
       );
@@ -68,35 +86,24 @@ class InfospectNavigationHelper {
 
   void run(List<String> args, {required Widget myApp}) {
     if (args.firstOrNull == 'multi_window') {
-      runApp(
-        ChangeNotifierProvider(
-          create: (_) => ModelTheme(),
-          builder: (context, child) => child ?? const SizedBox.shrink(),
-          child: Consumer<ModelTheme>(
-            builder: (context, ModelTheme themeNotifier, child) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                localizationsDelegates: const <LocalizationsDelegate<Object>>[],
-                supportedLocales: const <Locale>[
-                  Locale('en', 'US'), // English
-                ],
-                theme: themeNotifier.isDark
-                    ? ThemeData.dark(useMaterial3: true)
-                    : ThemeData(useMaterial3: true),
-                home: openInterceptor(),
-              );
-            },
+      runNewWindowInstance(args);
+      return;
+    }
+    runApp(myApp);
+    _infospect._runAppCompleter.complete(true);
+  }
+
+  void runNewWindowInstance(List<String> args) {
+    runApp(
+      BlocProvider(
+        create: (context) => DesktopThemeCubit(),
+        child: BlocBuilder<DesktopThemeCubit, DesktopThemeState>(
+          builder: (context, theme) => interceptorScreen(
+            isDarkTheme: theme.isDarkTheme,
+            isMultiWindow: true,
           ),
         ),
-      );
-    } else {
-      runApp(
-        ChangeNotifierProvider(
-          create: (_) => ModelTheme(),
-          builder: (context, child) => child ?? const SizedBox.shrink(),
-          child: myApp,
-        ),
-      );
-    }
+      ),
+    );
   }
 }

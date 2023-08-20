@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
 import 'package:infospect/infospect.dart';
+import 'package:infospect/utils/common_widgets/app_adaptive_dialog.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class NetworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -61,13 +62,28 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
           actionModel: NetworkAction.filterModel,
           selectedActions: networkListBloc.state.filters,
           onItemSelected: (value) {
-            networkListBloc.add(NetowrkLogsFilterAdded(action: value));
+            networkListBloc.add(NetworkLogsFilterAdded(action: value));
           },
           selected: networkListBloc.state.filters.isNotEmpty,
         ),
-        AppBarActionWidget(
+        AppBarActionWidget<NetworkActionType>(
           actionModel: NetworkAction.menuModel,
-          onItemSelected: (value) {},
+          onItemSelected: (value) {
+            if (value.id == NetworkActionType.share) {
+              networkListBloc.add(const ShareNetworkLogsClicked());
+            } else if (value.id == NetworkActionType.clear) {
+              AppAdaptiveDialog.show(
+                context,
+                tag: 'network_calls',
+                title: 'Clear Network Call Logs?',
+                body:
+                    'Are you sure you want to clear all network call logs? This will clear up the list.',
+                onPositiveActionClick: () {
+                  networkListBloc.add(const ClearNetworkLogsClicked());
+                },
+              );
+            }
+          },
         ),
       ],
       bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,
@@ -146,7 +162,7 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
         ),
         onDeleted: () {
           context.read<NetworksListBloc>().add(
-                NetowrkLogsFilterRemoved(action: e),
+                NetworkLogsFilterRemoved(action: e),
               );
         },
       ),

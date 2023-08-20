@@ -1,5 +1,6 @@
 // ignore_for_file: must_be_immutable
 
+import 'package:dio/dio.dart';
 import 'package:infospect/utils/extensions/map_extension.dart';
 
 /// Represents an Network response data for the Infospect application.
@@ -55,7 +56,7 @@ class InfospectNetworkResponse {
       'status': status,
       'size': size,
       'time': time.microsecondsSinceEpoch,
-      'body': body,
+      'body': body is ResponseBody ? body.runtimeType.toString() : body,
       'headers': headers,
     };
   }

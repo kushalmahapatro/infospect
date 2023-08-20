@@ -15,4 +15,9 @@ class InfospectLogHelper {
 
     _infospect.sendLogs(logs);
   }
+
+  void clearAllLogs() {
+    _infospect.infospectLogger.logs.clear();
+    _infospect.infospectLogger.clear();
+  }
 }

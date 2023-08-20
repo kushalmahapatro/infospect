@@ -36,7 +36,7 @@ abstract class LogsAction {
     );
   }
 
-  static ActionModel get menuModel {
+  static ActionModel<LogsActionType> get menuModel {
     return ActionModel(
       icon: Icons.more_vert,
       actions: [

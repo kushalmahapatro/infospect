@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:collection/collection.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:equatable/equatable.dart';
 import 'package:infospect/features/logger/infospect_logger.dart';
-import 'package:infospect/features/logger/models/infospect_log.dart';
+import 'package:infospect/infospect.dart';
+import 'package:infospect/utils/infospect_util.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 part 'logs_list_event.dart';
@@ -12,17 +15,37 @@ part 'logs_list_state.dart';
 
 class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
   final InfospectLogger _infospectLogger;
+  final bool _isMultiWindow;
 
-  LogsListBloc({required InfospectLogger infospectLogger})
+  LogsListBloc(
+      {required InfospectLogger infospectLogger, required bool isMultiWindow})
       : _infospectLogger = infospectLogger,
+        _isMultiWindow = isMultiWindow,
         super(const LogsListState()) {
+    /// Listen to the logs changes
     on<LogsChanged>(_onLogsChanged);
 
+    /// Listen to the text searched
     on<TextSearched>(_onTextSearched);
+
+    /// Listen to the logs filter added
     on<LogsFilterAdded>(_onLogsFilterAdded);
+
+    /// Listen to the logs filter removed
     on<LogsFilterRemoved>(_onLogsFilterRemoved);
 
+    /// Listen to the share all logs clicked
+    on<ShareAllLogsClicked>(_onShareAllLogsClicked);
+
+    /// Listen to the clear all logs clicked
+    on<ClearAllLogsClicked>(_onClearAllLogsClicked);
+
     _onStarted();
+  }
+
+  /// initial call
+  void _onStarted() {
+    add(LogsChanged(logs: _infospectLogger.callsSubject.value));
   }
 
   FutureOr<void> _onLogsChanged(
@@ -111,8 +134,39 @@ class LogsListBloc extends Bloc<LogsListEvent, LogsListState> {
     );
   }
 
-  /// initial call
-  void _onStarted() {
-    add(LogsChanged(logs: _infospectLogger.callsSubject.value));
+  FutureOr<void> _onShareAllLogsClicked(
+      ShareAllLogsClicked event, Emitter<LogsListState> emit) async {
+    if (_isMultiWindow) {
+      DesktopMultiWindow.invokeMethod(
+        0,
+        'onSend',
+        MainWindowArguments.shareLogs.name,
+      );
+      return;
+    }
+    final File? logsFile = await InfospectUtil.shareLogs();
+    if (logsFile != null) {
+      emit(
+        CompressedLogsFile(
+          sharableFile: logsFile,
+          logs: state.logs,
+          filteredLogs: state.filteredLogs,
+          filters: state.filters,
+          searchedText: state.searchedText,
+        ),
+      );
+    }
+  }
+
+  FutureOr<void> _onClearAllLogsClicked(
+      ClearAllLogsClicked event, Emitter<LogsListState> emit) {
+    if (_isMultiWindow) {
+      DesktopMultiWindow.invokeMethod(
+        0,
+        'onSend',
+        MainWindowArguments.clearLogs.name,
+      );
+    }
+    Infospect.instance.clearAllLogs();
   }
 }

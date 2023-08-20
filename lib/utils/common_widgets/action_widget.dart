@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
-class AppBarActionWidget extends StatelessWidget {
+class AppBarActionWidget<T> extends StatelessWidget {
   const AppBarActionWidget({
     super.key,
     required this.actionModel,
@@ -11,30 +11,43 @@ class AppBarActionWidget extends StatelessWidget {
     this.selectedActions = const [],
   });
 
-  final ActionModel actionModel;
-  final ValueChanged<PopupAction> onItemSelected;
+  final ActionModel<T> actionModel;
+  final ValueChanged<PopupAction<T>> onItemSelected;
   final bool selected;
   final List<PopupAction> selectedActions;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<PopupAction>(
+    return PopupMenuButton<PopupAction<T>>(
       itemBuilder: (_) {
         return actionModel.actions.map((action) {
-          return PopupMenuItem<PopupAction>(
+          if (action.subActions.isEmpty) {
+            return PopupMenuItem<PopupAction<T>>(
+              value: action,
+              child: _MenuItem(
+                action: action,
+                isSubAction: true,
+                selectedActions: selectedActions,
+              ),
+            );
+          }
+
+          return PopupMenuItem<PopupAction<T>>(
             value: action,
-            child: PopupMenuButton<PopupAction>(
+            child: PopupMenuButton<PopupAction<T>>(
               itemBuilder: (_) {
-                return action.subActions.map((subAction) {
-                  return PopupMenuItem<PopupAction>(
-                    value: subAction,
-                    child: _MenuItem(
-                      action: subAction,
-                      isSubAction: true,
-                      selectedActions: selectedActions,
-                    ),
-                  );
-                }).toList();
+                return action.subActions.map(
+                  (subAction) {
+                    return PopupMenuItem<PopupAction<T>>(
+                      value: subAction,
+                      child: _MenuItem(
+                        action: subAction,
+                        isSubAction: true,
+                        selectedActions: selectedActions,
+                      ),
+                    );
+                  },
+                ).toList();
               },
               onSelected: (value) {
                 onItemSelected.call(value.setParentId(action.id));
@@ -101,23 +114,26 @@ class _MenuItem extends StatelessWidget {
               : element.parentId == action.id,
         ) !=
         null;
-    Widget widget = Row(
-      children: [
-        Icon(
-          Icons.circle,
-          color: selected ? Colors.red : Colors.transparent,
-          size: 10,
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            color: Colors.transparent,
-            child: Text(action.name),
+    Widget widget = SizedBox(
+      height: 50,
+      child: Row(
+        children: [
+          Icon(
+            Icons.circle,
+            color: selected ? Colors.red : Colors.transparent,
+            size: 10,
           ),
-        ),
-        if (action.subActions.isNotEmpty) const Icon(Icons.arrow_right)
-      ],
+          const SizedBox(width: 4),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Colors.transparent,
+              child: Text(action.name),
+            ),
+          ),
+          if (action.subActions.isNotEmpty) const Icon(Icons.arrow_right)
+        ],
+      ),
     );
 
     if (action.subActions.isEmpty && !isSubAction) {

@@ -8,7 +8,7 @@ import 'package:infospect/infospect.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
-  Infospect.ensureInitialized();
+  Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
 
   Infospect.instance.run(args, myApp: const MainApp());
 }

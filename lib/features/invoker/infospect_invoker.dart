@@ -8,17 +8,17 @@ import 'package:infospect/utils/infospect_util.dart';
 
 /// state for the invoker widget (defaults to alwaysOpened)
 ///
-/// alwaysOpened:
+/// `alwaysOpened`:
 /// This will force the the invoker widget to be opened always
 ///
-/// collapsible:
+/// `collapsible`:
 /// This will make the widget to collapse and expand on demand
 /// By default it will be in collapsed state
 /// Tap or outwards will expand the widget
 /// When expanded, tapping on it will navigate to Infospect screen.
 /// And swiping it inwards will change it to collapsed state
 ///
-/// autoCollapse: This will auto change the widget state from expanded to collapse after 5 seconds
+/// `autoCollapse`: This will auto change the widget state from expanded to collapse after 5 seconds
 /// By default it will be in collapsed state
 /// Tap or outwards will expand the widget and if not tapped within 5 secs, it will change to
 /// collapsed state.
@@ -148,55 +148,60 @@ class _DevOptionsBuilderState extends State<InfospectInvoker> {
                       }
                     },
                     onTap: () {
-                      switch (widget.state) {
-                        case InvokerState.autoCollapse:
-                          timer?.cancel();
-                          if (end == 0) {
+                      if (end == 0) {
+                        switch (widget.state) {
+                          case InvokerState.autoCollapse:
+                            timer?.cancel();
                             changedValues();
                             startTimer();
-                          } else {
-                            initialValues();
-                            _launchInfospect();
-                          }
-                          break;
+                            break;
 
-                        case InvokerState.collapsible:
-                          if (end == 0) {
+                          case InvokerState.collapsible ||
+                                InvokerState.alwaysOpened:
                             changedValues();
-                          } else {
-                            _launchInfospect();
-                          }
-                          break;
 
-                        case InvokerState.alwaysOpened:
-                          _launchInfospect();
-
-                          break;
+                            break;
+                        }
                       }
                     },
                     child: Padding(
                       padding: const EdgeInsetsDirectional.only(start: 20),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                                  .buttonTheme
-                                  .colorScheme
-                                  ?.onBackground ??
-                              Colors.red,
-                          borderRadius: borderRadius,
-                        ),
-                        height: 50,
-                        width: width,
-                        child: width == 50
-                            ? Icon(
-                                Icons.search_sharp,
-                                color: Theme.of(context)
+                      child: TapRegion(
+                        onTapInside: (tap) {
+                          if (end != 0) {
+                            switch (widget.state) {
+                              case InvokerState.autoCollapse:
+                                initialValues();
+                                _launchInfospect();
+                                break;
+                              case InvokerState.collapsible ||
+                                    InvokerState.alwaysOpened:
+                                _launchInfospect();
+                            }
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
                                     .buttonTheme
                                     .colorScheme
-                                    ?.background,
-                              )
-                            : null,
+                                    ?.onBackground ??
+                                Colors.red,
+                            borderRadius: borderRadius,
+                          ),
+                          height: 50,
+                          width: width,
+                          child: width == 50
+                              ? Icon(
+                                  Icons.search_sharp,
+                                  color: Theme.of(context)
+                                      .buttonTheme
+                                      .colorScheme
+                                      ?.background,
+                                )
+                              : null,
+                        ),
                       ),
                     ),
                   ),

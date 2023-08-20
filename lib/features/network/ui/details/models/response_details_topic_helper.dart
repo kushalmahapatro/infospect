@@ -109,6 +109,8 @@ class ResponseDetailsTopicHelper {
 
   /// error topic data setup
   void _setupErrorTopics() {
+    if ((call.error?.error.toString() ?? '').isEmpty) return;
+
     _errorTopics = (
       topic: 'Error',
       body: TopicDetailsBodyList(

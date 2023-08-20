@@ -1,6 +1,6 @@
 part of 'networks_list_bloc.dart';
 
-class NetworksListState extends Equatable {
+final class NetworksListState extends Equatable {
   const NetworksListState({
     this.calls = const [],
     this.filteredCalls = const [],
@@ -29,4 +29,19 @@ class NetworksListState extends Equatable {
       filters: filters ?? this.filters,
     );
   }
+}
+
+final class CompressedNetworkCallLogsFile extends NetworksListState {
+  const CompressedNetworkCallLogsFile({
+    super.calls,
+    super.filteredCalls,
+    super.searchedText,
+    super.filters,
+    required this.sharableFile,
+  });
+
+  final File sharableFile;
+
+  @override
+  List<Object> get props => super.props..add(sharableFile);
 }

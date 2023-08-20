@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-class ActionModel {
+class ActionModel<T> {
   final IconData icon;
-  final List<PopupAction> actions;
+  final List<PopupAction<T>> actions;
 
   ActionModel({
     required this.icon,
@@ -15,7 +15,7 @@ class PopupAction<T> extends Equatable {
   final T id;
   final T? parentId;
   final String name;
-  final List<PopupAction> subActions;
+  final List<PopupAction<T>> subActions;
   final bool isSelected;
 
   const PopupAction({

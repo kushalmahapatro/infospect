@@ -90,6 +90,7 @@ class DesktopDetailsScreen extends StatelessWidget {
             children: [
               if (selectedCall != null && topicHelper != null)
                 _DetailsDataWidget(
+                  type: 'Request',
                   selectedCall: selectedCall!,
                   infospect: infospect,
                   desktopTopics: topicHelper!.desktopTopics,
@@ -99,6 +100,7 @@ class DesktopDetailsScreen extends StatelessWidget {
               AppDivider.vertical(),
               if (selectedCall != null && responseTopicHelper != null)
                 _DetailsDataWidget(
+                  type: 'Response',
                   selectedCall: selectedCall!,
                   infospect: infospect,
                   desktopTopics: responseTopicHelper!.desktopTopics,
@@ -114,18 +116,21 @@ class DesktopDetailsScreen extends StatelessWidget {
 }
 
 class _DetailsDataWidget extends StatelessWidget {
-  const _DetailsDataWidget(
-      {required this.infospect,
-      required this.onTopicSelected,
-      required this.selectedCall,
-      required this.desktopTopics,
-      this.selectedTopicData});
+  const _DetailsDataWidget({
+    required this.infospect,
+    required this.onTopicSelected,
+    required this.selectedCall,
+    required this.desktopTopics,
+    required this.type,
+    this.selectedTopicData,
+  });
 
   final InfospectNetworkCall selectedCall;
   final Infospect infospect;
   final List<TopicData> desktopTopics;
   final TopicData? selectedTopicData;
   final ValueChanged<TopicData> onTopicSelected;
+  final String type;
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +145,9 @@ class _DetailsDataWidget extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  const Text(
-                    'Request',
-                    style: TextStyle(
+                  Text(
+                    type,
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),

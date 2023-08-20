@@ -23,7 +23,37 @@ void main(List<String> args){}
 
   Infospect.ensureInitialized();
 ```
-3. Rather using runApp using, use Infospect.instance.run(args, myApp: EntryWidget());
+in ensureInitialized we can configure the maxCallCount `int` for both network calls and logs, defaults to 1000.
+A navigatorKey `GlobalKey<NavigatorState>` that will be used for navigation and dialog, if not provided a new key will be created.
+A bool value to logAppLaunch, if true will log the app launch with details like below, defaults to 
+true,
+```
+App name:  Example
+Package: com.example.example
+Version: 0.1.0
+Build number: 0.1.0
+Started at: 2023-08-20T13:39:56.531974
+```
+A call back to handle the share functionality for all the network calls `onShareAllNetworkCalls`,
+This will provide the path of the compressed file name infospect_network_calls_log.tar.gz, which can be shared accordingly.
+If not provided, the default platform share option will be invoked.
+
+A call back to handle the share functionality for all the logs `onShareAllLogs`,
+This will provide the path of the compressed file name infospect_logs.tar.gz, which can be shared accordingly.
+If not provided, the default platform share option will be invoked.
+
+3. As in desktop a new window is used to show the infospect window, we need to add the following code in main.dart, as this will help to handle the data received to the main window from the infospect window.
+```dart
+  Infospect.ensureInitialized();
+  Infospect.instance.handleMainWindowReceiveData();
+```
+else can be also combined with ensureInitialized
+```dart
+  Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
+
+```
+
+3. Rather using runApp using, use `Infospect.instance.run(args, myApp: EntryWidget())`;
 This will help to set the args and use it when launching the infospect window in Desktop
 ```dart
   Infospect.instance.run(args, myApp: const MainApp());
@@ -52,18 +82,12 @@ This will help to set the args and use it when launching the infospect window in
     );
     ```
 
-## Additional information
-### Text Style
-LogItem text = Theme.of(context).textTheme.labelMedium
-![Alt text](images/logs.png)
-
 ## Upcoming Feature
 1. Breakpoints for network call to edit request and response.
 2. Add support for more network client.
-3. Feature to share all the logs (adding them to a file).
-4. Sorting of the logs and network calls.
-5. An example app with multiple screen and good number of network calls and logs.
-6. Bug fixes and many more.
+3. Sorting of the logs and network calls.
+4. An example app with multiple screen and good number of network calls and logs.
+5. Bug fixes and many more.
 
 ** the above order is based on the priority of the feature and the working being done on it.
 ## Support

@@ -121,7 +121,7 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin {
                 },
               );
             },
-            child: const Text('Example App'),
+            child: const Text('Click here to log some data'),
           ),
         ),
       ),

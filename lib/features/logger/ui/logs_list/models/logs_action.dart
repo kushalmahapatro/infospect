@@ -24,14 +24,6 @@ abstract class LogsAction {
               )
               .toList(),
         ),
-        const PopupAction<LogsActionType>(
-          id: LogsActionType.share,
-          name: "Share",
-        ),
-        const PopupAction<LogsActionType>(
-          id: LogsActionType.clear,
-          name: "Clear",
-        ),
       ],
     );
   }

@@ -145,6 +145,16 @@ class InfospectHttpClientInterceptor extends BaseClient {
           request.hashCode,
         );
 
+        if (response.statusCode != 200) {
+          infospect.addError(
+            InfospectNetworkError(
+              error: response.reasonPhrase,
+              stackTrace: StackTrace.fromString(responseBody),
+            ),
+            request.hashCode,
+          );
+        }
+
         return StreamedResponse(
           ByteStream.fromBytes(responseBytes),
           response.statusCode,

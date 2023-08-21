@@ -49,12 +49,22 @@ or using the below command
     WidgetsFlutterBinding.ensureInitialized();
     Infospect.ensureInitialized();
   ```
+  
+  ```dart
+  Infospect ensureInitialized({
+    int maxCallsCount = 1000,
+    GlobalKey<NavigatorState>? navigatorKey,
+    bool logAppLaunch = false,
+    void Function(String path)? onShareAllNetworkCalls,
+    void Function(String path)? onShareAllLogs,
+  }
+  ```
 
-In ensureInitialized we can configure the maxCallCount `int` for both network calls and logs,
+In ensureInitialized we can configure the **maxCallCount** `int` for both network calls and logs,
 defaults to 1000.
-A navigatorKey `GlobalKey<NavigatorState>` that will be used for navigation and dialog, if not
+A **navigatorKey** `GlobalKey<NavigatorState>` that will be used for navigation and dialog, if not
 provided a new key will be created.
-A bool value to logAppLaunch, if true will log the app launch with details like below, defaults to
+A bool value to **logAppLaunch**, if true will log the app launch with details like below, defaults to
 true,
 
   ```
@@ -65,12 +75,12 @@ true,
   Started at: 2023-08-20T13:39:56.531974
   ```
 
-A call back to handle the share functionality for all the network calls `onShareAllNetworkCalls`,
+A call back to handle the share functionality for all the network calls **onShareAllNetworkCalls**,
 This will provide the path of the compressed file name infospect_network_calls_log.tar.gz, which can
 be shared accordingly.
 If not provided, the default platform share option will be invoked.
 
-A call back to handle the share functionality for all the logs `onShareAllLogs`,
+A call back to handle the share functionality for all the logs **onShareAllLogs**,
 This will provide the path of the compressed file name infospect_logs.tar.gz, which can be shared
 accordingly.
 If not provided, the default platform share option will be invoked.
@@ -115,16 +125,48 @@ else can be also combined with ensureInitialized
       ),
     );
   ```
+  7. Adding invoker to get and overlay button to open the infospect window
+  state:  `alwaysOpened`, `collapsible`, `autoCollapse`
+  ```dart
+    InfospectInvoker(
+      state: InvokerState.collapsible,
+      child: child,
+    );
+  ```
+  This can be wrapped around the child widget returned from the builder method of MaterialApp.
+  By this, the invoker will be available on all the screens of the app.
+
+  If a navigator key is provided in the ensureInitialized method, then the navigator key can be used here, if not provided a new navigator key will be created by Infospect and can be accessed using `Infospect.instance.getNavigatorKey` and can be used as below
+  ```dart
+    MaterialApp(
+      navigatorKey: Infospect.instance.getNavigatorKey,
+      theme: ThemeData(useMaterial3: true),
+      darkTheme: ThemeData.dark(useMaterial3: true),
+      themeMode: ThemeMode.dark,
+      builder: (context, child) {
+        return InfospectInvoker(
+          state: InvokerState.collapsible,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: const MainApp(),
+    )
+  ```
+  In desktop the infospect window will be opened in a new window, and it can be invoked by clicking on the invoker or using the mentioned shortcut keys
+  > macOS: `⌘ + ⌥ + i` (Command + Option + i)
+  > Windows: `Ctrl + Alt + i`
+  > Linux: `Ctrl + Alt + i`
+
+  But in mobile the infospect window will be opened in a new route.
 
 ## Upcoming Feature
 
 1. Breakpoints for network call to edit request and response.
 2. Add support for more network client.
 3. Sorting of the logs and network calls.
-4. An example app with multiple screen and good number of network calls and logs.
+4. An example app having multiple screens to show the usage of the plugin with network call and selection for respective network library to be intercepted and logger implementation.
 5. Bug fixes and many more.
 
-** the above order is based on the priority of the feature and the working being done on it.
 
 ## Support
 

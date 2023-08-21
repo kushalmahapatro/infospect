@@ -1,3 +1,8 @@
+## 0.1.1
+##### Added
+- Http and Dio interceptor added in example
+- Readme updated with InfospectInvoker functionality and usage
+
 ## 0.1.0
 
 ##### Added

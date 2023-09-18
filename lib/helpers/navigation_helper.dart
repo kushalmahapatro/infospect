@@ -18,6 +18,13 @@ class InfospectNavigationHelper {
   /// Opens the inspector in a new window (applicable only on desktop platforms).
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      /// If a sub window is already open, return.
+      List<int> subWindowIds = [];
+      try {
+        subWindowIds = await DesktopMultiWindow.getAllSubWindowIds();
+      } catch (_) {}
+      if (subWindowIds.isNotEmpty) return;
+
       final WindowController window = await DesktopMultiWindow.createWindow(
         jsonEncode({'args1': 'Sub window'}),
       );

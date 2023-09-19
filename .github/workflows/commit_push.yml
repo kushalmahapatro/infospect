@@ -1,0 +1,47 @@
+name: Commit Push
+
+on:
+  pull_request: 
+  push:
+    branches:
+      - '*'
+
+env:
+  flutter_version: "3.13.0"
+  java_version: "12.x"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  discussions: write
+
+jobs:
+
+  check-branch:
+    runs-on: ubuntu-latest
+    name: Check branch
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache Flutter SDK
+        uses: actions/cache@v3
+        with:
+          path: /opt/hostedtoolcache/flutter
+          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.flutter_version }}
+      - run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze project source
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Run dart publish (dry run)
+        if: ${{ github.event.pull_request.base.ref == 'main' }}
+        run: flutter pub publish --dry-run

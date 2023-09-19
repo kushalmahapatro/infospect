@@ -1,10 +1,16 @@
+## 0.1.2
+##### Fixes
+- Fixes for issue [#3](https://github.com/kushalmahapatro/infospect/issues/3)
+
+##### Added
+- Infospect desktop sub-window restricted to be opened only once
+
 ## 0.1.1
 ##### Added
 - Http and Dio interceptor added in example
 - Readme updated with InfospectInvoker functionality and usage
 
 ## 0.1.0
-
 ##### Added
 
 - Documentation
@@ -15,7 +21,6 @@
 - Analysis issue fixes
 
 ## 0.0.1-alpha
-
 #### Initial version.
 
 ##### Added

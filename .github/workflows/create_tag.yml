@@ -1,0 +1,70 @@
+name: Create Tag and Publish to pub.dev
+
+on:
+  workflow_run:
+    workflows: ["Trigger Create Tag and Publish Workflow on PR Merge"]
+    types:
+      - completed
+
+jobs:
+  placeholder-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Placeholder Step
+        run: echo "This is a placeholder job"
+
+  create-tag-and-publish:
+    permissions:
+      repository-projects: write
+      packages: write
+      contents: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    needs: [placeholder-job]
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get version
+        id: yq
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -r '.version' 'pubspec.yaml'
+
+      - name: Print version
+        run: echo ${{ steps.yq.outputs.result }}
+
+      - name: Create tag
+        uses: actions/github-script@v3
+        id: tagCreate
+        env:
+          TAG: 'v${{ steps.yq.outputs.result }}'
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/v${{ steps.yq.outputs.result }}",
+              sha: context.sha
+            })
+      - name: Print tag update
+        run: echo ${{ steps.tagCreate.outputs.result }}
+
+      - name: Publish
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Flutter Version
+        run: flutter --version
+
+      - name: Publish to Dart Package
+        uses: k-paxian/dart-package-publisher@v1.5.1
+        with:
+          credentialJson: ${{ secrets.CREDENTIAL_JSON }}
+          flutter: true
+          skipTests: true

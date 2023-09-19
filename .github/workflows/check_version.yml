@@ -1,0 +1,72 @@
+name: Check Version
+
+on:
+  workflow_call:
+    secrets:
+      TRIGGER_NEXT_ACTION: 
+        required: true
+        description: 'Trigger Next Action'
+  
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Get version
+      id: yq
+      uses: mikefarah/yq@master
+
+      with:
+        cmd: yq -r '.version' 'pubspec.yaml'
+
+    - name: Print version
+      run: echo ${{ steps.yq.outputs.result }}
+    
+    - name: Get Latest Tag
+      id: get_tag
+      run: |
+        REPO_NAME=${{ github.repository }}
+        LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO_NAME/releases" | jq -r '.[0].tag_name')
+        echo "latest=${LATEST_TAG}">> $GITHUB_OUTPUT
+
+    - name: Print version
+      run: echo "provided_version=${{ steps.yq.outputs.result }} and latest_tag=${{ steps.get_tag.outputs.latest }}"
+
+    - name: Check Version
+      id: check_version
+      run: |
+        latest_tag=${{ steps.get_tag.outputs.latest }}
+        provided_tag=${{ steps.yq.outputs.result }}
+        
+        # Extract numerical version parts from the tags
+        latest_version=$(echo "$latest_tag" | sed 's/v\?\([0-9.]*\)[-a-zA-Z]*$/\1/')
+        provided_version=$(echo "$provided_tag" | sed 's/v\?\([0-9.]*\)[-a-zA-Z]*$/\1/')
+
+        echo "latest_version=${latest_version} and provided_version=${provided_version}"
+        echo "$provided_version" == "$latest_version"
+        
+        if [[ "$provided_version" == "$latest_version" ]]; then
+          echo "Provided version is equal to latest version"
+          echo "trigger_next_action=false">> $GITHUB_OUTPUT
+          exit 1
+        elif [[ "$provided_version" < "$latest_version" ]]; then
+          echo "Provided version is less than latest version"
+          echo "trigger_next_action=false">> $GITHUB_OUTPUT
+          exit 1
+        else
+          echo "trigger_next_action=true">> $GITHUB_OUTPUT
+        fi
+
+    - name: Trigger Next Action
+      run: |
+        echo "Trigger Next Action ${{ steps.check_version.outputs.trigger_next_action }}"
+        echo "set-env:TRIGGER_NEXT_ACTION=${{ steps.check_version.outputs.trigger_next_action}}" >> $GITHUB_ENV
+      env:
+        TRIGGER_NEXT_ACTION: ${{ steps.check_version.outputs.trigger_next_action }}

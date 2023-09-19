@@ -1,6 +1,6 @@
-# Contributing to [PUBM]
+# Contributing to [Infospect]
 
-Thank you for considering contributing to [PUBM]! We appreciate your interest and support. This document outlines the guidelines and process for contributing to this project. By participating in this project, you agree to abide by these guidelines.
+Thank you for considering contributing to [Infospect]! We appreciate your interest and support. This document outlines the guidelines and process for contributing to this project. By participating in this project, you agree to abide by these guidelines.
 
 ## Table of Contents
 
@@ -79,4 +79,4 @@ If you find an existing issue that you'd like to work on, assign yourself to the
 
 ## License
 
-[PUBM] is licensed under the [MIT License]. See the [LICENSE](./LICENSE) file for more details.
+[Infospect] is licensed under the [MIT License]. See the [LICENSE](./LICENSE) file for more details.

@@ -28,3 +28,8 @@ migrate_working_dir/
 .dart_tool/
 .packages
 build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.fvm/flutter_sdk
+.fvm/fvm_config.json
+.vscode/settings.json

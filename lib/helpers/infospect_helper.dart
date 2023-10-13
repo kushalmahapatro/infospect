@@ -2,233 +2,196 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// ignore: depend_on_referenced_packages
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:infospect/logger/infospect_logger.dart';
-import 'package:infospect/logger/models/infospect_log.dart';
-import 'package:infospect/network/interceptors/infospect_dio_interceptor.dart';
-import 'package:infospect/network/models/infospect_network_call.dart';
-import 'package:infospect/network/models/infospect_network_error.dart';
-import 'package:infospect/network/models/infospect_network_response.dart';
-import 'package:infospect/ui/interceptor/bloc/bloc/interceptor_bloc.dart';
-import 'package:infospect/ui/interceptor/screen/infospect_interceptor_screen.dart';
+import 'package:http/http.dart';
+import 'package:infospect/features/launch/bloc/launch_bloc.dart';
+import 'package:infospect/features/logger/infospect_logger.dart';
+import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
+import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
+import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/models/infospect_network_error.dart';
+import 'package:infospect/features/network/models/infospect_network_response.dart';
+import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/helpers/desktop_theme_cubit/desktop_theme_cubit.dart';
+import 'package:infospect/infospect.dart';
+import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:share_plus/share_plus.dart';
 
+part 'log_helper.dart';
+part 'multi_window_helper.dart';
+part 'navigation_helper.dart';
+part 'network_call_helper.dart';
+
+/// `Infospect` is a utility class designed to facilitate monitoring and debugging activities,
+/// such as logging network calls, navigating within the app, managing multi-window actions,
+/// and handling application logs.
 class Infospect {
-  final int maxCallsCount;
-
-  final GlobalKey<NavigatorState>? _navigatorKey;
-
-  ValueNotifier<bool> isInspectorOpened = ValueNotifier(false);
-
-  final BehaviorSubject<List<InfospectNetworkCall>> callsSubject =
-      BehaviorSubject.seeded([]);
-
-  StreamSubscription? _callsSubscription;
-
-  final InfospectLogger infospectLogger = InfospectLogger();
-
-  Infospect({
+  /// The private constructor for the `Infospect` class.
+  ///
+  /// - `maxCallsCount`: The maximum number of network calls to retain. Defaults to 1000.
+  /// - `navigatorKey`: Optional key for the navigator.
+  /// - `logAppLaunch`: Flag to determine if app launch should be logged.
+  /// - `onShareAllNetworkCalls`: Callback triggered to share all network calls.
+  /// - `onShareAllLogs`: Callback triggered to share all logs.
+  Infospect._({
     this.maxCallsCount = 1000,
     GlobalKey<NavigatorState>? navigatorKey,
-  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>() {
-    _callsSubscription =
-        callsSubject.interval(const Duration(milliseconds: 500)).listen(
-              (_) => _onCallsChanged(),
-            );
+    bool logAppLaunch = false,
+    this.onShareAllNetworkCalls,
+    this.onShareAllLogs,
+  })  : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
+        infospectLogger = InfospectLogger() {
+    _instance = this;
+    _infospectLogHelper = InfospectLogHelper._(this);
+    _infospectNavigationHelper = InfospectNavigationHelper._(this);
+    _infospectNetworkCallHelper = InfospectNetworkCallHelper._(this);
+    _infospectMultiWindowHelper = InfospectMultiWindowHelper._(this);
+
+    _logAppLaunch(logAppLaunch);
   }
 
-  void _onCallsChanged() async {
-    // if (callsSubject.value.isNotEmpty) {
-    //   _onCallsChanged();
-    // }
+  Future<void> _logAppLaunch(bool logAppLaunch) async {
+    if (logAppLaunch && await _runAppCompleter.future) {
+      InfospectUtil.addAppLaunchLog();
+    }
   }
 
+  static Infospect get instance => checkInstance(_instance);
+  static Infospect? _instance;
+
+  /// parameters
+  final int maxCallsCount;
+  final void Function(String path)? onShareAllNetworkCalls;
+  final void Function(String path)? onShareAllLogs;
+  final GlobalKey<NavigatorState>? _navigatorKey;
+
+  /// helpers
+  late InfospectLogHelper _infospectLogHelper;
+  late InfospectNavigationHelper _infospectNavigationHelper;
+  late InfospectNetworkCallHelper _infospectNetworkCallHelper;
+  late InfospectMultiWindowHelper _infospectMultiWindowHelper;
+
+  /// completer
+  late final Completer<bool> _runAppCompleter = Completer<bool>();
+
+  ValueNotifier<bool> isInfospectOpened = ValueNotifier(false);
+
+  final BehaviorSubject<List<InfospectNetworkCall>> networkCallsSubject =
+      BehaviorSubject.seeded([]);
+
+  final InfospectLogger infospectLogger;
+
+  /// Ensures the `Infospect` instance is initialized.
+  /// If it's not initialized, it will initialize it with the provided arguments.
+  ///
+  /// Returns the initialized instance of `Infospect`.
+  static Infospect ensureInitialized({
+    int maxCallsCount = 1000,
+    GlobalKey<NavigatorState>? navigatorKey,
+    bool logAppLaunch = false,
+    void Function(String path)? onShareAllNetworkCalls,
+    void Function(String path)? onShareAllLogs,
+  }) {
+    if (Infospect._instance == null) {
+      Infospect._(
+        maxCallsCount: maxCallsCount,
+        navigatorKey: navigatorKey,
+        logAppLaunch: logAppLaunch,
+        onShareAllLogs: onShareAllLogs,
+        onShareAllNetworkCalls: onShareAllNetworkCalls,
+      );
+    }
+    return Infospect.instance;
+  }
+
+  /// Checks if the `Infospect` instance is initialized and throws an error
+  static checkInstance(Infospect? instance) {
+    if (instance == null) {
+      throw FlutterError.fromParts(<DiagnosticsNode>[
+        ErrorSummary('Infospect is not yet initialized'),
+        ErrorDescription(
+            'This probably indicates that Infospect.instance was used but was not initialized'),
+        ErrorHint('To fix this use Infospect.ensureInitialized() at the main'),
+      ]);
+    }
+
+    return instance;
+  }
+
+  /// get the navigator key
   GlobalKey<NavigatorState>? get getNavigatorKey => _navigatorKey;
 
   Brightness get brightness => PlatformDispatcher.instance.platformBrightness;
 
   BuildContext? get context => _navigatorKey?.currentState?.overlay?.context;
 
-  /// This will open inspector in new window. This will work only on desktop
-  Future<void> openInspectorInNewWindow() async {
-    if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // widget._devOptions.getInterceptorDialog(context);
-      final window = await DesktopMultiWindow.createWindow(jsonEncode({
-        'args1': 'Sub window',
-        'args2': 100,
-        'args3': true,
-        'business': 'business_test',
-      }));
-      window
-        ..setFrame(const Offset(0, 0) & const Size(1280, 720))
-        ..center()
-        ..setTitle('Dev options');
+  /// run app
+  void run(List<String> args, {required Widget myApp}) =>
+      _infospectNavigationHelper.run(args, myApp: myApp);
 
-      window.show().then((value) {
-        this
-          ..sendNetworkCalls()
-          ..sendLogs();
-      });
-    }
-  }
+  /// Logs an instance of `InfospectLog`.
+  void addLog(InfospectLog log) => _infospectLogHelper.addLog(log);
 
-  MaterialPageRoute get interceptorScreen => MaterialPageRoute<dynamic>(
-        builder: (context) => BlocProvider(
-          create: (context) => InterceptorBloc(
-            infospect: this,
-            infospectLogger: infospectLogger,
-          ),
-          child: const InfospectInterceptorScreen(),
-        ),
-      );
+  void addLogs(List<InfospectLog> logs) => _infospectLogHelper.addLogs(logs);
 
-  Widget openInterceptor() =>
-      Navigator(onGenerateRoute: (settings) => interceptorScreen);
+  void clearAllLogs() => _infospectLogHelper.clearAllLogs();
 
-  void navigateToInterceptor() {
-    if (context == null) {
-      InfospectUtil.log(
-        "Cant start HTTP Inspector. Please add NavigatorKey to your application",
-      );
-      return;
-    }
-    if (!isInspectorOpened.value) {
-      isInspectorOpened.value = true;
-      Navigator.push<void>(context!, interceptorScreen).then(
-        (onValue) => isInspectorOpened.value = false,
-      );
-    }
-  }
+  /// Navigates to the interceptor.
+  Future<void> openInspectorInNewWindow() =>
+      _infospectNavigationHelper.openInspectorInNewWindow();
 
-  Future<void> _sendDataToSubWindow({required Map<String, List> data}) async {
-    if (Platform.isAndroid || Platform.isIOS) return;
-    List<int> subWindowIds = await DesktopMultiWindow.getAllSubWindowIds();
+  void navigateToInterceptor() =>
+      _infospectNavigationHelper.navigateToInterceptor();
 
-    /// Return if there's no sub windows
-    if (subWindowIds.isEmpty) return;
+  /// multi window
+  void sendNetworkCalls() => _infospectMultiWindowHelper.sendNetworkCalls();
 
-    for (final windowId in subWindowIds) {
-      DesktopMultiWindow.invokeMethod(windowId, 'broadcast', data);
-    }
-  }
+  void sendLogs([List<InfospectLog>? logs]) =>
+      _infospectMultiWindowHelper.sendLogs(logs);
 
-  void sendNetworkCalls() {
-    final List data = (callsSubject.value)
-        .map<Map<String, dynamic>>((e) => e.toMap())
-        .toList();
+  void sendThemeMode({required bool isDarkTheme}) =>
+      _infospectMultiWindowHelper.sendThemeMode(isDarkTheme);
 
-    _sendDataToSubWindow(data: {'network': data});
-  }
+  void handleMultiWindowReceivedData(BuildContext context) =>
+      _infospectMultiWindowHelper.handleMultiWindowReceivedData(context);
 
-  void addCall(InfospectNetworkCall call) {
-    final callsCount = callsSubject.value.length;
-    if (callsCount >= maxCallsCount) {
-      final originalCalls = callsSubject.value;
-      final calls = List<InfospectNetworkCall>.from(originalCalls);
-      calls.sort(
-        (call1, call2) => call1.createdTime.compareTo(call2.createdTime),
-      );
-      final indexToReplace = originalCalls.indexOf(calls.first);
-      originalCalls[indexToReplace] = call;
+  void handleMainWindowReceiveData() =>
+      _infospectMultiWindowHelper.handleMainWindowReceiveData();
 
-      callsSubject.add(originalCalls);
-    } else {
-      callsSubject.add([...callsSubject.value, call]);
-    }
-    sendNetworkCalls();
-  }
+  /// Network calls
+  void addCall(InfospectNetworkCall call) =>
+      _infospectNetworkCallHelper.addCall(call);
 
-  void addError(InfospectNetworkError error, int requestId) {
-    final InfospectNetworkCall? selectedCall = _selectCall(requestId);
+  void addError(InfospectNetworkError error, int requestId) =>
+      _infospectNetworkCallHelper.addError(error, requestId);
 
-    if (selectedCall == null) {
-      InfospectUtil.log("Selected call is null");
-      return;
-    }
+  void addResponse(InfospectNetworkResponse response, int requestId) =>
+      _infospectNetworkCallHelper.addResponse(response, requestId);
 
-    selectedCall.error = error;
-    callsSubject.add([...callsSubject.value]);
-    sendNetworkCalls();
-  }
+  void addHttpCall(InfospectNetworkCall httpCall) =>
+      _infospectNetworkCallHelper.addHttpCall(httpCall);
 
-  void addResponse(InfospectNetworkResponse response, int requestId) {
-    final InfospectNetworkCall? selectedCall = _selectCall(requestId);
+  void clearAllNetworkCalls() =>
+      _infospectNetworkCallHelper.clearAllNetworkCalls();
 
-    if (selectedCall == null) {
-      InfospectUtil.log("Selected call is null");
-      return;
-    }
-    selectedCall.loading = false;
-    selectedCall.response = response;
-    selectedCall.duration = response.time.millisecondsSinceEpoch -
-        (selectedCall.request!.time).millisecondsSinceEpoch;
+  /// interceptors
+  InfospectDioInterceptor get dioInterceptor =>
+      _infospectNetworkCallHelper.dioInterceptor;
 
-    callsSubject.add([...callsSubject.value]);
-    sendNetworkCalls();
-  }
-
-  void addHttpCall(InfospectNetworkCall httpCall) {
-    assert(httpCall.request != null, "Http call request can't be null");
-    assert(httpCall.response != null, "Http call response can't be null");
-    callsSubject.add([...callsSubject.value, httpCall]);
-    sendNetworkCalls();
-  }
-
-  void removeCalls() {
-    callsSubject.add([]);
-    sendNetworkCalls();
-  }
-
-  InfospectNetworkCall? _selectCall(int requestId) =>
-      callsSubject.value.firstWhereOrNull((call) => call.id == requestId);
-
-  void addLog(InfospectLog log) {
-    infospectLogger.logs.add(log);
-    sendLogs();
-  }
-
-  void addLogs(List<InfospectLog> logs) {
-    infospectLogger.logs.addAll(logs);
-    sendLogs();
-  }
-
-  void sendLogs() {
-    _sendDataToSubWindow(data: infospectLogger.logsMap);
-  }
-
-  void run(List<String> args, {required Widget myApp}) {
-    if (args.firstOrNull == 'multi_window') {
-      runApp(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          localizationsDelegates: const <LocalizationsDelegate<Object>>[
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-          ],
-          supportedLocales: const <Locale>[
-            Locale('en', 'US'), // English
-          ],
-          home: openInterceptor(),
-        ),
-      );
-    } else {
-      runApp(myApp);
-    }
-  }
-
-  InfospectDioInterceptor get dioInterceptor => InfospectDioInterceptor(this);
+  InfospectHttpClientInterceptor httpClientInterceptor(
+          {required Client client}) =>
+      _infospectNetworkCallHelper.httpClientInterceptor(client: client);
 
   /// Dispose subjects and subscriptions
   void dispose() {
-    callsSubject.close();
-    isInspectorOpened.dispose();
-    _callsSubscription?.cancel();
+    networkCallsSubject.close();
+    isInfospectOpened.dispose();
   }
 }

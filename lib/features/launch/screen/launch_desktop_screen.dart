@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/launch/bloc/launch_bloc.dart';
@@ -21,7 +24,7 @@ class LaunchDesktopScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _FirstSection(),
+          _FirstSection(infospect),
           AppDivider.vertical(),
           _SecondSection(infospect),
         ],
@@ -54,7 +57,9 @@ class _SecondSection extends StatelessWidget {
 }
 
 class _FirstSection extends StatelessWidget {
-  const _FirstSection();
+  const _FirstSection(this.infospect);
+
+  final Infospect infospect;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +69,12 @@ class _FirstSection extends StatelessWidget {
         selector: (state) => state.selectedTab,
         builder: (context, selectedIndex) {
           return Scaffold(
-            appBar: AppBar(toolbarHeight: 40),
+            appBar: AppBar(
+              toolbarHeight: 40,
+              leading: _AppBarLeadingWidget(
+                infospect: infospect,
+              ),
+            ),
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: NavigationTabData.tabs.mapIndexed(
@@ -132,5 +142,28 @@ class _FirstSection extends StatelessWidget {
     } else {
       return inverse ? selectedColor : unSelectedColor;
     }
+  }
+}
+
+class _AppBarLeadingWidget extends StatelessWidget {
+  const _AppBarLeadingWidget({
+    required this.infospect,
+  });
+
+  final Infospect infospect;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const SizedBox();
+    } else if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
+      return const SizedBox();
+    }
+    return IconButton(
+      icon: const Icon(Icons.chevron_left),
+      onPressed: () {
+        infospect.getNavigatorKey?.currentState?.pop();
+      },
+    );
   }
 }

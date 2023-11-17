@@ -106,6 +106,7 @@ class InfospectHttpClientInterceptor extends BaseClient {
           secure: request.url.isScheme('https'),
         ),
       );
+
       response = await client.send(request).onError((e, st) async {
         InfospectNetworkResponse httpResponse =
             InfospectNetworkResponse(status: -1);

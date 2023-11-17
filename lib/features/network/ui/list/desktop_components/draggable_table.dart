@@ -247,15 +247,18 @@ DataCell dataCellWidget(
   return DataCell(
     Container(
       padding: const EdgeInsetsDirectional.only(start: 2),
-      child: widget ??
-          HighlightText(
-            text: data,
-            highlight: highlight,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: true,
-            selectable: false,
-          ),
+      child: SizedBox(
+        width: width,
+        child: widget ??
+            HighlightText(
+              text: data,
+              highlight: highlight,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              selectable: false,
+            ),
+      ),
     ),
   );
 }

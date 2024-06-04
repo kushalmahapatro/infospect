@@ -80,7 +80,7 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
       },
       builder: (context, state) {
         List<InfospectNetworkCall> calls = state.filteredCalls;
-        final color = Theme.of(context).colorScheme.onBackground;
+        final Color color = Theme.of(context).colorScheme.onSurface;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -93,7 +93,7 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
               columnSpacing: 4,
               horizontalMargin: 0,
               showCheckboxColumn: false,
-              headingRowColor: MaterialStateProperty.all(
+              headingRowColor: WidgetStateProperty.all(
                 color.withOpacity(0.2),
               ),
               headingTextStyle: TextStyle(

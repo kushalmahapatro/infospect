@@ -11,31 +11,30 @@ topics:
   - multi-window
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
   flutter: ">=1.17.0"
 
 screenshots:
-  - description: 'Infospect Desktop Multi Window- macOS'
+  - description: "Infospect Desktop Multi Window- macOS"
     path: images/screenshot/desktop_multi_window.png
-  - description: 'Infospect Desktop Multi Window- Linux'
+  - description: "Infospect Desktop Multi Window- Linux"
     path: images/screenshot/linux.png
-  - description: 'Infospect Desktop Multi Window- Windows'
+  - description: "Infospect Desktop Multi Window- Windows"
     path: images/screenshot/windows.png
-  - description: 'Infospect network calls screen - Mobile'
+  - description: "Infospect network calls screen - Mobile"
     path: images/screenshot/network_calls_screen.png
-  - description: 'Infospect logs screen - Mobile'
+  - description: "Infospect logs screen - Mobile"
     path: images/screenshot/logs.png
-  - description: 'Infospect network calls screen - Desktop'
+  - description: "Infospect network calls screen - Desktop"
     path: images/screenshot/network_calls_screen_desktop.png
-  - description: 'Infospect logs screen - Desktop'
+  - description: "Infospect logs screen - Desktop"
     path: images/screenshot/logs_desktop.png
-  - description: 'Infospect invoker open state'
+  - description: "Infospect invoker open state"
     path: images/screenshot/expanded.png
-  - description: 'Infospect share UI - Mobile'
+  - description: "Infospect share UI - Mobile"
     path: images/screenshot/share.png
-  - description: 'Infospect share UI - Desktop'
+  - description: "Infospect share UI - Desktop"
     path: images/screenshot/share_desktop.png
-
 
 dependencies:
   # sdk
@@ -47,7 +46,7 @@ dependencies:
   archive: ^3.4.9
   bloc: ^8.1.2
   collection: ^1.18.0
-  cuberto_bottom_bar: ^3.0.0
+  cuberto_bottom_bar: ^3.1.0
   cupertino_icons: ^1.0.6
   desktop_multi_window: ^0.2.0
   dio: ^5.3.3
@@ -64,11 +63,9 @@ dependencies:
   rxdart: ^0.27.7
   share_plus: ^7.2.1
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
   bloc_test: ^9.1.5
   lints: ^3.0.0
-

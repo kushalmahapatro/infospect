@@ -135,8 +135,8 @@ class _FirstSection extends StatelessWidget {
 
   Color _getSelectionColor(BuildContext context,
       {required bool selected, bool inverse = false}) {
-    final unSelectedColor = Theme.of(context).colorScheme.onBackground;
-    final selectedColor = Theme.of(context).colorScheme.background;
+    final Color unSelectedColor = Theme.of(context).colorScheme.onSurface;
+    final Color selectedColor = Theme.of(context).colorScheme.surface;
     if (selected) {
       return inverse ? unSelectedColor : selectedColor;
     } else {

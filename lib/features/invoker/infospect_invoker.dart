@@ -189,7 +189,7 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
                             color: Theme.of(context)
                                     .buttonTheme
                                     .colorScheme
-                                    ?.onBackground ??
+                                    ?.onSurface ??
                                 Colors.red,
                             borderRadius: borderRadius,
                           ),
@@ -201,7 +201,7 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
                                   color: Theme.of(context)
                                       .buttonTheme
                                       .colorScheme
-                                      ?.background,
+                                      ?.surface,
                                 )
                               : null,
                         ),

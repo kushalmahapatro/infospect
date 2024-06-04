@@ -19,8 +19,8 @@ class AppBottomBar extends StatelessWidget {
       barShadow: const [BoxShadow(blurRadius: 0)],
       selectedTab: selectedIndex,
       tabs: tabs.map((e) => TabData(iconData: e.icon, title: e.title)).toList(),
-      inactiveIconColor: Theme.of(context).colorScheme.onBackground,
-      barBackgroundColor: Theme.of(context).colorScheme.background,
+      inactiveIconColor: Theme.of(context).colorScheme.onSurface,
+      barBackgroundColor: Theme.of(context).colorScheme.surface,
       textColor: Theme.of(context).colorScheme.onPrimary,
       onTabChangedListener: (int position, String title, Color? tabColor) {
         tabChangedCallback?.call(position);

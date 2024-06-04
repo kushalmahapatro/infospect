@@ -1,3 +1,10 @@
+## 0.1.3
+##### Fixes
+- Bumped version of cuberto_bottom_bar to 3.1.0 to address the issue with bottom navigation bar selection index. [Fluter issue](https://github.com/flutter/flutter/issues/148983) 
+- Back button in Desktop layout of Infospect for Tabs
+- Fixed width for row cell added to Desktop layout of Infospect
+- Upgraded the version of archive
+
 ## 0.1.2
 ##### Fixes
 - Fixes for issue [#3](https://github.com/kushalmahapatro/infospect/issues/3)

@@ -7,7 +7,7 @@ on:
       - '*'
 
 env:
-  flutter_version: "3.13.0"
+  flutter_version: "3.22.0"
   java_version: "12.x"
 
 permissions:

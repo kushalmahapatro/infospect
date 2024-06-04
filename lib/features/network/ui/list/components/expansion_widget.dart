@@ -21,15 +21,13 @@ class ExpansionWidget extends StatelessWidget {
       trailing: trailing,
       initiallyExpanded: initiallyExpanded,
       children: [
-        ...map.entries
-            .mapIndexed(
-              (i, e) => DetailsRowWidget(
-                e.key,
-                e.value.toString(),
-                showDivider: i != map.length - 1,
-              ),
-            )
-            .toList()
+        ...map.entries.mapIndexed(
+          (i, e) => DetailsRowWidget(
+            e.key,
+            e.value.toString(),
+            showDivider: i != map.length - 1,
+          ),
+        )
       ],
     );
   }
@@ -50,7 +48,7 @@ class ExpansionWidget extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.onBackground,
+          color: Theme.of(context).colorScheme.onSurface,
           width: 1,
         ),
       ),

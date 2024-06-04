@@ -90,17 +90,17 @@ class RawDataViewerScreen extends StatelessWidget {
                 ifFalse: JsonView.map(
                   data,
                   theme: JsonViewTheme(
-                    backgroundColor: Theme.of(context).colorScheme.background,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     separator: const Text(':'),
                     closeIcon: Icon(
                       Icons.arrow_drop_up,
                       size: 18,
-                      color: Theme.of(context).colorScheme.onBackground,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     openIcon: Icon(
                       Icons.arrow_drop_down,
                       size: 18,
-                      color: Theme.of(context).colorScheme.onBackground,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),

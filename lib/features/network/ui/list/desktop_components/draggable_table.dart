@@ -139,12 +139,11 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
                     /// State
                     dataCellWidget(
                       widget: element.loading
-                          ? SizedBox(
-                              width: 10,
-                              height: 10,
+                          ? Padding(
+                              padding: const EdgeInsets.all(8.0),
                               child: CircularProgressIndicator(
                                 color: Theme.of(context).colorScheme.error,
-                                strokeWidth: 1,
+                                strokeWidth: 2,
                               ),
                             )
                           : _getStateColor(context, element),

@@ -1,3 +1,7 @@
+## 0.1.4
+##### Fixes
+- Bumped some outdated dependencies
+
 ## 0.1.3
 ##### Fixes
 - Bumped version of cuberto_bottom_bar to 3.1.0 to address the issue with bottom navigation bar selection index. [Fluter issue](https://github.com/flutter/flutter/issues/148983) 

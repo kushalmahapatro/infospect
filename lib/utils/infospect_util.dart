@@ -158,7 +158,7 @@ class InfospectUtil {
     await TarFileEncoder().tarDirectory(
       shareFileData.directory,
       filename: zipFilePath,
-      compression: TarFileEncoder.GZIP,
+      compression: TarFileEncoder.gzip,
     );
 
     return File(zipFilePath);

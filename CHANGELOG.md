@@ -1,3 +1,7 @@
+## 0.1.5
+##### Fixes
+- Bumped archive to 4.0.7
+
 ## 0.1.4
 ##### Fixes
 - Bumped some outdated dependencies

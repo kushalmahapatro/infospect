@@ -1,56 +1,82 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_app_bar.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_item.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
+import 'package:infospect/features/network/ui/details/screen/interceptor_details_screen.dart';
+import 'package:infospect/features/network/ui/details/notifier/interceptor_details_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/routes/routes.dart';
 import 'package:share_plus/share_plus.dart';
 
-class NetworksListScreen extends StatelessWidget {
+class NetworksListScreen extends StatefulWidget {
   final Infospect infospect;
-  const NetworksListScreen(this.infospect, {super.key});
+  final NetworksListNotifier notifier;
+
+  const NetworksListScreen(
+    this.infospect, {
+    required this.notifier,
+    super.key,
+  });
+
+  @override
+  State<NetworksListScreen> createState() => _NetworksListScreenState();
+}
+
+class _NetworksListScreenState extends State<NetworksListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    // Don't dispose notifier here - it's managed by navigation_helper
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final networkListBloc = context.watch<NetworksListBloc>();
+    if (widget.notifier.sharableFile != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Infospect.instance.onShareAllNetworkCalls != null) {
+          Infospect.instance
+              .onShareAllNetworkCalls!(widget.notifier.sharableFile!.path);
+        } else {
+          final XFile file = XFile(widget.notifier.sharableFile!.path);
+          SharePlus.instance.share(ShareParams(files: [file]));
+        }
+      });
+    }
 
     return Scaffold(
       appBar: NetworkCallAppBar(
-        hasBottom: networkListBloc.state.filters.isNotEmpty,
-        infospect: infospect,
+        hasBottom: widget.notifier.filters.isNotEmpty,
+        infospect: widget.infospect,
+        notifier: widget.notifier,
       ),
-      body: BlocConsumer<NetworksListBloc, NetworksListState>(
-        listenWhen: (previous, current) =>
-            current is CompressedNetworkCallLogsFile,
-        listener: (context, state) {
-          if (state is CompressedNetworkCallLogsFile) {
-            if (Infospect.instance.onShareAllNetworkCalls != null) {
-              Infospect
-                  .instance.onShareAllNetworkCalls!(state.sharableFile.path);
-              return;
-            }
-            final XFile file = XFile(state.sharableFile.path);
-            Share.shareXFiles([file]);
-          }
-        },
-        builder: (context, state) {
-          if (state.filteredCalls.isEmpty) {
-            return const Center(child: Text("No network calls"));
-          }
-
-          return ListView.builder(
-            itemCount: state.filteredCalls.length,
-            itemBuilder: (context, index) {
-              return NetworkCallItem(
-                networkCall: state.filteredCalls[index],
-                searchedText: state.searchedText,
-                onItemClicked: (InfospectNetworkCall call) {
-                  mobileRoutes.logsList(context, infospect, call);
-                },
+      body: ListView.builder(
+        itemCount: widget.notifier.filteredCalls.length,
+        itemBuilder: (context, index) {
+          return NetworkCallItem(
+            networkCall: widget.notifier.filteredCalls[index],
+            onItemClicked: (selectedCall) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InterceptorDetailsScreen(
+                    widget.infospect,
+                    call: selectedCall,
+                    notifier: InterceptorDetailsNotifier(),
+                  ),
+                ),
               );
             },
+            searchedText: widget.notifier.searchedText,
           );
         },
       ),

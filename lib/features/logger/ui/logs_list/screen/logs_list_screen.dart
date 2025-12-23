@@ -1,46 +1,69 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/components/log_item_widget.dart';
 import 'package:infospect/features/logger/ui/logs_list/components/logs_list_app_bar.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:share_plus/share_plus.dart';
 
-class LogsListScreen extends StatelessWidget {
-  const LogsListScreen(this.infospect, {super.key});
-
+class LogsListScreen extends StatefulWidget {
   final Infospect infospect;
+  final LogsListNotifier notifier;
+
+  const LogsListScreen(
+    this.infospect, {
+    required this.notifier,
+    super.key,
+  });
+
+  @override
+  State<LogsListScreen> createState() => _LogsListScreenState();
+}
+
+class _LogsListScreenState extends State<LogsListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    // Don't dispose notifier here - it's managed by navigation_helper
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final logsListBloc = context.watch<LogsListBloc>();
+    // Handle share file
+    if (widget.notifier.sharableFile != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Infospect.instance.onShareAllLogs != null) {
+          Infospect
+              .instance.onShareAllLogs!(widget.notifier.sharableFile!.path);
+        } else {
+          final XFile file = XFile(widget.notifier.sharableFile!.path);
+          SharePlus.instance.share(ShareParams(files: [file]));
+        }
+      });
+    }
+
     return Scaffold(
       appBar: LogsListAppBar(
-        hasBottom: logsListBloc.state.filters.isNotEmpty,
-        infospect: infospect,
+        hasBottom: widget.notifier.filters.isNotEmpty,
+        infospect: widget.infospect,
+        notifier: widget.notifier,
       ),
-      body: BlocConsumer<LogsListBloc, LogsListState>(
-        listenWhen: (previous, current) => current is CompressedLogsFile,
-        listener: (context, state) {
-          if (state is CompressedLogsFile) {
-            if (Infospect.instance.onShareAllLogs != null) {
-              Infospect
-                  .instance.onShareAllNetworkCalls!(state.sharableFile.path);
-              return;
-            }
-            final XFile file = XFile(state.sharableFile.path);
-            Share.shareXFiles([file]);
-          }
-        },
-        builder: (context, state) {
-          return ListView.builder(
-            itemCount: state.filteredLogs.length,
-            itemBuilder: (context, index) {
-              return LogItemWidget(
-                log: state.filteredLogs[index],
-                searchedText: state.searchedText,
-              );
-            },
+      body: ListView.builder(
+        itemCount: widget.notifier.filteredLogs.length,
+        itemBuilder: (context, index) {
+          return LogItemWidget(
+            log: widget.notifier.filteredLogs[index],
+            searchedText: widget.notifier.searchedText,
           );
         },
       ),

@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/models/logs_action.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/common_widgets/app_adaptive_dialog.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class LogsListAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const LogsListAppBar(
-      {super.key, this.hasBottom = false, required this.infospect})
-      : isDesktop = false;
+  const LogsListAppBar({
+    super.key,
+    this.hasBottom = false,
+    required this.infospect,
+    required this.notifier,
+  }) : isDesktop = false;
 
-  const LogsListAppBar.desktop(
-      {super.key, this.hasBottom = false, required this.infospect})
-      : isDesktop = true;
+  const LogsListAppBar.desktop({
+    super.key,
+    this.hasBottom = false,
+    required this.infospect,
+    required this.notifier,
+  }) : isDesktop = true;
 
   final bool hasBottom;
   final Infospect infospect;
+  final LogsListNotifier notifier;
   final bool isDesktop;
 
   @override
@@ -39,7 +45,7 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final logsBloc = context.read<LogsListBloc>();
+    final logsNotifier = widget.notifier;
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -53,24 +59,22 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
         controller: _controller,
         focusNode: _focusNode,
         isDesktop: widget.isDesktop,
-        onChanged: (value) => logsBloc.add(
-          TextSearched(text: value),
-        ),
+        onChanged: (value) => logsNotifier.searchText(value),
       ),
       actions: [
         AppBarActionWidget(
           actionModel: LogsAction.filterModel,
-          selectedActions: logsBloc.state.filters,
+          selectedActions: logsNotifier.filters,
           onItemSelected: (value) {
-            logsBloc.add(LogsFilterAdded(action: value));
+            logsNotifier.addFilter(value);
           },
-          selected: logsBloc.state.filters.isNotEmpty,
+          selected: logsNotifier.filters.isNotEmpty,
         ),
         AppBarActionWidget<LogsActionType>(
           actionModel: LogsAction.menuModel,
           onItemSelected: (value) {
             if (value.id == LogsActionType.share) {
-              logsBloc.add(const ShareAllLogsClicked());
+              logsNotifier.shareAllLogs();
             } else if (value.id == LogsActionType.clear) {
               AppAdaptiveDialog.show(
                 context,
@@ -79,14 +83,16 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
                 body:
                     'Are you sure you want to clear all logs? This will clear up the list.',
                 onPositiveActionClick: () {
-                  logsBloc.add(const ClearAllLogsClicked());
+                  logsNotifier.clearAllLogs();
                 },
               );
             }
           },
         ),
       ],
-      bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,
+      bottom: widget.hasBottom
+          ? _BottomWidget(widget.isDesktop, widget.notifier)
+          : null,
     );
   }
 
@@ -100,43 +106,38 @@ class _LogsListAppBarState extends State<LogsListAppBar> {
 }
 
 class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
-  const _BottomWidget(this.isDesktop);
+  const _BottomWidget(this.isDesktop, this.notifier);
 
   final bool isDesktop;
+  final LogsListNotifier notifier;
 
   @override
   Size get preferredSize => const Size.fromHeight(30);
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<LogsListBloc, LogsListState, List<PopupAction>>(
-      selector: (state) {
-        return state.filters;
-      },
-      builder: (context, filters) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return SizedBox(
-              width: constraints.maxWidth - 10,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: filters.map(
-                    (e) {
-                      return ConditionalWidget(
-                        condition: isDesktop,
-                        ifTrue: Transform(
-                          transform: Matrix4.identity()..scale(0.8),
-                          child: chipWidget(e, context),
-                        ),
-                        ifFalse: chipWidget(e, context),
-                      );
-                    },
-                  ).toList(),
-                ),
-              ),
-            );
-          },
+    final filters = notifier.filters;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth - 10,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: filters.map(
+                (e) {
+                  return ConditionalWidget(
+                    condition: isDesktop,
+                    ifTrue: Transform.scale(
+                      scale: 0.8,
+                      child: chipWidget(e, context),
+                    ),
+                    ifFalse: chipWidget(e, context),
+                  );
+                },
+              ).toList(),
+            ),
+          ),
         );
       },
     );
@@ -161,9 +162,7 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
           start: 4,
         ),
         onDeleted: () {
-          context.read<LogsListBloc>().add(
-                LogsFilterRemoved(action: e),
-              );
+          notifier.removeFilter(e);
         },
       ),
     );

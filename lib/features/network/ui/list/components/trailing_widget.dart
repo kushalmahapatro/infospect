@@ -17,10 +17,13 @@ class TrailingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () => mobileRoutes.rawData(
-        context,
-        data,
-        beautificationRequired,
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MobileRoutes().rawDataViewer(
+            data: data,
+            beautificationRequired: beautificationRequired,
+          ),
+        ),
       ),
       child: Text(
         text,

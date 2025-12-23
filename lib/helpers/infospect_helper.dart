@@ -6,18 +6,17 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart';
-import 'package:infospect/features/launch/bloc/launch_bloc.dart';
 import 'package:infospect/features/logger/infospect_logger.dart';
-import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
 import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
-import 'package:infospect/helpers/desktop_theme_cubit/desktop_theme_cubit.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
+import 'package:infospect/helpers/desktop_theme_cubit/desktop_theme_notifier.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/infospect_util.dart';
@@ -112,7 +111,7 @@ class Infospect {
   }
 
   /// Checks if the `Infospect` instance is initialized and throws an error
-  static checkInstance(Infospect? instance) {
+  static Infospect checkInstance(Infospect? instance) {
     if (instance == null) {
       throw FlutterError.fromParts(<DiagnosticsNode>[
         ErrorSummary('Infospect is not yet initialized'),
@@ -131,6 +130,22 @@ class Infospect {
   Brightness get brightness => PlatformDispatcher.instance.platformBrightness;
 
   BuildContext? get context => _navigatorKey?.currentState?.overlay?.context;
+
+  /// get the launch screen widget
+  Widget get infospectLaunchScreen {
+    // Create notifiers for the launch screen
+    final networksListNotifier = NetworksListNotifier(isMultiWindow: false);
+    final logsListNotifier = LogsListNotifier(
+      infospectLogger: infospectLogger,
+      isMultiWindow: false,
+    );
+
+    return InfospectLaunchScreen(
+      this,
+      networksListNotifier: networksListNotifier,
+      logsListNotifier: logsListNotifier,
+    );
+  }
 
   /// run app
   void run(List<String> args, {required Widget myApp}) =>

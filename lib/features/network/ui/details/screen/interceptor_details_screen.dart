@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/bloc/interceptor_details_bloc.dart';
+import 'package:infospect/features/network/ui/details/notifier/interceptor_details_notifier.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_error.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_request.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_response.dart';
@@ -10,44 +9,78 @@ import 'package:infospect/utils/common_widgets/app_bottom_bar.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
 import 'package:share_plus/share_plus.dart';
 
-class InterceptorDetailsScreen extends StatelessWidget {
+class InterceptorDetailsScreen extends StatefulWidget {
   final Infospect infospect;
-  final InfospectNetworkCall call;
-  const InterceptorDetailsScreen(this.infospect, this.call, {super.key});
+  final InfospectNetworkCall? call;
+  final InterceptorDetailsNotifier notifier;
+
+  const InterceptorDetailsScreen(
+    this.infospect, {
+    this.call,
+    required this.notifier,
+    super.key,
+  });
+
+  @override
+  State<InterceptorDetailsScreen> createState() =>
+      _InterceptorDetailsScreenState();
+}
+
+class _InterceptorDetailsScreenState extends State<InterceptorDetailsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    widget.notifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.call == null) {
+      return const Scaffold(
+        body: Center(child: Text('No call selected')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         title: Text(
-          call.server,
+          widget.call!.server,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      body: BlocSelector<InterceptorDetailsBloc, InterceptorDetailsState, int>(
-        selector: (state) => state.selectedTab,
-        builder: (context, index) {
-          return IndexedStack(
-            index: index,
-            children: [
-              InterceptorDetailsRequest(call, infospect: infospect),
-              InterceptorDetailsResponse(call, infospect: infospect),
-              InterceptorDetailsError(call, infospect: infospect),
-            ],
-          );
-        },
+      body: IndexedStack(
+        index: widget.notifier.selectedTab,
+        children: [
+          InterceptorDetailsRequest(widget.call!, infospect: widget.infospect),
+          InterceptorDetailsResponse(widget.call!, infospect: widget.infospect),
+          InterceptorDetailsError(widget.call!, infospect: widget.infospect),
+        ],
       ),
-      bottomNavigationBar: BottomNavBarWidget(call),
+      bottomNavigationBar: BottomNavBarWidget(widget.call!, widget.notifier),
     );
   }
 }
 
 class BottomNavBarWidget extends StatelessWidget {
   final InfospectNetworkCall call;
+  final InterceptorDetailsNotifier notifier;
+
   const BottomNavBarWidget(
-    this.call, {
+    this.call,
+    this.notifier, {
     super.key,
   });
 
@@ -62,27 +95,20 @@ class BottomNavBarWidget extends StatelessWidget {
     if (call.error == null) {
       tabs.removeAt(2);
     }
-    return BlocSelector<InterceptorDetailsBloc, InterceptorDetailsState, int>(
-      selector: (state) => state.selectedTab,
-      builder: (context, index) {
-        return AppBottomBar(
-          selectedIndex: index,
-          tabs: tabs,
-          tabChangedCallback: (position) async {
-            if (position == tabs.length - 1) {
-              Share.share(
-                await call.sharableData,
-                subject: 'Request Details',
-              );
-            } else {
-              context.read<InterceptorDetailsBloc>().add(
-                    DetailsTabChanged(
-                      selectedTab: position,
-                    ),
-                  );
-            }
-          },
-        );
+    return AppBottomBar(
+      selectedIndex: notifier.selectedTab,
+      tabs: tabs,
+      tabChangedCallback: (position) async {
+        if (position == tabs.length - 1) {
+          SharePlus.instance.share(
+            ShareParams(
+              text: await call.sharableData,
+              subject: 'Request Details',
+            ),
+          );
+        } else {
+          notifier.changeTab(position);
+        }
       },
     );
   }

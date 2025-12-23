@@ -1,63 +1,118 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/network/ui/details/screen/desktop_details_screen.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_app_bar.dart';
-import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_table.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
+import 'package:infospect/features/network/ui/details/screen/desktop_details_screen.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/divider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DesktopNetworksListScreen extends StatefulWidget {
   final Infospect infospect;
-  const DesktopNetworksListScreen(this.infospect, {super.key});
+  final NetworksListNotifier notifier;
+
+  const DesktopNetworksListScreen(
+    this.infospect, {
+    required this.notifier,
+    super.key,
+  });
 
   @override
   State<DesktopNetworksListScreen> createState() =>
       _DesktopNetworksListScreenState();
 }
 
-class _DesktopNetworksListScreenState
-    extends DesktopNetworksListScreenState<DesktopNetworksListScreen> {
+class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
+  InfospectNetworkCall? _selectedCall;
+  TopicData? _selectedTopic;
+  TopicData? _selectedResponseTopic;
+  RequestDetailsTopicHelper? _topicHelper;
+  ResponseDetailsTopicHelper? _responseTopicHelper;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  void _onCallSelected(InfospectNetworkCall call) {
+    setState(() {
+      _selectedCall = call;
+      _topicHelper = RequestDetailsTopicHelper(call);
+      _responseTopicHelper = ResponseDetailsTopicHelper(call);
+      _selectedTopic = _topicHelper!.desktopTopics.first;
+      _selectedResponseTopic = _responseTopicHelper!.desktopTopics.first;
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    // Don't dispose notifier here - it's managed by navigation_helper
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final networkListBloc = context.watch<NetworksListBloc>();
+    if (widget.notifier.sharableFile != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Infospect.instance.onShareAllNetworkCalls != null) {
+          Infospect.instance
+              .onShareAllNetworkCalls!(widget.notifier.sharableFile!.path);
+        } else {
+          final XFile file = XFile(widget.notifier.sharableFile!.path);
+          Share.shareXFiles([file]);
+        }
+      });
+    }
 
     return Scaffold(
       appBar: NetworkCallAppBar.desktop(
+        hasBottom: widget.notifier.filters.isNotEmpty,
         infospect: widget.infospect,
-        hasBottom: networkListBloc.state.filters.isNotEmpty,
+        notifier: widget.notifier,
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return DraggableTable(
                   infospect: widget.infospect,
-                  onCallSelected: (call) => updateSelectedCall(call),
-                  selectedCall: selectedCall,
+                  selectedCall: _selectedCall,
+                  onCallSelected: _onCallSelected,
                   constraints: constraints,
+                  notifier: widget.notifier,
                 );
               },
             ),
           ),
-          AppDivider.horizontal(),
-          Expanded(
-            child: DesktopDetailsScreen(
-              selectedCall: selectedCall,
-              infospect: widget.infospect,
-              topicHelper: topicHelper,
-              responseTopicHelper: responseTopicHelper,
-              selectedTopic: selectedTopic,
-              selectedResponseTopic: selectedResponseTopic,
-              onResponseTopicSelected: (value) =>
-                  updateSelectedResponseTopic(value),
-              onTopicSelected: (value) => updateSelectedTopic(value),
+          if (_selectedCall != null)
+            Expanded(
+              child: DesktopDetailsScreen(
+                infospect: widget.infospect,
+                selectedCall: _selectedCall,
+                topicHelper: _topicHelper,
+                responseTopicHelper: _responseTopicHelper,
+                selectedTopic: _selectedTopic,
+                selectedResponseTopic: _selectedResponseTopic,
+                onTopicSelected: (topic) {
+                  setState(() {
+                    _selectedTopic = topic;
+                  });
+                },
+                onResponseTopicSelected: (topic) {
+                  setState(() {
+                    _selectedResponseTopic = topic;
+                  });
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

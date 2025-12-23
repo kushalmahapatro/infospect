@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/common_widgets/app_adaptive_dialog.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
 class NetworkCallAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const NetworkCallAppBar(
-      {super.key, this.hasBottom = false, required this.infospect})
-      : isDesktop = false;
+  const NetworkCallAppBar({
+    super.key,
+    this.hasBottom = false,
+    required this.infospect,
+    required this.notifier,
+  }) : isDesktop = false;
 
-  const NetworkCallAppBar.desktop(
-      {super.key, this.hasBottom = false, required this.infospect})
-      : isDesktop = true;
+  const NetworkCallAppBar.desktop({
+    super.key,
+    this.hasBottom = false,
+    required this.infospect,
+    required this.notifier,
+  }) : isDesktop = true;
 
   final bool hasBottom;
   final Infospect infospect;
+  final NetworksListNotifier notifier;
   final bool isDesktop;
 
   @override
@@ -39,7 +45,7 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final networkListBloc = context.read<NetworksListBloc>();
+    final networkNotifier = widget.notifier;
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -53,24 +59,22 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
         controller: _controller,
         focusNode: _focusNode,
         isDesktop: widget.isDesktop,
-        onChanged: (value) => networkListBloc.add(
-          NetworkLogsSearched(text: value),
-        ),
+        onChanged: (value) => networkNotifier.searchNetworkLogs(value),
       ),
       actions: [
         AppBarActionWidget(
           actionModel: NetworkAction.filterModel,
-          selectedActions: networkListBloc.state.filters,
+          selectedActions: networkNotifier.filters,
           onItemSelected: (value) {
-            networkListBloc.add(NetworkLogsFilterAdded(action: value));
+            networkNotifier.addFilter(value);
           },
-          selected: networkListBloc.state.filters.isNotEmpty,
+          selected: networkNotifier.filters.isNotEmpty,
         ),
         AppBarActionWidget<NetworkActionType>(
           actionModel: NetworkAction.menuModel,
           onItemSelected: (value) {
             if (value.id == NetworkActionType.share) {
-              networkListBloc.add(const ShareNetworkLogsClicked());
+              networkNotifier.shareNetworkLogs();
             } else if (value.id == NetworkActionType.clear) {
               AppAdaptiveDialog.show(
                 context,
@@ -79,14 +83,16 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
                 body:
                     'Are you sure you want to clear all network call logs? This will clear up the list.',
                 onPositiveActionClick: () {
-                  networkListBloc.add(const ClearNetworkLogsClicked());
+                  networkNotifier.clearNetworkLogs();
                 },
               );
             }
           },
         ),
       ],
-      bottom: widget.hasBottom ? _BottomWidget(widget.isDesktop) : null,
+      bottom: widget.hasBottom
+          ? _BottomWidget(widget.isDesktop, widget.notifier)
+          : null,
     );
   }
 
@@ -100,43 +106,38 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
 }
 
 class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
-  const _BottomWidget(this.isDesktop);
+  const _BottomWidget(this.isDesktop, this.notifier);
 
   final bool isDesktop;
+  final NetworksListNotifier notifier;
 
   @override
   Size get preferredSize => const Size.fromHeight(30);
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<NetworksListBloc, NetworksListState, List<PopupAction>>(
-      selector: (state) {
-        return state.filters;
-      },
-      builder: (context, filters) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return SizedBox(
-              width: constraints.maxWidth - 10,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: filters.map(
-                    (e) {
-                      return ConditionalWidget(
-                        condition: isDesktop,
-                        ifTrue: Transform(
-                          transform: Matrix4.identity()..scale(0.8),
-                          child: chipWidget(e, context),
-                        ),
-                        ifFalse: chipWidget(e, context),
-                      );
-                    },
-                  ).toList(),
-                ),
-              ),
-            );
-          },
+    final filters = notifier.filters;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth - 10,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: filters.map(
+                (e) {
+                  return ConditionalWidget(
+                    condition: isDesktop,
+                    ifTrue: Transform.scale(
+                      scale: 0.8,
+                      child: chipWidget(e, context),
+                    ),
+                    ifFalse: chipWidget(e, context),
+                  );
+                },
+              ).toList(),
+            ),
+          ),
         );
       },
     );
@@ -161,9 +162,7 @@ class _BottomWidget extends StatelessWidget implements PreferredSizeWidget {
           start: 4,
         ),
         onDeleted: () {
-          context.read<NetworksListBloc>().add(
-                NetworkLogsFilterRemoved(action: e),
-              );
+          notifier.removeFilter(e);
         },
       ),
     );

@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/launch/bloc/launch_bloc.dart';
+import 'package:infospect/features/launch/notifier/launch_notifier.dart';
 import 'package:infospect/features/launch/models/navigation_tab_data.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
 import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_screen.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
@@ -13,7 +14,15 @@ import 'package:infospect/utils/common_widgets/divider.dart';
 
 class LaunchDesktopScreen extends StatelessWidget {
   final Infospect infospect;
-  const LaunchDesktopScreen(this.infospect, {super.key});
+  final NetworksListNotifier networksListNotifier;
+  final LogsListNotifier logsListNotifier;
+
+  const LaunchDesktopScreen(
+    this.infospect, {
+    required this.networksListNotifier,
+    required this.logsListNotifier,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +35,11 @@ class LaunchDesktopScreen extends StatelessWidget {
         children: [
           _FirstSection(infospect),
           AppDivider.vertical(),
-          _SecondSection(infospect),
+          _SecondSection(
+            infospect,
+            networksListNotifier: networksListNotifier,
+            logsListNotifier: logsListNotifier,
+          ),
         ],
       ),
     );
@@ -35,19 +48,33 @@ class LaunchDesktopScreen extends StatelessWidget {
 
 class _SecondSection extends StatelessWidget {
   final Infospect infospect;
-  const _SecondSection(this.infospect);
+  final NetworksListNotifier networksListNotifier;
+  final LogsListNotifier logsListNotifier;
+
+  const _SecondSection(
+    this.infospect, {
+    required this.networksListNotifier,
+    required this.logsListNotifier,
+  });
   @override
   Widget build(BuildContext context) {
+    final launchNotifier = LaunchNotifier.instance;
     return Flexible(
       flex: 8,
-      child: BlocSelector<LaunchBloc, LaunchState, int>(
-        selector: (state) => state.selectedTab,
-        builder: (context, selectedIndex) {
+      child: ValueListenableBuilder<int>(
+        valueListenable: launchNotifier,
+        builder: (context, selectedIndex, _) {
           return IndexedStack(
             index: selectedIndex,
             children: [
-              DesktopNetworksListScreen(infospect),
-              DesktopLogsListScreen(infospect)
+              DesktopNetworksListScreen(
+                infospect,
+                notifier: networksListNotifier,
+              ),
+              DesktopLogsListScreen(
+                infospect,
+                notifier: logsListNotifier,
+              ),
             ],
           );
         },
@@ -63,11 +90,12 @@ class _FirstSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final launchNotifier = LaunchNotifier.instance;
     return Flexible(
       flex: 2,
-      child: BlocSelector<LaunchBloc, LaunchState, int>(
-        selector: (state) => state.selectedTab,
-        builder: (context, selectedIndex) {
+      child: ValueListenableBuilder<int>(
+        valueListenable: launchNotifier,
+        builder: (context, selectedIndex, _) {
           return Scaffold(
             appBar: AppBar(
               toolbarHeight: 40,
@@ -94,11 +122,7 @@ class _FirstSection extends StatelessWidget {
                     margin:
                         const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                     child: InkWell(
-                      onTap: () => context.read<LaunchBloc>().add(
-                            TabChanged(
-                              selectedTab: index,
-                            ),
-                          ),
+                      onTap: () => launchNotifier.selectTab(index),
                       child: Row(
                         children: [
                           Icon(

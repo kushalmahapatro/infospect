@@ -44,7 +44,10 @@ class DesktopDetailsScreen extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.4),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -259,8 +262,8 @@ class _DetailsDataWidget extends StatelessWidget {
               e.topic,
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.primary.withOpacity(
-                      selected.topic == e.topic ? 1 : 0.4,
+                color: Theme.of(context).colorScheme.primary.withValues(
+                      alpha: selected.topic == e.topic ? 1 : 0.4,
                     ),
               ),
             ),

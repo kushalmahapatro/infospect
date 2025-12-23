@@ -105,7 +105,7 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
     Timer.periodic(
       const Duration(seconds: 2),
       (timer) {
-        if (timer.tick >= 8) {
+        if (timer.tick >= DiagnosticLevel.values.length) {
           timer.cancel();
         }
 
@@ -118,7 +118,8 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
 
         /// Log something
         log(
-          DiagnosticLevel.values[timer.tick],
+          DiagnosticLevel.values.elementAtOrNull(timer.tick) ??
+              DiagnosticLevel.debug,
           'test log ${timer.tick}',
           error: _getError(timer.tick),
           stackTrace: StackTrace.current,
@@ -149,25 +150,25 @@ class _RadioGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Flexible(
-          child: RadioListTile(
-            value: 1,
-            groupValue: radioValue,
-            onChanged: onRadioValueChanged,
-            title: const Text('Dio'),
+    return RadioGroup<int>(
+      groupValue: radioValue,
+      onChanged: onRadioValueChanged,
+      child: const Row(
+        children: [
+          Flexible(
+            child: RadioListTile(
+              value: 1,
+              title: Text('Dio'),
+            ),
           ),
-        ),
-        Flexible(
-          child: RadioListTile(
-            value: 2,
-            groupValue: radioValue,
-            onChanged: onRadioValueChanged,
-            title: const Text('Http'),
-          ),
-        )
-      ],
+          Flexible(
+            child: RadioListTile(
+              value: 2,
+              title: Text('Http'),
+            ),
+          )
+        ],
+      ),
     );
   }
 }
@@ -217,7 +218,7 @@ mixin AppNetworkCall {
       {'id': '$index'}
     );
 
-    switch (Method.values[(index - 1)]) {
+    switch (Method.values.elementAtOrNull(index - 1)) {
       case Method.get:
         return httpClient.get(val.$1);
 
@@ -241,6 +242,9 @@ mixin AppNetworkCall {
 
       case Method.repeat:
         return httpClient.post(val.$1);
+
+      default:
+        return httpClient.get(val.$1);
     }
   }
 }

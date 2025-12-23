@@ -117,9 +117,14 @@ class InfospectMultiWindowHelper {
   void _updateTheme(BuildContext context, MethodCall call) {
     if (call.arguments is Map &&
         (call.arguments as Map).containsKey('themeType')) {
-      context.read<DesktopThemeCubit>().setTheme(
-            ((call.arguments as Map)['themeType'] as List).firstOrNull ?? true,
-          );
+      // Access the desktop theme notifier from navigation helper
+      final themeNotifier =
+          _infospect._infospectNavigationHelper.desktopThemeNotifier;
+      if (themeNotifier != null) {
+        themeNotifier.setTheme(
+          ((call.arguments as Map)['themeType'] as List).firstOrNull ?? true,
+        );
+      }
     }
   }
 
@@ -139,7 +144,7 @@ class InfospectMultiWindowHelper {
             return;
           }
           final XFile file = XFile(sharableFile.path);
-          Share.shareXFiles([file]);
+          SharePlus.instance.share(ShareParams(files: [file]));
         }
       } else if (call.arguments == MainWindowArguments.shareLogs.name) {
         final File? sharableFile = await InfospectUtil.shareLogs();
@@ -149,7 +154,7 @@ class InfospectMultiWindowHelper {
             return;
           }
           final XFile file = XFile(sharableFile.path);
-          Share.shareXFiles([file]);
+          SharePlus.instance.share(ShareParams(files: [file]));
         }
       } else if (call.arguments ==
           MainWindowArguments.clearNetworkCallLogs.name) {

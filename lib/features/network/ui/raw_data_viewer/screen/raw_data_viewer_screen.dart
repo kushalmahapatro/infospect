@@ -1,112 +1,115 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_json_view/flutter_json_view.dart';
-import 'package:infospect/features/network/ui/raw_data_viewer/bloc/raw_data_viewer_bloc.dart';
+import 'package:infospect/features/network/ui/raw_data_viewer/notifier/raw_data_viewer_notifier.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/models/raw_data_view.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
-class RawDataViewerScreen extends StatelessWidget {
+class RawDataViewerScreen extends StatefulWidget {
   final Map<String, dynamic> data;
   final bool beautificationRequired;
+  final RawDataViewerNotifier notifier;
 
-  const RawDataViewerScreen(
-      {super.key, required this.data, this.beautificationRequired = false});
+  const RawDataViewerScreen({
+    super.key,
+    required this.data,
+    this.beautificationRequired = false,
+    required this.notifier,
+  });
+
+  @override
+  State<RawDataViewerScreen> createState() => _RawDataViewerScreenState();
+}
+
+class _RawDataViewerScreenState extends State<RawDataViewerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    widget.notifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => RawDataViewerBloc(),
-      child: Scaffold(
-        appBar: AppBar(
-          elevation: 0,
-          title: RawDataViewerSelector<RawDataView>(
-            selector: (state) => state.view,
-            builder: (context, view) {
-              return ConditionalWidget(
-                condition: view == RawDataView.beautified,
-                ifTrue: CupertinoSearchTextField(
-                  padding: const EdgeInsetsDirectional.fromSTEB(5.5, 8, 5.5, 8),
-                  style: Theme.of(context).textTheme.labelLarge,
-                  itemSize: 20,
-                  prefixInsets:
-                      const EdgeInsetsDirectional.fromSTEB(6, 0, 0, 3),
-                  onChanged: (search) {
-                    context
-                        .read<RawDataViewerBloc>()
-                        .add(SearchValueChanged(search));
-                  },
-                ),
-                ifFalse: const SizedBox.shrink(),
-              );
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        title: ConditionalWidget(
+          condition: widget.notifier.view == RawDataView.beautified,
+          ifTrue: CupertinoSearchTextField(
+            padding: const EdgeInsetsDirectional.fromSTEB(5.5, 8, 5.5, 8),
+            style: Theme.of(context).textTheme.labelLarge,
+            itemSize: 20,
+            prefixInsets: const EdgeInsetsDirectional.fromSTEB(6, 0, 0, 3),
+            onChanged: (search) {
+              widget.notifier.changeSearchValue(search);
             },
           ),
+          ifFalse: const SizedBox.shrink(),
         ),
-        bottomNavigationBar:
-            beautificationRequired ? const BottomNavBarWidget() : null,
-        body: RawDataViewerBuilder(
-          buildWhen: (previous, current) =>
-              previous.view != current.view ||
-              previous.searchValue != current.searchValue,
-          builder: (context, state) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ConditionalWidget(
-                condition: state.view == RawDataView.beautified,
-                ifTrue: ConditionalWidget(
-                  condition: beautificationRequired,
-                  ifTrue: HighlightText(
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    text: InfospectUtil.encoder.convert(data),
-                    highlight: state.searchValue,
-                  ),
-                  ifFalse: ListView(
-                    children: data.entries
-                        .map(
-                          (e) => Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.start,
-                            children: [
-                              HighlightText(
-                                text: '${e.key}:',
-                                highlight: state.searchValue,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              const Padding(padding: EdgeInsets.only(left: 5)),
-                              HighlightText(
-                                text: e.value.toString(),
-                                highlight: state.searchValue,
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 18),
-                              )
-                            ],
+      ),
+      bottomNavigationBar: widget.beautificationRequired
+          ? BottomNavBarWidget(widget.notifier)
+          : null,
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ConditionalWidget(
+          condition: widget.notifier.view == RawDataView.beautified,
+          ifTrue: ConditionalWidget(
+            condition: widget.beautificationRequired,
+            ifTrue: HighlightText(
+              style: Theme.of(context).textTheme.bodyMedium,
+              text: InfospectUtil.encoder.convert(widget.data),
+              highlight: widget.notifier.searchValue,
+            ),
+            ifFalse: ListView(
+              children: widget.data.entries
+                  .map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.key,
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                ifFalse: JsonView.map(
-                  data,
-                  theme: JsonViewTheme(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    separator: const Text(':'),
-                    closeIcon: Icon(
-                      Icons.arrow_drop_up,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurface,
+                          const SizedBox(height: 8),
+                          Text(
+                            e.value.toString(),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                     ),
-                    openIcon: Icon(
-                      Icons.arrow_drop_down,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          ifFalse: JsonView.map(
+            widget.data,
+            theme: JsonViewTheme(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              defaultTextStyle: Theme.of(context).textTheme.bodyMedium!,
+              keyStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                ),
-              ),
-            );
-          },
+              stringStyle: Theme.of(context).textTheme.bodyMedium!,
+              boolStyle: Theme.of(context).textTheme.bodyMedium!,
+              separator: const Text(':'),
+            ),
+          ),
         ),
       ),
     );
@@ -114,30 +117,24 @@ class RawDataViewerScreen extends StatelessWidget {
 }
 
 class BottomNavBarWidget extends StatelessWidget {
-  const BottomNavBarWidget({
-    super.key,
-  });
+  final RawDataViewerNotifier notifier;
+
+  const BottomNavBarWidget(this.notifier, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return RawDataViewerSelector<RawDataView>(
-      selector: (state) => state.view,
-      builder: (context, view) {
-        return AppBottomBar(
-          selectedIndex: view.index,
-          tabs: RawDataView.values
-              .map(
-                (e) => (
-                  icon: e.icon,
-                  title: e.value,
-                ),
-              )
-              .toList(),
-          tabChangedCallback: (position) {
-            context
-                .read<RawDataViewerBloc>()
-                .add(RawDataViewChanged(RawDataView.values[position]));
-          },
+    return AppBottomBar(
+      selectedIndex: notifier.view == RawDataView.beautified ? 0 : 1,
+      tabs: [
+        (
+          icon: RawDataView.beautified.icon,
+          title: RawDataView.beautified.value
+        ),
+        (icon: RawDataView.treeView.icon, title: RawDataView.treeView.value),
+      ],
+      tabChangedCallback: (index) {
+        notifier.changeView(
+          index == 0 ? RawDataView.beautified : RawDataView.treeView,
         );
       },
     );

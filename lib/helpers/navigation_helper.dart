@@ -7,9 +7,12 @@ class InfospectNavigationHelper {
   /// Private constructor for the `InfospectNavigationHelper`.
   ///
   /// - `infospect`: Reference to the main `Infospect` instance.
-  const InfospectNavigationHelper._(Infospect infospect)
-      : _infospect = infospect;
+  InfospectNavigationHelper._(Infospect infospect) : _infospect = infospect;
   final Infospect _infospect;
+
+  /// Desktop theme notifier for multi-window scenarios
+  DesktopThemeNotifier? desktopThemeNotifier;
+  final MobileRoutes mobileRoutes = MobileRoutes();
 
   /// Determines whether the current theme mode is dark.
   bool get isDarkTheme =>
@@ -53,6 +56,16 @@ class InfospectNavigationHelper {
     final ThemeData themeData =
         isDarkTheme ? InfospectTheme.darkTheme : InfospectTheme.lightTheme;
     mobileRoutes.themeData = themeData;
+
+    // Create notifiers directly
+    final networksListNotifier = NetworksListNotifier(
+      isMultiWindow: isMultiWindow,
+    );
+    final logsListNotifier = LogsListNotifier(
+      infospectLogger: Infospect.instance.infospectLogger,
+      isMultiWindow: isMultiWindow,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const <LocalizationsDelegate<Object>>[],
@@ -60,24 +73,10 @@ class InfospectNavigationHelper {
         Locale('en', 'US'), // English
       ],
       theme: themeData,
-      home: MultiBlocProvider(
-        providers: [
-          BlocProvider(
-            create: (_) => LaunchBloc(),
-          ),
-          BlocProvider(
-            create: (_) => NetworksListBloc(
-              isMultiWindow: isMultiWindow,
-            ),
-          ),
-          BlocProvider(
-            create: (_) => LogsListBloc(
-              infospectLogger: Infospect.instance.infospectLogger,
-              isMultiWindow: isMultiWindow,
-            ),
-          ),
-        ],
-        child: mobileRoutes.launch(Infospect.instance),
+      home: mobileRoutes.launch(
+        Infospect.instance,
+        networksListNotifier: networksListNotifier,
+        logsListNotifier: logsListNotifier,
       ),
     );
   }
@@ -120,14 +119,13 @@ class InfospectNavigationHelper {
   ///
   /// - `args`: A list of arguments.
   void runNewWindowInstance(List<String> args) {
+    desktopThemeNotifier = DesktopThemeNotifier();
     runApp(
-      BlocProvider(
-        create: (context) => DesktopThemeCubit(),
-        child: BlocBuilder<DesktopThemeCubit, DesktopThemeState>(
-          builder: (context, theme) => interceptorScreen(
-            isDarkTheme: theme.isDarkTheme,
-            isMultiWindow: true,
-          ),
+      ListenableBuilder(
+        listenable: desktopThemeNotifier!,
+        builder: (context, child) => interceptorScreen(
+          isDarkTheme: desktopThemeNotifier!.isDarkTheme,
+          isMultiWindow: true,
         ),
       ),
     );

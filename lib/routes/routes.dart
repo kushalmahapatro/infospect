@@ -1,70 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
-import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/details/bloc/interceptor_details_bloc.dart';
+import 'package:infospect/features/network/ui/details/notifier/interceptor_details_notifier.dart';
 import 'package:infospect/features/network/ui/details/screen/interceptor_details_screen.dart';
+import 'package:infospect/features/network/ui/raw_data_viewer/notifier/raw_data_viewer_notifier.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/screen/raw_data_viewer_screen.dart';
-import 'package:infospect/infospect.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
+import 'package:infospect/helpers/infospect_helper.dart';
 
 class MobileRoutes {
-  ThemeData? _themeData;
-  set themeData(ThemeData themeData) => _themeData = themeData;
+  ThemeData? themeData;
 
-  MobileRoutes._();
+  MobileRoutes();
 
-  /// launch screen
-  Widget launch(Infospect infospect) =>
-      _themeWidget(InfospectLaunchScreen(infospect));
+  Widget launch(
+    Infospect infospect, {
+    required NetworksListNotifier networksListNotifier,
+    required LogsListNotifier logsListNotifier,
+  }) {
+    return infospect.infospectLaunchScreen;
+  }
 
-  /// network details list
-  Future<void> logsList(BuildContext context, Infospect infospect,
-          InfospectNetworkCall call) =>
-      Navigator.push<void>(
-        infospect.context ?? context,
-        MaterialPageRoute(
-          builder: (context) => BlocProvider(
-            create: (context) => InterceptorDetailsBloc(),
-            child: _themeWidget(
-              InterceptorDetailsScreen(infospect, call),
-            ),
-          ),
-        ),
-      );
+  Widget networkCallDetails(Infospect infospect) {
+    final notifier = InterceptorDetailsNotifier();
+    return InterceptorDetailsScreen(
+      infospect,
+      notifier: notifier,
+    );
+  }
 
-  /// raw data screen
-  Future<void> rawData(BuildContext context, Map<String, dynamic> data,
-          bool beautificationRequired) =>
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) {
-            return _themeWidget(
-              RawDataViewerScreen(
-                data: data,
-                beautificationRequired: beautificationRequired,
-              ),
-            );
-          },
-        ),
-      );
-
-  Widget _themeWidget(Widget widget) {
-    if (_themeData == null) {
-      final Brightness brightness =
-          SchedulerBinding.instance.platformDispatcher.platformBrightness;
-      _themeData = InfospectTheme.darkTheme;
-      if (brightness == Brightness.light) {
-        _themeData = InfospectTheme.lightTheme;
-      }
-    }
-
-    return Theme(
-      data: _themeData!,
-      child: widget,
+  Widget rawDataViewer({
+    required Map<String, dynamic> data,
+    bool beautificationRequired = false,
+  }) {
+    final notifier = RawDataViewerNotifier();
+    return RawDataViewerScreen(
+      data: data,
+      beautificationRequired: beautificationRequired,
+      notifier: notifier,
     );
   }
 }
 
-final mobileRoutes = MobileRoutes._();
+class DesktopRoutes {
+  const DesktopRoutes();
+
+  Widget launch(Infospect infospect) {
+    return infospect.infospectLaunchScreen;
+  }
+}

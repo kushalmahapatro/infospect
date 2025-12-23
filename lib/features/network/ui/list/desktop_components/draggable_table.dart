@@ -1,8 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
@@ -20,6 +19,7 @@ class DraggableTable extends StatefulWidget {
     required this.onCallSelected,
     this.selectedCall,
     required this.constraints,
+    required this.notifier,
   });
 
   final Infospect infospect;
@@ -27,6 +27,7 @@ class DraggableTable extends StatefulWidget {
   final ValueChanged<InfospectNetworkCall> onCallSelected;
   final InfospectNetworkCall? selectedCall;
   final BoxConstraints constraints;
+  final NetworksListNotifier notifier;
 
   @override
   State<DraggableTable> createState() => _DraggableTableState();
@@ -65,155 +66,151 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
   }
 
   Widget _resizableColumnWidth() {
-    return BlocConsumer<NetworksListBloc, NetworksListState>(
-      listenWhen: (previous, current) =>
-          current is CompressedNetworkCallLogsFile,
-      listener: (context, state) {
-        if (state is CompressedNetworkCallLogsFile) {
-          if (Infospect.instance.onShareAllNetworkCalls != null) {
-            Infospect.instance.onShareAllNetworkCalls!(state.sharableFile.path);
-            return;
-          }
-          final XFile file = XFile(state.sharableFile.path);
-          Share.shareXFiles([file]);
+    final notifier = widget.notifier;
+    if (notifier.sharableFile != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Infospect.instance.onShareAllNetworkCalls != null) {
+          Infospect
+              .instance.onShareAllNetworkCalls!(notifier.sharableFile!.path);
+        } else {
+          final XFile file = XFile(notifier.sharableFile!.path);
+          SharePlus.instance.share(ShareParams(files: [file]));
         }
-      },
-      builder: (context, state) {
-        List<InfospectNetworkCall> calls = state.filteredCalls;
-        final Color color = Theme.of(context).colorScheme.onSurface;
+      });
+    }
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DataTable(
-              headingRowHeight: 30,
-              dataRowMinHeight: 20,
-              dataRowMaxHeight: 26,
-              columnSpacing: 4,
-              horizontalMargin: 0,
-              showCheckboxColumn: false,
-              headingRowColor: WidgetStateProperty.all(
-                color.withOpacity(0.2),
-              ),
-              headingTextStyle: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-              border: const TableBorder(
-                horizontalInside: BorderSide(
-                  width: 0.1,
-                ),
-              ),
-              dataTextStyle: TextStyle(
-                fontSize: 12,
-                color: color,
-              ),
-              columns: dataCellStates.mapIndexed(
-                (index, element) {
-                  return DataColumn(
-                    label: DraggableCell(
-                      text: element.label,
-                      minWidth: element.minWidth,
-                      maxWidth: element.maxWidth,
-                      width: index == dataCellStates.length - 1
-                          ? element.width
-                          : null,
-                      onColumnWidthChanged: (width) => updateDataCellStates(
-                        id: index,
-                        width: width,
-                      ),
-                    ),
-                  );
-                },
-              ).toList(),
-              rows: calls.reversed.mapIndexed((index, element) {
-                return DataRow(
-                  onSelectChanged: (value) {
-                    if (element.loading) return;
-                    widget.onCallSelected(element);
-                  },
-                  selected: widget.selectedCall?.id == element.id,
-                  cells: [
-                    /// State
-                    dataCellWidget(
-                      widget: element.loading
-                          ? Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: CircularProgressIndicator(
-                                color: Theme.of(context).colorScheme.error,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : _getStateColor(context, element),
-                      data: '',
-                      width: dataCellStates.width(CellType.columnState),
-                    ),
+    List<InfospectNetworkCall> calls = notifier.filteredCalls;
+    final Color color = Theme.of(context).colorScheme.onSurface;
 
-                    /// Index
-                    dataCellWidget(
-                      data: '${index + 1}',
-                      width: dataCellStates.width(CellType.columnId),
-                    ),
-
-                    /// url
-                    dataCellWidget(
-                      data: element.uri,
-                      width: dataCellStates.width(CellType.columnUrl),
-                      highlight: state.searchedText,
-                    ),
-
-                    /// Client name
-                    dataCellWidget(
-                      data: element.client,
-                      width: dataCellStates.width(CellType.columnClient),
-                    ),
-
-                    /// Method
-                    dataCellWidget(
-                      data: element.method,
-                      width: dataCellStates.width(CellType.columnMethod),
-                    ),
-
-                    /// status
-                    dataCellWidget(
-                      data: _getStatusText(element),
-                      width: dataCellStates.width(CellType.columnStatus),
-                    ),
-
-                    /// code
-                    dataCellWidget(
-                      data: element.response?.status != -1
-                          ? (element.response?.status ?? '').toString()
-                          : '',
-                      width: dataCellStates.width(CellType.columnCode),
-                    ),
-
-                    /// Time
-                    dataCellWidget(
-                      data: element.createdTime.formatTime,
-                      width: dataCellStates.width(CellType.columnTime),
-                    ),
-
-                    /// duration
-                    dataCellWidget(
-                      data: element.duration.toReadableTime,
-                      width: dataCellStates.width(CellType.columnDuration),
-                    ),
-
-                    /// is secure connection
-                    dataCellWidget(
-                      data: element.secure.toString(),
-                      width: dataCellStates.width(CellType.columnSecure),
-                    ),
-                  ],
-                );
-              }).toList(),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DataTable(
+          headingRowHeight: 30,
+          dataRowMinHeight: 20,
+          dataRowMaxHeight: 26,
+          columnSpacing: 4,
+          horizontalMargin: 0,
+          showCheckboxColumn: false,
+          headingRowColor: WidgetStateProperty.all(
+            color.withValues(alpha: 0.2),
+          ),
+          headingTextStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+          border: const TableBorder(
+            horizontalInside: BorderSide(
+              width: 0.1,
             ),
-          ],
-        );
-      },
+          ),
+          dataTextStyle: TextStyle(
+            fontSize: 12,
+            color: color,
+          ),
+          columns: dataCellStates.mapIndexed(
+            (index, element) {
+              return DataColumn(
+                label: DraggableCell(
+                  text: element.label,
+                  minWidth: element.minWidth,
+                  maxWidth: element.maxWidth,
+                  width:
+                      index == dataCellStates.length - 1 ? element.width : null,
+                  onColumnWidthChanged: (width) => updateDataCellStates(
+                    id: index,
+                    width: width,
+                  ),
+                ),
+              );
+            },
+          ).toList(),
+          rows: calls.reversed.mapIndexed((index, element) {
+            return DataRow(
+              onSelectChanged: (value) {
+                if (element.loading) return;
+                widget.onCallSelected(element);
+              },
+              selected: widget.selectedCall?.id == element.id,
+              cells: [
+                /// State
+                dataCellWidget(
+                  widget: element.loading
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).colorScheme.error,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : _getStateColor(context, element),
+                  data: '',
+                  width: dataCellStates.width(CellType.columnState),
+                ),
+
+                /// Index
+                dataCellWidget(
+                  data: '${index + 1}',
+                  width: dataCellStates.width(CellType.columnId),
+                ),
+
+                /// url
+                dataCellWidget(
+                  data: element.uri,
+                  width: dataCellStates.width(CellType.columnUrl),
+                  highlight: notifier.searchedText,
+                ),
+
+                /// Client name
+                dataCellWidget(
+                  data: element.client,
+                  width: dataCellStates.width(CellType.columnClient),
+                ),
+
+                /// Method
+                dataCellWidget(
+                  data: element.method,
+                  width: dataCellStates.width(CellType.columnMethod),
+                ),
+
+                /// status
+                dataCellWidget(
+                  data: _getStatusText(element),
+                  width: dataCellStates.width(CellType.columnStatus),
+                ),
+
+                /// code
+                dataCellWidget(
+                  data: element.response?.status != -1
+                      ? (element.response?.status ?? '').toString()
+                      : '',
+                  width: dataCellStates.width(CellType.columnCode),
+                ),
+
+                /// Time
+                dataCellWidget(
+                  data: element.createdTime.formatTime,
+                  width: dataCellStates.width(CellType.columnTime),
+                ),
+
+                /// duration
+                dataCellWidget(
+                  data: element.duration.toReadableTime,
+                  width: dataCellStates.width(CellType.columnDuration),
+                ),
+
+                /// is secure connection
+                dataCellWidget(
+                  data: element.secure.toString(),
+                  width: dataCellStates.width(CellType.columnSecure),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 

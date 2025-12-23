@@ -8,6 +8,7 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/extensions/infospect_log/infospect_log_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
+import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,14 +16,14 @@ import 'package:path_provider/path_provider.dart';
 typedef ShareFileData = ({
   RandomAccessFile randomAccessFile,
   String path,
-  Directory directory
+  Directory directory,
 });
 
-enum MainWindowArguments {
-  shareNetworkCallLogs,
-  shareLogs,
-  clearNetworkCallLogs,
-  clearLogs,
+class MainWindowArguments {
+  static String shareNetworkCallLogs = 'shareNetworkCallLogs';
+  static String shareLogs = 'shareLogs';
+  static String clearNetworkCallLogs = 'clearNetworkCallLogs';
+  static String clearLogs = 'clearLogs';
 }
 
 class InfospectUtil {
@@ -115,7 +116,9 @@ class InfospectUtil {
   }
 
   static Future<File?> shareLogs() async {
-    const String name = 'logs';
+    final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    final String timestamp = f.format(DateTime.now());
+    final String name = 'logs_$timestamp';
 
     final ShareFileData shareFileData = await _getShareFileData(name);
     for (final InfospectLog item in Infospect.instance.infospectLogger.logs) {
@@ -127,7 +130,9 @@ class InfospectUtil {
   }
 
   static Future<File?> shareNetworkCallLogs() async {
-    const String name = 'network_calls_log';
+    final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    final String timestamp = f.format(DateTime.now());
+    final String name = 'network_calls_log_$timestamp';
     final ShareFileData shareFileData = await _getShareFileData(name);
 
     for (int i = 1;
@@ -185,7 +190,7 @@ class InfospectUtil {
     return (
       randomAccessFile: randomAccessFile,
       path: path,
-      directory: directory
+      directory: directory,
     );
   }
 

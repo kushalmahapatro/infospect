@@ -16,8 +16,13 @@ class MobileRoutes {
     Infospect infospect, {
     required NetworksListNotifier networksListNotifier,
     required LogsListNotifier logsListNotifier,
+    bool isMultiWindow = false,
   }) {
-    return infospect.infospectLaunchScreen;
+    return infospect.infospectLaunchScreen(
+      networksListNotifier: networksListNotifier,
+      logsListNotifier: logsListNotifier,
+      isMultiWindow: isMultiWindow,
+    );
   }
 
   Widget networkCallDetails(Infospect infospect) {
@@ -38,13 +43,5 @@ class MobileRoutes {
       beautificationRequired: beautificationRequired,
       notifier: notifier,
     );
-  }
-}
-
-class DesktopRoutes {
-  const DesktopRoutes();
-
-  Widget launch(Infospect infospect) {
-    return infospect.infospectLaunchScreen;
   }
 }

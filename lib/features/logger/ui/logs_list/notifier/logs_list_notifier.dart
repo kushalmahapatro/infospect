@@ -6,6 +6,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:infospect/features/logger/infospect_logger.dart';
 import 'package:infospect/infospect.dart';
+import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
@@ -20,11 +21,10 @@ class LogsListNotifier extends ChangeNotifier {
   List<InfospectLog> _filteredLogs = [];
   String _searchedText = '';
   List<PopupAction> _filters = [];
-  File? _sharableFile;
 
   LogsListNotifier({
     required InfospectLogger infospectLogger,
-    required bool isMultiWindow,
+    bool isMultiWindow = false,
   })  : _infospectLogger = infospectLogger,
         _isMultiWindow = isMultiWindow {
     _init();
@@ -35,7 +35,7 @@ class LogsListNotifier extends ChangeNotifier {
   List<InfospectLog> get filteredLogs => _filteredLogs;
   String get searchedText => _searchedText;
   List<PopupAction> get filters => _filters;
-  File? get sharableFile => _sharableFile;
+  ValueChanged<File>? onShareAllLogs;
 
   void _init() {
     _logsSubscription = _infospectLogger.callsSubject.listen((logs) {
@@ -111,30 +111,23 @@ class LogsListNotifier extends ChangeNotifier {
 
   Future<void> shareAllLogs() async {
     if (_isMultiWindow) {
-      DesktopMultiWindow.invokeMethod(
-        0,
-        'onSend',
-        'shareLogs',
-      );
+      final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
+      await channel.invokeMethod(
+          InfospectDataTransfer.onSend, MainWindowArguments.shareLogs);
       return;
     }
 
     final logsFile = await InfospectUtil.shareLogs();
     if (logsFile != null) {
-      _sharableFile = logsFile;
-      notifyListeners();
-      // Reset after notification
-      _sharableFile = null;
+      onShareAllLogs?.call(logsFile);
     }
   }
 
-  void clearAllLogs() {
+  Future<void> clearAllLogs() async {
     if (_isMultiWindow) {
-      DesktopMultiWindow.invokeMethod(
-        0,
-        'onSend',
-        'clearLogs',
-      );
+      final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
+      await channel.invokeMethod(
+          InfospectDataTransfer.onSend, MainWindowArguments.clearLogs);
     }
     Infospect.instance.clearAllLogs();
   }

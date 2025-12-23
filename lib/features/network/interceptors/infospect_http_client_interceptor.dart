@@ -100,7 +100,7 @@ class InfospectHttpClientInterceptor extends BaseClient {
           method: request.method,
           endpoint: request.url.path,
           loading: true,
-          client: client.toString(),
+          client: client.runtimeType.toString(),
           server: request.url.origin,
           uri: request.url.toString(),
           secure: request.url.isScheme('https'),

@@ -24,6 +24,14 @@ class _LogsListScreenState extends State<LogsListScreen> {
   void initState() {
     super.initState();
     widget.notifier.addListener(_onNotifierChanged);
+    widget.notifier.onShareAllLogs = (sharableFile) {
+      if (Infospect.instance.onShareAllLogs != null) {
+        Infospect.instance.onShareAllLogs!(sharableFile.path);
+      } else {
+        final XFile file = XFile(sharableFile.path);
+        SharePlus.instance.share(ShareParams(files: [file]));
+      }
+    };
   }
 
   void _onNotifierChanged() {
@@ -33,25 +41,11 @@ class _LogsListScreenState extends State<LogsListScreen> {
   @override
   void dispose() {
     widget.notifier.removeListener(_onNotifierChanged);
-    // Don't dispose notifier here - it's managed by navigation_helper
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Handle share file
-    if (widget.notifier.sharableFile != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Infospect.instance.onShareAllLogs != null) {
-          Infospect
-              .instance.onShareAllLogs!(widget.notifier.sharableFile!.path);
-        } else {
-          final XFile file = XFile(widget.notifier.sharableFile!.path);
-          SharePlus.instance.share(ShareParams(files: [file]));
-        }
-      });
-    }
-
     return Scaffold(
       appBar: LogsListAppBar(
         hasBottom: widget.notifier.filters.isNotEmpty,

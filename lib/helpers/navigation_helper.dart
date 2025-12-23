@@ -21,27 +21,31 @@ class InfospectNavigationHelper {
   /// Opens the inspector in a new window (applicable only on desktop platforms).
   Future<void> openInspectorInNewWindow() async {
     if (!kIsWeb && Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      /// If a sub window is already open, return.
-      List<int> subWindowIds = [];
+      /// If a sub window is already open, focus on it.
+      WindowController? infospectWindow;
+
       try {
-        subWindowIds = await DesktopMultiWindow.getAllSubWindowIds();
+        final subWindows = await WindowController.getAll();
+        // Filter out the main window (id '0')
+        infospectWindow = subWindows.firstWhereOrNull(
+            (w) => w.arguments == InfospectDataTransfer.windowName);
       } catch (_) {}
-      if (subWindowIds.isNotEmpty) return;
 
-      final WindowController window = await DesktopMultiWindow.createWindow(
-        jsonEncode({'args1': 'Sub window'}),
+      if (infospectWindow != null) {
+        await infospectWindow.show();
+        return;
+      }
+
+      final WindowController window = await WindowController.create(
+        WindowConfiguration(arguments: InfospectDataTransfer.windowName),
       );
-      window
-        ..setFrame(const Offset(0, 0) & const Size(1280, 720))
-        ..center()
-        ..setTitle('Infospect');
 
-      window.show().then((value) {
-        Infospect.instance
-          ..sendNetworkCalls()
-          ..sendLogs()
-          ..sendThemeMode(isDarkTheme: isDarkTheme);
-      });
+      await window.show();
+
+      Infospect.instance
+        ..sendNetworkCalls()
+        ..sendLogs()
+        ..sendThemeMode(isDarkTheme: isDarkTheme);
     }
   }
 
@@ -77,6 +81,7 @@ class InfospectNavigationHelper {
         Infospect.instance,
         networksListNotifier: networksListNotifier,
         logsListNotifier: logsListNotifier,
+        isMultiWindow: isMultiWindow,
       ),
     );
   }
@@ -107,7 +112,9 @@ class InfospectNavigationHelper {
   /// - `args`: A list of arguments.
   /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) {
-    if (args.firstOrNull == 'multi_window') {
+    // Parse window arguments to determine which window to show
+    if (args.firstWhereOrNull((e) => e == InfospectDataTransfer.windowName) !=
+        null) {
       runNewWindowInstance(args);
       return;
     }

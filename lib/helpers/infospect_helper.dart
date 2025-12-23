@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +19,7 @@ import 'package:infospect/features/network/ui/list/notifier/networks_list_notifi
 import 'package:infospect/helpers/desktop_theme_cubit/desktop_theme_notifier.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
+import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:share_plus/share_plus.dart';
@@ -132,14 +133,11 @@ class Infospect {
   BuildContext? get context => _navigatorKey?.currentState?.overlay?.context;
 
   /// get the launch screen widget
-  Widget get infospectLaunchScreen {
-    // Create notifiers for the launch screen
-    final networksListNotifier = NetworksListNotifier(isMultiWindow: false);
-    final logsListNotifier = LogsListNotifier(
-      infospectLogger: infospectLogger,
-      isMultiWindow: false,
-    );
-
+  Widget infospectLaunchScreen({
+    required NetworksListNotifier networksListNotifier,
+    required LogsListNotifier logsListNotifier,
+    bool isMultiWindow = false,
+  }) {
     return InfospectLaunchScreen(
       this,
       networksListNotifier: networksListNotifier,

@@ -1,3 +1,18 @@
+
+## 0.1.5
+
+### Features
+- Added timestamp to shared log and network call filenames for better organization
+
+### Fixes
+- Fixed HTTP client interceptor to show proper client type name
+
+### Dependencies
+- Updated `desktop_multi_window` from ^0.2.0 to ^0.3.0
+- Upgrade all the dependencies to their latest versions
+- Added `intl` ^0.20.2 for timestamp formatting
+- Removed `bloc` and `provider`
+
 ## 0.1.4
 ##### Fixes
 - Bumped some outdated dependencies

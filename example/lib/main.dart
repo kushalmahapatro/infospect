@@ -15,7 +15,8 @@ void main(List<String> args) {
 
   /// Initialize the `Infospect` instance.
   ///handle the data received to the main window from Infospect window
-  Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
+  Infospect.ensureInitialized(logAppLaunch: true);
+  Infospect.instance.handleMainWindowReceiveData();
 
   /// Run the app with the `Infospect` instance.
   /// The `Infospect` instance is a singleton and can be accessed anywhere in the app.
@@ -183,7 +184,7 @@ mixin AppNetworkCall {
       {'id': index},
     );
 
-    switch (Method.values[(index - 1)]) {
+    switch (Method.values.elementAtOrNull(index - 1)) {
       case Method.get:
         return dio.get(val.$1, options: val.$2, queryParameters: val.$3);
 
@@ -208,6 +209,9 @@ mixin AppNetworkCall {
 
       case Method.repeat:
         return dio.post(val.$1, options: val.$2, queryParameters: val.$3);
+
+      default:
+        return dio.get(val.$1, options: val.$2, queryParameters: val.$3);
     }
   }
 

@@ -10,7 +10,6 @@ import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
-import 'package:share_plus/share_plus.dart';
 
 class DraggableTable extends StatefulWidget {
   const DraggableTable({
@@ -67,17 +66,6 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
 
   Widget _resizableColumnWidth() {
     final notifier = widget.notifier;
-    if (notifier.sharableFile != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Infospect.instance.onShareAllNetworkCalls != null) {
-          Infospect
-              .instance.onShareAllNetworkCalls!(notifier.sharableFile!.path);
-        } else {
-          final XFile file = XFile(notifier.sharableFile!.path);
-          SharePlus.instance.share(ShareParams(files: [file]));
-        }
-      });
-    }
 
     List<InfospectNetworkCall> calls = notifier.filteredCalls;
     final Color color = Theme.of(context).colorScheme.onSurface;

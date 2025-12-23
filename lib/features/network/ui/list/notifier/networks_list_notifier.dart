@@ -6,6 +6,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:infospect/utils/models/action_model.dart';
@@ -20,9 +21,8 @@ class NetworksListNotifier extends ChangeNotifier {
   List<InfospectNetworkCall> _filteredCalls = [];
   String _searchedText = '';
   List<PopupAction> _filters = [];
-  File? _sharableFile;
 
-  NetworksListNotifier({required bool isMultiWindow})
+  NetworksListNotifier({bool isMultiWindow = false})
       : _isMultiWindow = isMultiWindow {
     _init();
   }
@@ -32,7 +32,7 @@ class NetworksListNotifier extends ChangeNotifier {
   List<InfospectNetworkCall> get filteredCalls => _filteredCalls;
   String get searchedText => _searchedText;
   List<PopupAction> get filters => _filters;
-  File? get sharableFile => _sharableFile;
+  ValueChanged<File>? onShareAllNetworkCalls;
 
   void _init() {
     _callsSubscription = Infospect.instance.networkCallsSubject.listen((calls) {
@@ -123,30 +123,27 @@ class NetworksListNotifier extends ChangeNotifier {
 
   Future<void> shareNetworkLogs() async {
     if (_isMultiWindow) {
-      DesktopMultiWindow.invokeMethod(
-        0,
-        'onSend',
-        'shareNetworkCallLogs',
-      );
+      try {
+        final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
+        await channel.invokeMethod(InfospectDataTransfer.onSend,
+            MainWindowArguments.shareNetworkCallLogs);
+      } catch (_) {}
       return;
     }
 
     final networkLogsFile = await InfospectUtil.shareNetworkCallLogs();
     if (networkLogsFile != null) {
-      _sharableFile = networkLogsFile;
-      notifyListeners();
-      // Reset after notification
-      _sharableFile = null;
+      onShareAllNetworkCalls?.call(networkLogsFile);
     }
   }
 
-  void clearNetworkLogs() {
+  Future<void> clearNetworkLogs() async {
     if (_isMultiWindow) {
-      DesktopMultiWindow.invokeMethod(
-        0,
-        'onSend',
-        'clearNetworkCallLogs',
-      );
+      try {
+        final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
+        await channel.invokeMethod(InfospectDataTransfer.onSend,
+            MainWindowArguments.clearNetworkCallLogs);
+      } catch (_) {}
     }
     Infospect.instance.clearAllNetworkCalls();
   }

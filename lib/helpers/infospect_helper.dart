@@ -22,7 +22,6 @@ import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:share_plus/share_plus.dart';
 
 part 'log_helper.dart';
 part 'multi_window_helper.dart';
@@ -46,6 +45,7 @@ class Infospect {
     bool logAppLaunch = false,
     this.onShareAllNetworkCalls,
     this.onShareAllLogs,
+    this.onShareNetworkCall,
   })  : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
         infospectLogger = InfospectLogger() {
     _instance = this;
@@ -70,6 +70,7 @@ class Infospect {
   final int maxCallsCount;
   final void Function(String path)? onShareAllNetworkCalls;
   final void Function(String path)? onShareAllLogs;
+  final void Function(String curl)? onShareNetworkCall;
   final GlobalKey<NavigatorState>? _navigatorKey;
 
   /// helpers
@@ -98,6 +99,7 @@ class Infospect {
     bool logAppLaunch = false,
     void Function(String path)? onShareAllNetworkCalls,
     void Function(String path)? onShareAllLogs,
+    void Function(String curl)? onShareNetworkCall,
   }) {
     if (Infospect._instance == null) {
       Infospect._(
@@ -106,6 +108,7 @@ class Infospect {
         logAppLaunch: logAppLaunch,
         onShareAllLogs: onShareAllLogs,
         onShareAllNetworkCalls: onShareAllNetworkCalls,
+        onShareNetworkCall: onShareNetworkCall,
       );
     }
     return Infospect.instance;

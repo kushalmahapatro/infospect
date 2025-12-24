@@ -115,7 +115,7 @@ class InfospectUtil {
     );
   }
 
-  static Future<File?> shareLogs() async {
+  static Future<void> shareLogs() async {
     final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final String timestamp = f.format(DateTime.now());
     final String name = 'logs_$timestamp';
@@ -126,10 +126,13 @@ class InfospectUtil {
     }
     shareFileData.randomAccessFile.flushSync();
     shareFileData.randomAccessFile.closeSync();
-    return await _getCompressedFile(name, shareFileData);
+    final File? sharableFile = await _getCompressedFile(name, shareFileData);
+    if (sharableFile != null) {
+      Infospect.instance.onShareAllLogs?.call(sharableFile.path);
+    }
   }
 
-  static Future<File?> shareNetworkCallLogs() async {
+  static Future<void> shareNetworkCallLogs() async {
     final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final String timestamp = f.format(DateTime.now());
     final String name = 'network_calls_log_$timestamp';
@@ -148,7 +151,11 @@ class InfospectUtil {
     shareFileData.randomAccessFile.flushSync();
     shareFileData.randomAccessFile.closeSync();
 
-    return await _getCompressedFile(name, shareFileData);
+    final File? sharableFile = await _getCompressedFile(name, shareFileData);
+
+    if (sharableFile != null) {
+      Infospect.instance.onShareAllNetworkCalls?.call(sharableFile.path);
+    }
   }
 
   /// Compress the file and return the compressed file

@@ -3,7 +3,6 @@ import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifi
 import 'package:infospect/features/logger/ui/logs_list/components/log_item_widget.dart';
 import 'package:infospect/features/logger/ui/logs_list/components/logs_list_app_bar.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:share_plus/share_plus.dart';
 
 class LogsListScreen extends StatefulWidget {
   final Infospect infospect;
@@ -24,14 +23,6 @@ class _LogsListScreenState extends State<LogsListScreen> {
   void initState() {
     super.initState();
     widget.notifier.addListener(_onNotifierChanged);
-    widget.notifier.onShareAllLogs = (sharableFile) {
-      if (Infospect.instance.onShareAllLogs != null) {
-        Infospect.instance.onShareAllLogs!(sharableFile.path);
-      } else {
-        final XFile file = XFile(sharableFile.path);
-        SharePlus.instance.share(ShareParams(files: [file]));
-      }
-    };
   }
 
   void _onNotifierChanged() {

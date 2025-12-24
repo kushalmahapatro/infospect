@@ -5,7 +5,6 @@ import 'package:infospect/features/network/ui/list/notifier/networks_list_notifi
 import 'package:infospect/features/network/ui/details/screen/interceptor_details_screen.dart';
 import 'package:infospect/features/network/ui/details/notifier/interceptor_details_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:share_plus/share_plus.dart';
 
 class NetworksListScreen extends StatefulWidget {
   final Infospect infospect;
@@ -26,14 +25,6 @@ class _NetworksListScreenState extends State<NetworksListScreen> {
   void initState() {
     super.initState();
     widget.notifier.addListener(_onNotifierChanged);
-    widget.notifier.onShareAllNetworkCalls = (sharableFile) {
-      if (Infospect.instance.onShareAllNetworkCalls != null) {
-        Infospect.instance.onShareAllNetworkCalls!(sharableFile.path);
-      } else {
-        final XFile file = XFile(sharableFile.path);
-        SharePlus.instance.share(ShareParams(files: [file]));
-      }
-    };
   }
 
   void _onNotifierChanged() {

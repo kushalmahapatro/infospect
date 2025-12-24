@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -35,7 +34,6 @@ class LogsListNotifier extends ChangeNotifier {
   List<InfospectLog> get filteredLogs => _filteredLogs;
   String get searchedText => _searchedText;
   List<PopupAction> get filters => _filters;
-  ValueChanged<File>? onShareAllLogs;
 
   void _init() {
     _logsSubscription = _infospectLogger.callsSubject.listen((logs) {
@@ -117,10 +115,7 @@ class LogsListNotifier extends ChangeNotifier {
       return;
     }
 
-    final logsFile = await InfospectUtil.shareLogs();
-    if (logsFile != null) {
-      onShareAllLogs?.call(logsFile);
-    }
+    await InfospectUtil.shareLogs();
   }
 
   Future<void> clearAllLogs() async {

@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 // ignore: depend_on_referenced_packages
 import 'package:dio/dio.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart';
 import 'package:infospect/infospect.dart';
+import 'package:share_plus/share_plus.dart';
 
 ///
 
@@ -15,7 +19,36 @@ void main(List<String> args) {
 
   /// Initialize the `Infospect` instance.
   ///handle the data received to the main window from Infospect window
-  Infospect.ensureInitialized(logAppLaunch: true);
+  void shareFile(String path) async {
+    final XFile file = XFile(path);
+    if (Platform.isLinux || Platform.isWindows) {
+      final String name = path.split(Platform.pathSeparator).last;
+      final FileSaveLocation? result = await getSaveLocation(
+        suggestedName: name,
+      );
+      if (result != null) {
+        final Uint8List fileData = await file.readAsBytes();
+        final XFile textFile = XFile.fromData(
+          fileData,
+          name: name,
+        );
+        await textFile.saveTo(result.path);
+      }
+    } else {
+      SharePlus.instance.share(ShareParams(files: [file]));
+    }
+  }
+
+  Infospect.ensureInitialized(
+    logAppLaunch: true,
+    onShareAllLogs: shareFile,
+    onShareAllNetworkCalls: shareFile,
+    onShareNetworkCall: (String curl) {
+      SharePlus.instance.share(
+        ShareParams(text: curl, subject: 'Request Details'),
+      );
+    },
+  );
   Infospect.instance.handleMainWindowReceiveData();
 
   /// Run the app with the `Infospect` instance.

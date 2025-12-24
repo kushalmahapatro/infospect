@@ -7,7 +7,6 @@ import 'package:infospect/features/network/ui/details/components/interceptor_det
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/app_bottom_bar.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
-import 'package:share_plus/share_plus.dart';
 
 class InterceptorDetailsScreen extends StatefulWidget {
   final Infospect infospect;
@@ -100,12 +99,7 @@ class BottomNavBarWidget extends StatelessWidget {
       tabs: tabs,
       tabChangedCallback: (position) async {
         if (position == tabs.length - 1) {
-          SharePlus.instance.share(
-            ShareParams(
-              text: await call.sharableData,
-              subject: 'Request Details',
-            ),
-          );
+          Infospect.instance.onShareNetworkCall?.call(await call.sharableData);
         } else {
           notifier.changeTab(position);
         }

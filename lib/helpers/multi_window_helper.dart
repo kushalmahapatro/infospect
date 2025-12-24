@@ -151,25 +151,9 @@ class InfospectMultiWindowHelper {
   Future _handleMainWindowReceiveData(MethodCall call) async {
     if (call.method == InfospectDataTransfer.onSend) {
       if (call.arguments == MainWindowArguments.shareNetworkCallLogs) {
-        final File? sharableFile = await InfospectUtil.shareNetworkCallLogs();
-        if (sharableFile != null) {
-          if (Infospect.instance.onShareAllNetworkCalls != null) {
-            Infospect.instance.onShareAllNetworkCalls!(sharableFile.path);
-            return;
-          }
-          final XFile file = XFile(sharableFile.path);
-          SharePlus.instance.share(ShareParams(files: [file]));
-        }
+        await InfospectUtil.shareNetworkCallLogs();
       } else if (call.arguments == MainWindowArguments.shareLogs) {
-        final File? sharableFile = await InfospectUtil.shareLogs();
-        if (sharableFile != null) {
-          if (Infospect.instance.onShareAllLogs != null) {
-            Infospect.instance.onShareAllLogs!(sharableFile.path);
-            return;
-          }
-          final XFile file = XFile(sharableFile.path);
-          SharePlus.instance.share(ShareParams(files: [file]));
-        }
+        await InfospectUtil.shareLogs();
       } else if (call.arguments == MainWindowArguments.clearNetworkCallLogs) {
         Infospect.instance.clearAllNetworkCalls();
       } else if (call.arguments == MainWindowArguments.clearLogs) {

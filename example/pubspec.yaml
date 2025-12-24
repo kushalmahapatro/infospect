@@ -12,6 +12,8 @@ dependencies:
   infospect:
     path: ../
   path_provider: any
+  share_plus: ^12.0.1
+  file_selector: ^1.1.0
 
 dev_dependencies:
   flutter_test:

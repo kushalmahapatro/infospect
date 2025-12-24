@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -32,7 +31,6 @@ class NetworksListNotifier extends ChangeNotifier {
   List<InfospectNetworkCall> get filteredCalls => _filteredCalls;
   String get searchedText => _searchedText;
   List<PopupAction> get filters => _filters;
-  ValueChanged<File>? onShareAllNetworkCalls;
 
   void _init() {
     _callsSubscription = Infospect.instance.networkCallsSubject.listen((calls) {
@@ -131,10 +129,7 @@ class NetworksListNotifier extends ChangeNotifier {
       return;
     }
 
-    final networkLogsFile = await InfospectUtil.shareNetworkCallLogs();
-    if (networkLogsFile != null) {
-      onShareAllNetworkCalls?.call(networkLogsFile);
-    }
+    await InfospectUtil.shareNetworkCallLogs();
   }
 
   Future<void> clearNetworkLogs() async {

@@ -24,7 +24,9 @@ class InfospectBreakpointPresenter {
     final completer =
         _infospect.breakpointManager.registerPending(sessionId);
 
-    if (!kIsWeb && InfospectUtil.isDesktop) {
+    if (!kIsWeb &&
+        InfospectUtil.isDesktop &&
+        !_infospect.preferInAppBreakpointDialogs) {
       await _presentDesktop(
         sessionId: sessionId,
         phase: phase,

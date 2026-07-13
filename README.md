@@ -190,6 +190,14 @@ If not provided, the default platform share option will be invoked.
    Use **Continue** to send the (possibly edited) request / response ahead, or
    **Abort** to cancel the call.
 
+   **UI / integration tests**
+
+   ```console
+   flutter test test/breakpoint_ui_test.dart
+   # Refresh golden screenshots after intentional UI changes:
+   flutter test test/breakpoint_ui_test.dart --update-goldens
+   ```
+
 ## Upcoming Feature
 
 1. Add support for more network client.

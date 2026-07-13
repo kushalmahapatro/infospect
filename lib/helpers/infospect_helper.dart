@@ -92,6 +92,10 @@ class Infospect {
   /// Proxyman-style endpoint breakpoints (request / response editing).
   final InfospectBreakpointManager breakpointManager;
 
+  /// When true, breakpoint editors always use in-app dialogs instead of
+  /// desktop secondary windows. Useful for widget / integration tests.
+  bool preferInAppBreakpointDialogs = false;
+
   /// Ensures the `Infospect` instance is initialized.
   /// If it's not initialized, it will initialize it with the provided arguments.
   ///

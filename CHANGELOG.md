@@ -7,6 +7,10 @@
 - Request breakpoint editors open as a fullscreen dialog on mobile and a new window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
 
+### Tests
+- Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
+- Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
+
 ## 0.2.0
 
 > Consumer migration steps: see [MIGRATION.md](MIGRATION.md) (0.1.5 → 0.2.0).

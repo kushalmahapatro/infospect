@@ -144,6 +144,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
         ),
         actions: [
           TextButton(
+            key: const Key('breakpoint_abort'),
             onPressed: () => widget.onAbort(_buildPayload()),
             child: Text(
               'Abort',
@@ -152,6 +153,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
           ),
           const SizedBox(width: 4),
           FilledButton(
+            key: const Key('breakpoint_continue'),
             onPressed: () => widget.onContinue(_buildPayload()),
             child: const Text('Continue'),
           ),
@@ -184,6 +186,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
                         SizedBox(
                           width: 96,
                           child: TextField(
+                            key: const Key('breakpoint_status_field'),
                             controller: _statusController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -347,6 +350,7 @@ class _BodyEditor extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: TextField(
+        key: const Key('breakpoint_body_field'),
         controller: controller,
         maxLines: null,
         expands: true,

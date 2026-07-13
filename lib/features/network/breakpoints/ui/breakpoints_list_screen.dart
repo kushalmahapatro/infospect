@@ -15,7 +15,9 @@ class BreakpointsListScreen extends StatelessWidget {
   final bool embedded;
 
   static Future<void> open(BuildContext context) async {
-    if (!kIsWeb && InfospectUtil.isDesktop) {
+    if (!kIsWeb &&
+        InfospectUtil.isDesktop &&
+        !Infospect.instance.preferInAppBreakpointDialogs) {
       final darkTheme =
           Theme.of(context).brightness == Brightness.dark;
       await openWindow(

@@ -3,7 +3,6 @@ description: Infospect meaning Information Inspector is a Flutter plugin for tha
 version: 0.2.0
 repository: https://github.com/kushalmahapatro/infospect
 issue_tracker: https://github.com/kushalmahapatro/infospect/issues
-publish_to: https://pub.dev/
 topics:
   - interceptor
   - dio

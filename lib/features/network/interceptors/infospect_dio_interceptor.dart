@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
 import 'package:infospect/features/network/models/infospect_form_data.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
@@ -31,26 +32,30 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
   /// Intercepts outgoing HTTP requests made using `Dio`.
   ///
   /// This method logs request details using the `Infospect` system before
-  /// the actual request is made.
-  ///
-  /// - [options]: The request options.
-  /// - [handler]: A request interceptor handler, which determines how
-  /// the request should be handled.
+  /// the actual request is made. Matching breakpoints can pause the call so
+  /// headers / params / body can be edited before the request continues.
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    _onRequest(options, handler);
+  }
+
+  Future<void> _onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     try {
       InfospectNetworkCall call = InfospectNetworkCall(options.hashCode);
       InfospectNetworkRequest request = InfospectNetworkRequest();
 
       final Uri uri = options.uri;
 
-      String body = '';
+      dynamic loggedBody = '';
       int size = 0;
       List<InfospectFormDataField>? formDataFields;
       List<InfospectFormDataFile>? formDataFiles;
       if (options.data != null) {
         if (options.data is FormData) {
-          body += "Form data";
+          loggedBody = 'Form data';
 
           if (options.data.fields.isNotEmpty == true) {
             final List<InfospectFormDataField> fields = [];
@@ -75,7 +80,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
           }
         } else {
           size = utf8.encode(options.data.toString()).length;
-          body = options.data.toString();
+          loggedBody = options.data;
         }
       }
 
@@ -85,13 +90,15 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         queryParameters: options.queryParameters,
         formDataFields: formDataFields,
         formDataFiles: formDataFiles,
-        body: body,
+        body: loggedBody is String
+            ? loggedBody
+            : InfospectBreakpointManager.stringifyBody(loggedBody),
         size: size,
       );
 
       infospect.addCall(call.copyWith(
         request: request,
-        secure: uri.scheme == "https",
+        secure: uri.scheme == 'https',
         method: options.method,
         endpoint: options.uri.path,
         server: uri.host,
@@ -108,19 +115,92 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         ),
       );
     }
+
+    try {
+      final result = await infospect.interceptRequestIfNeeded(
+        method: options.method,
+        endpoint: options.uri.path,
+        uri: options.uri.toString(),
+        headers: Map<String, dynamic>.from(options.headers),
+        queryParameters: Map<String, dynamic>.from(options.queryParameters),
+        body: options.data is FormData ? null : options.data,
+      );
+
+      if (result != null) {
+        if (result.aborted) {
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              type: DioExceptionType.cancel,
+              error: 'Request aborted at Infospect breakpoint',
+              message: 'Request aborted at Infospect breakpoint',
+            ),
+          );
+          return;
+        }
+        _applyRequestEdits(options, result.payload);
+        _updateLoggedRequest(options.hashCode, result.payload);
+      }
+    } catch (e, st) {
+      infospect.addLog(
+        InfospectLog(
+          message: 'Breakpoint request intercept failed: $e',
+          stackTrace: st,
+          error: e,
+          level: DiagnosticLevel.error,
+        ),
+      );
+    }
+
     handler.next(options);
   }
 
   /// Intercepts the response for an HTTP request made using `Dio`.
-  ///
-  /// This method logs response details using the `Infospect` system after
-  /// receiving a response.
-  ///
-  /// - [response]: The HTTP response.
-  /// - [handler]: A response interceptor handler, which determines how
-  /// the response should be handled.
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _onResponse(response, handler);
+  }
+
+  Future<void> _onResponse(
+    Response response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    try {
+      final result = await infospect.interceptResponseIfNeeded(
+        method: response.requestOptions.method,
+        endpoint: response.requestOptions.uri.path,
+        uri: response.requestOptions.uri.toString(),
+        headers: _dioHeadersToMap(response.headers),
+        body: response.data,
+        statusCode: response.statusCode,
+      );
+
+      if (result != null) {
+        if (result.aborted) {
+          handler.reject(
+            DioException(
+              requestOptions: response.requestOptions,
+              response: response,
+              type: DioExceptionType.cancel,
+              error: 'Response aborted at Infospect breakpoint',
+              message: 'Response aborted at Infospect breakpoint',
+            ),
+          );
+          return;
+        }
+        _applyResponseEdits(response, result.payload);
+      }
+    } catch (e, st) {
+      infospect.addLog(
+        InfospectLog(
+          message: 'Breakpoint response intercept failed: $e',
+          stackTrace: st,
+          error: e,
+          level: DiagnosticLevel.error,
+        ),
+      );
+    }
+
     try {
       InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
 
@@ -137,13 +217,14 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
       });
 
       infospect.addResponse(
-          httpResponse.copyWith(
-            status: response.statusCode,
-            body: body,
-            size: size,
-            headers: headers,
-          ),
-          response.requestOptions.hashCode);
+        httpResponse.copyWith(
+          status: response.statusCode,
+          body: body,
+          size: size,
+          headers: headers,
+        ),
+        response.requestOptions.hashCode,
+      );
     } catch (e, st) {
       infospect.addLog(
         InfospectLog(
@@ -158,12 +239,6 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
   }
 
   /// Intercepts any errors that occur when making an HTTP request using `Dio`.
-  ///
-  /// This method logs error details using the `Infospect` system.
-  ///
-  /// - [error]: The error details.
-  /// - [handler]: An error interceptor handler, which determines how
-  /// the error should be handled.
   @override
   void onError(DioException error, ErrorInterceptorHandler handler) {
     try {
@@ -178,8 +253,10 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         st = basicError.stackTrace;
       }
 
-      infospect.addError(InfospectNetworkError(error: err, stackTrace: st),
-          error.requestOptions.hashCode);
+      infospect.addError(
+        InfospectNetworkError(error: err, stackTrace: st),
+        error.requestOptions.hashCode,
+      );
 
       if (error.response == null) {
         status = -1;
@@ -217,5 +294,78 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
       );
     }
     handler.next(error);
+  }
+
+  void _applyRequestEdits(
+    RequestOptions options,
+    InfospectBreakpointPayload payload,
+  ) {
+    options.headers
+      ..clear()
+      ..addAll(payload.headers);
+    options.queryParameters
+      ..clear()
+      ..addAll(payload.queryParameters);
+
+    if (options.data is! FormData) {
+      options.data = InfospectBreakpointManager.parseBody(payload.body);
+      if (options.data is String && (options.data as String).isEmpty) {
+        options.data = null;
+      }
+    }
+  }
+
+  void _applyResponseEdits(
+    Response response,
+    InfospectBreakpointPayload payload,
+  ) {
+    if (payload.statusCode != null) {
+      response.statusCode = payload.statusCode;
+    }
+    response.data = InfospectBreakpointManager.parseBody(payload.body);
+
+    final headers = Headers();
+    payload.headers.forEach((key, value) {
+      headers.set(key, value);
+    });
+    response.headers = headers;
+  }
+
+  void _updateLoggedRequest(int requestId, InfospectBreakpointPayload payload) {
+    final calls = List<InfospectNetworkCall>.from(
+      infospect.networkCallsSubject.value,
+    );
+    final index = calls.indexWhere((call) => call.id == requestId);
+    if (index == -1) return;
+
+    final existing = calls[index];
+    final request = existing.request?.copyWith(
+          headers: payload.headers,
+          queryParameters: payload.queryParameters,
+          body: payload.body,
+          size: utf8.encode(payload.body).length,
+        ) ??
+        InfospectNetworkRequest(
+          headers: payload.headers,
+          queryParameters: payload.queryParameters,
+          body: payload.body,
+          size: utf8.encode(payload.body).length,
+        );
+
+    calls[index] = existing.copyWith(
+      request: request,
+      uri: payload.uri,
+      endpoint: payload.endpoint,
+      method: payload.method,
+    );
+    infospect.networkCallsSubject.add(calls);
+  }
+
+  Map<String, dynamic> _dioHeadersToMap(Headers headers) {
+    final map = <String, dynamic>{};
+    headers.forEach((name, values) {
+      map[name] = values.join(', ');
+    });
+    return map;
   }
 }

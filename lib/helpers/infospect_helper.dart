@@ -8,6 +8,8 @@ import 'package:infospect/features/logger/infospect_logger.dart';
 import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
 import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_presenter.dart';
 import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
 import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
@@ -45,11 +47,13 @@ class Infospect {
     this.onShareAllNetworkCalls,
     this.onShareAllLogs,
   }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
-       infospectLogger = InfospectLogger() {
+       infospectLogger = InfospectLogger(),
+       breakpointManager = InfospectBreakpointManager() {
     _instance = this;
     _infospectLogHelper = InfospectLogHelper._(this);
     _infospectNavigationHelper = InfospectNavigationHelper._(this);
     _infospectNetworkCallHelper = InfospectNetworkCallHelper._(this);
+    _breakpointPresenter = InfospectBreakpointPresenter(this);
 
     _logAppLaunch(logAppLaunch);
   }
@@ -73,6 +77,7 @@ class Infospect {
   late InfospectLogHelper _infospectLogHelper;
   late InfospectNavigationHelper _infospectNavigationHelper;
   late InfospectNetworkCallHelper _infospectNetworkCallHelper;
+  late InfospectBreakpointPresenter _breakpointPresenter;
 
   /// completer
   late final Completer<bool> _runAppCompleter = Completer<bool>();
@@ -83,6 +88,9 @@ class Infospect {
       BehaviorSubject.seeded([]);
 
   final InfospectLogger infospectLogger;
+
+  /// Proxyman-style endpoint breakpoints (request / response editing).
+  final InfospectBreakpointManager breakpointManager;
 
   /// Ensures the `Infospect` instance is initialized.
   /// If it's not initialized, it will initialize it with the provided arguments.
@@ -239,9 +247,105 @@ class Infospect {
     required Client client,
   }) => _infospectNetworkCallHelper.httpClientInterceptor(client: client);
 
+  /// Breakpoints
+  List<InfospectNetworkBreakpoint> get breakpoints => breakpointManager.rules;
+
+  void addBreakpoint(InfospectNetworkBreakpoint breakpoint) =>
+      breakpointManager.addBreakpoint(breakpoint);
+
+  void updateBreakpoint(InfospectNetworkBreakpoint breakpoint) =>
+      breakpointManager.updateBreakpoint(breakpoint);
+
+  void removeBreakpoint(String id) => breakpointManager.removeBreakpoint(id);
+
+  void clearBreakpoints() => breakpointManager.clearBreakpoints();
+
+  /// Adds a breakpoint for [endpoint], optionally scoped to [method].
+  ///
+  /// When [method] is omitted, every HTTP method for that endpoint is paused.
+  InfospectNetworkBreakpoint addEndpointBreakpoint({
+    required String endpoint,
+    String? method,
+    bool breakOnRequest = true,
+    bool breakOnResponse = true,
+    bool enabled = true,
+  }) {
+    final breakpoint = InfospectNetworkBreakpoint(
+      id: InfospectBreakpointManager.newId(),
+      endpoint: endpoint,
+      method: method,
+      enabled: enabled,
+      breakOnRequest: breakOnRequest,
+      breakOnResponse: breakOnResponse,
+    );
+    addBreakpoint(breakpoint);
+    return breakpoint;
+  }
+
+  /// Pauses for request editing when a matching breakpoint rule exists.
+  Future<InfospectBreakpointResult?> interceptRequestIfNeeded({
+    required String method,
+    required String endpoint,
+    required String uri,
+    required Map<String, dynamic> headers,
+    required Map<String, dynamic> queryParameters,
+    required dynamic body,
+  }) async {
+    final match = breakpointManager.findMatch(
+      method: method,
+      endpoint: endpoint,
+    );
+    if (match == null || !match.breakOnRequest) return null;
+
+    final payload = InfospectBreakpointPayload(
+      method: method,
+      uri: uri,
+      endpoint: endpoint,
+      headers: InfospectBreakpointManager.stringifyMap(headers),
+      queryParameters: InfospectBreakpointManager.stringifyMap(queryParameters),
+      body: InfospectBreakpointManager.stringifyBody(body),
+    );
+
+    return _breakpointPresenter.present(
+      phase: InfospectBreakpointPhase.request,
+      payload: payload,
+    );
+  }
+
+  /// Pauses for response editing when a matching breakpoint rule exists.
+  Future<InfospectBreakpointResult?> interceptResponseIfNeeded({
+    required String method,
+    required String endpoint,
+    required String uri,
+    required Map<String, dynamic> headers,
+    required dynamic body,
+    int? statusCode,
+  }) async {
+    final match = breakpointManager.findMatch(
+      method: method,
+      endpoint: endpoint,
+    );
+    if (match == null || !match.breakOnResponse) return null;
+
+    final payload = InfospectBreakpointPayload(
+      method: method,
+      uri: uri,
+      endpoint: endpoint,
+      headers: InfospectBreakpointManager.stringifyMap(headers),
+      body: InfospectBreakpointManager.stringifyBody(body),
+      statusCode: statusCode,
+    );
+
+    return _breakpointPresenter.present(
+      phase: InfospectBreakpointPhase.response,
+      payload: payload,
+    );
+  }
+
   /// Dispose subjects and subscriptions
   void dispose() {
     networkCallsSubject.close();
     isInfospectOpened.dispose();
+    breakpointManager.dispose();
   }
 }

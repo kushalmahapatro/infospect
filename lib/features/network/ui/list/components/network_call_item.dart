@@ -11,12 +11,14 @@ class NetworkCallItem extends StatelessWidget {
     super.key,
     required this.networkCall,
     required this.onItemClicked,
+    this.onAddBreakpoint,
     this.searchedText = '',
     this.zebra = false,
   });
 
   final InfospectNetworkCall networkCall;
   final ValueChanged<InfospectNetworkCall> onItemClicked;
+  final ValueChanged<InfospectNetworkCall>? onAddBreakpoint;
   final String searchedText;
   final bool zebra;
 
@@ -56,6 +58,9 @@ class NetworkCallItem extends StatelessWidget {
       color: background,
       child: InkWell(
         onTap: () => onItemClicked(networkCall),
+        onLongPress: onAddBreakpoint == null
+            ? null
+            : () => onAddBreakpoint!(networkCall),
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border(

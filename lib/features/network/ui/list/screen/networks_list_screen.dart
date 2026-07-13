@@ -83,6 +83,21 @@ class _NetworksListScreenState extends State<NetworksListScreen> {
                       ),
                     );
                   },
+                  onAddBreakpoint: (call) {
+                    widget.infospect.addEndpointBreakpoint(
+                      endpoint: call.endpoint,
+                      method: call.method,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Breakpoint added for ${call.method} ${call.endpoint}',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                   searchedText: widget.notifier.searchedText,
                 );
               },

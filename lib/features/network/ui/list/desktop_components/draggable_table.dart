@@ -217,7 +217,7 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
     Offset globalPosition,
     InfospectNetworkCall call,
   ) async {
-    if (call.loading || !InfospectUtil.isDesktop) return;
+    if (!InfospectUtil.isDesktop) return;
 
     final selected = await showMenu<String>(
       context: context,
@@ -235,26 +235,54 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
           ).colorScheme.outlineVariant.withValues(alpha: 0.55),
         ),
       ),
-      items: const [
-        PopupMenuItem(
-          value: 'open',
+      items: [
+        const PopupMenuItem(
+          value: 'breakpoint',
           height: 32,
-          child: Text('Open in new window', style: TextStyle(fontSize: 12)),
+          child: Text('Add breakpoint', style: TextStyle(fontSize: 12)),
         ),
-        PopupMenuItem(
-          value: 'open_request',
-          height: 32,
-          child: Text('Open request body', style: TextStyle(fontSize: 12)),
-        ),
-        PopupMenuItem(
-          value: 'open_response',
-          height: 32,
-          child: Text('Open response body', style: TextStyle(fontSize: 12)),
-        ),
+        if (!call.loading) ...[
+          const PopupMenuItem(
+            value: 'open',
+            height: 32,
+            child: Text('Open in new window', style: TextStyle(fontSize: 12)),
+          ),
+          const PopupMenuItem(
+            value: 'open_request',
+            height: 32,
+            child: Text('Open request body', style: TextStyle(fontSize: 12)),
+          ),
+          const PopupMenuItem(
+            value: 'open_response',
+            height: 32,
+            child: Text('Open response body', style: TextStyle(fontSize: 12)),
+          ),
+        ],
       ],
     );
 
     if (selected == null) return;
+
+    if (selected == 'breakpoint') {
+      Infospect.instance.addEndpointBreakpoint(
+        endpoint: call.endpoint,
+        method: call.method,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Breakpoint added for ${call.method} ${call.endpoint}',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (call.loading) return;
 
     final kind = switch (selected) {
       'open_request' => NetworkBodyKind.request,

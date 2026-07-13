@@ -1,4 +1,12 @@
 
+## 0.3.0
+
+### Features
+- Proxyman-style network breakpoints without a proxy: match by endpoint (optional method), pause request and/or response, edit headers / query params / body, then Continue or Abort
+- Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
+- Request breakpoint editors open as a fullscreen dialog on mobile and a new window on desktop; response editors follow the same pattern after the server replies
+- Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
+
 ## 0.2.0
 
 > Consumer migration steps: see [MIGRATION.md](MIGRATION.md) (0.1.5 → 0.2.0).

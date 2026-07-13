@@ -153,13 +153,48 @@ If not provided, the default platform share option will be invoked.
 
   But in mobile the infospect window will be opened in a new route.
 
+6. Network breakpoints (Proxyman-style, without a proxy)
+
+   Pause matching requests and/or responses so you can edit headers, query
+   params, and body before the call continues — the same workflow proxy tools
+   provide, powered by Infospect's Dio / `http` interceptors.
+
+   **Add a breakpoint from code**
+
+   ```dart
+   // Pause every method for this path:
+   Infospect.instance.addEndpointBreakpoint(endpoint: '/api/users');
+
+   // Pause only POST:
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/users',
+     method: 'POST',
+   );
+
+   // Path prefix match:
+   Infospect.instance.addEndpointBreakpoint(endpoint: '/api/users*');
+   ```
+
+   **Add / manage breakpoints in the UI**
+
+   - Network tab → overflow menu → **Breakpoints**
+   - Desktop: right-click a network call → **Add breakpoint**
+   - Mobile: long-press a network call → adds a breakpoint for that method + path
+
+   When a rule matches:
+
+   - **Mobile:** a fullscreen dialog opens to edit the request; after the
+     server responds, another dialog opens for the response.
+   - **Desktop:** the same editors open in a new window.
+
+   Use **Continue** to send the (possibly edited) request / response ahead, or
+   **Abort** to cancel the call.
+
 ## Upcoming Feature
 
-1. Breakpoints for network call to edit request and response.
-2. Add support for more network client.
-3. Sorting of the logs and network calls.
-4. An example app having multiple screens to show the usage of the plugin with network call and selection for respective network library to be intercepted and logger implementation.
-5. Bug fixes and many more.
+1. Add support for more network client.
+2. An example app having multiple screens to show the usage of the plugin with network call and selection for respective network library to be intercepted and logger implementation.
+3. Bug fixes and many more.
 
 
 ## Support

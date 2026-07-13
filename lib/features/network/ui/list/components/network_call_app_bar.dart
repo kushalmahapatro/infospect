@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoints_list_screen.dart';
 import 'package:infospect/features/network/ui/list/models/network_action.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/infospect.dart';
@@ -81,7 +82,9 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
                       actionModel: NetworkAction.menuModel,
                       tooltip: 'More',
                       onItemSelected: (value) {
-                        if (value.id == NetworkActionType.share) {
+                        if (value.id == NetworkActionType.breakpoints) {
+                          BreakpointsListScreen.open(context);
+                        } else if (value.id == NetworkActionType.share) {
                           networkNotifier.shareNetworkLogs();
                         } else if (value.id == NetworkActionType.clear) {
                           AppAdaptiveDialog.show(
@@ -134,7 +137,9 @@ class _NetworkCallAppBarState extends State<NetworkCallAppBar> {
           actionModel: NetworkAction.menuModel,
           tooltip: 'More',
           onItemSelected: (value) {
-            if (value.id == NetworkActionType.share) {
+            if (value.id == NetworkActionType.breakpoints) {
+              BreakpointsListScreen.open(context);
+            } else if (value.id == NetworkActionType.share) {
               networkNotifier.shareNetworkLogs();
             } else if (value.id == NetworkActionType.clear) {
               AppAdaptiveDialog.show(

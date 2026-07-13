@@ -6,6 +6,8 @@ import 'package:infospect/features/network/ui/list/notifier/networks_list_notifi
 import 'package:infospect/features/network/ui/details/screen/desktop_details_screen.dart';
 import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/infospect_share.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DesktopNetworksListScreen extends StatefulWidget {
   final Infospect infospect;
@@ -33,6 +35,14 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
   void initState() {
     super.initState();
     widget.notifier.addListener(_onNotifierChanged);
+    widget.notifier.onShareAllNetworkCalls = (sharableFile) {
+      if (Infospect.instance.onShareAllNetworkCalls != null) {
+        Infospect.instance.onShareAllNetworkCalls!(sharableFile.path);
+      } else {
+        final XFile file = XFile(sharableFile.path);
+        InfospectShare.shareFiles([file], context: mounted ? context : null);
+      }
+    };
   }
 
   void _onNotifierChanged() {
@@ -50,6 +60,15 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant DesktopNetworksListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.notifier != widget.notifier) {
+      oldWidget.notifier.removeListener(_onNotifierChanged);
+      widget.notifier.addListener(_onNotifierChanged);
+    }
+  }
+
+  @override
   void dispose() {
     widget.notifier.removeListener(_onNotifierChanged);
     super.dispose();
@@ -57,6 +76,11 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: 0.55,
+    );
+
     return Scaffold(
       appBar: NetworkCallAppBar.desktop(
         hasBottom: widget.notifier.filters.isNotEmpty,
@@ -78,7 +102,8 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
               },
             ),
           ),
-          if (_selectedCall != null)
+          if (_selectedCall != null) ...[
+            Divider(height: 1, thickness: 1, color: borderColor),
             Expanded(
               child: DesktopDetailsScreen(
                 infospect: widget.infospect,
@@ -99,6 +124,7 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
                 },
               ),
             ),
+          ],
         ],
       ),
     );

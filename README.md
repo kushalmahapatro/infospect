@@ -18,6 +18,10 @@ to faster bug resolution.
 ##### Window 10 - (VM in mac) - Opening Infospect in new Window
 ![](images/preview/windows.gif)
 
+## Migrating from 0.1.5
+
+Upgrading from **0.1.5** to **0.2.0**? See **[MIGRATION.md](MIGRATION.md)** for consumer breaking changes (Flutter / SDK floors, `multiview_desktop` desktop runner setup, and obsolete multi-window IPC APIs).
+
 ## Getting started
 
 1. Add the dependency to your pubspec.yaml file. (Replace latest-version with the latest version of
@@ -36,17 +40,9 @@ or using the below command
 
 ## Usage
 
-1. Adding args to main, to enable the support of multi window. Plugin used for
-   this [https://pub.dev/packages/desktop_multi_window](https://pub.dev/packages/desktop_multi_window)
+1. Initialize the plugin in main.dart
 
   ```dart
-  void main(List<String> args) {}
-  ```
-
-2. Initialize the plugin in main.dart
-
-  ```dart
-    WidgetsFlutterBinding.ensureInitialized();
     Infospect.ensureInitialized();
   ```
   
@@ -85,36 +81,29 @@ This will provide the path of the compressed file name infospect_logs.tar.gz, wh
 accordingly.
 If not provided, the default platform share option will be invoked.
 
-3. As in desktop a new window is used to show the infospect window, we need to add the following
-   code in main.dart, as this will help to handle the data received to the main window from the
-   infospect window.
-  ```dart
-    Infospect.ensureInitialized();
-    Infospect.instance.handleMainWindowReceiveData();
-  ```
-
-else can be also combined with ensureInitialized
-  ```dart
-    Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData()
-  ```
-
-4. Rather using runApp using, use `Infospect.instance.run(args, myApp: EntryWidget())`;
-   This will help to set the args and use it when launching the infospect window in Desktop
+2. Rather than using `runApp`, use `Infospect.instance.run(args, myApp: EntryWidget())`.
+   On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop) so Infospect
+   can open in a secondary OS window on the same Flutter engine (no separate isolate / IPC).
+   On mobile this behaves like a normal `runApp`.
   ```dart
     Infospect.instance.run(args, myApp: const MainApp());
   ```
-5. Adding network call interceptor
+
+   Desktop hosts also need the [multiview_desktop platform setup](https://pub.dev/packages/multiview_desktop)
+   in their macOS / Windows / Linux runners (see the package README and the Infospect example app).
+
+3. Adding network call interceptor
    a. dio:
   ```dart
     _dio = Dio(BaseOptions());
     _dio.interceptors.add(Infospect.instance.dioInterceptor);
   ```
-   b. http:
+  b. http:
   ```dart
     http.Client client = http.Client();
     client = Infospect.instance.httpClientInterceptor(client: client);
   ```
-6. Adding logs
+4. Adding logs
   ```dart
     Infospect.instance.addLog(
       InfospectLog(
@@ -125,11 +114,16 @@ else can be also combined with ensureInitialized
       ),
     );
   ```
-  7. Adding invoker to get and overlay button to open the infospect window
+  5. Adding invoker to get and overlay button to open the infospect window
   state:  `alwaysOpened`, `collapsible`, `autoCollapse`
+
+  Drag the bubble to dock it on any screen edge. Long-press to hide it; tap the thin edge nub to show it again. Optional `initialEdge` / `initialAlign` set the starting dock.
+
   ```dart
     InfospectInvoker(
       state: InvokerState.collapsible,
+      initialEdge: InvokerEdge.right,
+      initialAlign: 0.85,
       child: child,
     );
   ```

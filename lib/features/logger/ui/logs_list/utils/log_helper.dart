@@ -20,45 +20,44 @@ import 'package:flutter/material.dart';
 /// Icon icon = Icon(result.icon, color: result.color);
 /// ```
 ({IconData icon, Color color}) getIconAndColor(
-    DiagnosticLevel level, BuildContext context) {
+  DiagnosticLevel level,
+  BuildContext context,
+) {
   final ColorScheme colorScheme = Theme.of(context).colorScheme;
   return switch (level) {
     DiagnosticLevel.hidden => (
-        icon: Icons.hide_source,
-        color: colorScheme.onSurface.withValues(alpha: 0.6),
-      ),
+      icon: Icons.hide_source,
+      color: colorScheme.onSurface.withValues(alpha: 0.6),
+    ),
     DiagnosticLevel.fine => (
-        icon: Icons.bubble_chart_outlined,
-        color: colorScheme.onSurface.withValues(alpha: 0.6),
-      ),
+      icon: Icons.bubble_chart_outlined,
+      color: colorScheme.onSurface.withValues(alpha: 0.6),
+    ),
     DiagnosticLevel.debug => (
-        icon: Icons.bug_report_outlined,
-        color: colorScheme.onSurface,
-      ),
+      icon: Icons.bug_report_outlined,
+      color: colorScheme.onSurface,
+    ),
     DiagnosticLevel.info => (
-        icon: Icons.info_outline,
-        color: colorScheme.onSurface,
-      ),
+      icon: Icons.info_outline,
+      color: colorScheme.onSurface,
+    ),
     DiagnosticLevel.warning => (
-        icon: Icons.warning_outlined,
-        color: Colors.orange,
-      ),
+      icon: Icons.warning_outlined,
+      color: Colors.orange,
+    ),
     DiagnosticLevel.hint => (
-        icon: Icons.privacy_tip_outlined,
-        color: colorScheme.onSurface.withValues(alpha: 0.6),
-      ),
+      icon: Icons.privacy_tip_outlined,
+      color: colorScheme.onSurface.withValues(alpha: 0.6),
+    ),
     DiagnosticLevel.summary => (
-        icon: Icons.subject,
-        color: colorScheme.onSurface,
-      ),
-    DiagnosticLevel.error => (
-        icon: Icons.error_outlined,
-        color: Colors.red,
-      ),
+      icon: Icons.subject,
+      color: colorScheme.onSurface,
+    ),
+    DiagnosticLevel.error => (icon: Icons.error_outlined, color: Colors.red),
     DiagnosticLevel.off => (
-        icon: Icons.not_interested_outlined,
-        color: Colors.blue,
-      ),
+      icon: Icons.not_interested_outlined,
+      color: Colors.blue,
+    ),
   };
 }
 

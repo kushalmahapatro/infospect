@@ -19,50 +19,63 @@ class LaunchMobileScreen extends StatelessWidget {
     super.key,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final launchNotifier = LaunchNotifier.instance;
-    return Scaffold(
-      body: ValueListenableBuilder<int>(
-        valueListenable: launchNotifier,
-        builder: (context, index, _) {
-          return IndexedStack(
-            index: index,
-            children: [
-              NetworksListScreen(
-                infospect,
-                notifier: networksListNotifier,
-              ),
-              LogsListScreen(
-                infospect,
-                notifier: logsListNotifier,
-              ),
-            ],
-          );
-        },
-      ),
-      bottomNavigationBar: const BottomNavBarWidget(),
-    );
+  void _close(BuildContext context) {
+    final hostContext = infospect.context;
+    if (hostContext != null && hostContext.mounted) {
+      Navigator.of(hostContext).pop();
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
-}
-
-class BottomNavBarWidget extends StatelessWidget {
-  const BottomNavBarWidget({
-    super.key,
-  });
 
   @override
   Widget build(BuildContext context) {
     final launchNotifier = LaunchNotifier.instance;
+    final theme = Theme.of(context);
+
     return ValueListenableBuilder<int>(
       valueListenable: launchNotifier,
       builder: (context, index, _) {
-        return AppBottomBar(
-          selectedIndex: index,
-          tabs: NavigationTabData.tabs,
-          tabChangedCallback: (value) {
-            launchNotifier.selectTab(value);
-          },
+        return Scaffold(
+          backgroundColor: theme.colorScheme.surface,
+          body: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppSegmentedTabBar(
+                  selectedIndex: index,
+                  tabs: NavigationTabData.tabs,
+                  tabChangedCallback: launchNotifier.selectTab,
+                  leading: IconButton(
+                    tooltip: 'Close',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                    onPressed: () => _close(context),
+                  ),
+                ),
+                Expanded(
+                  child: IndexedStack(
+                    index: index,
+                    children: [
+                      NetworksListScreen(
+                        infospect,
+                        notifier: networksListNotifier,
+                      ),
+                      LogsListScreen(
+                        infospect,
+                        notifier: logsListNotifier,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

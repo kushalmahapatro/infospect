@@ -1,4 +1,32 @@
 
+## 0.2.0
+
+> Consumer migration steps: see [MIGRATION.md](MIGRATION.md) (0.1.5 → 0.2.0).
+
+### Breaking
+- Replaced `desktop_multi_window` with [`multiview_desktop`](https://pub.dev/packages/multiview_desktop) ^1.2.0 (native Flutter multi-view API, single engine / isolate)
+- Raised SDK constraint to `>=3.10.0` and Flutter to `>=3.38.2`
+- Desktop hosts must apply [multiview_desktop runner setup](https://pub.dev/packages/multiview_desktop) (macOS / Windows / Linux)
+- `handleMainWindowReceiveData` / `handleMultiWindowReceivedData` / `sendNetworkCalls` / `sendLogs` / `sendThemeMode` are deprecated no-ops (shared-isolate state); remove them when migrating
+
+### Features
+- Infospect desktop window opens via `openWindow` with live shared network/log state (no IPC serialization)
+- Desktop Network and Logs tabs can be popped out into separate windows (hover pop-out control or double-tap); closing the window restores the tab
+- Desktop network call list can be sorted by Time (click the Time header to toggle ascending/descending)
+- Request/response JSON bodies support Beautified and foldable Tree View modes, plus open-in-new-window on desktop
+- Body popout windows include call metadata (method, URL, headers, timing) alongside the JSON viewer
+- Desktop inspector list state is preserved when opening secondary windows
+- Logs list uses console-style full-content rows (level pill, selectable message/error/stack) with desktop hover/selection polish
+- Logs and network lists preserve scroll position when viewing older entries; a floating control jumps back to the newest
+- Mobile logs open a dedicated details screen on tap; empty and no-match states for both platforms
+- Mobile network calls list and details polished to match console-style logs (status pills, call header, empty states, softer sections)
+- Mobile network details use a compact top tab strip, denser key/value rows, and collapse Overview/Summary by default
+- Filter and overflow menus use native cascading MenuAnchor on desktop and bottom sheets on mobile
+- Mobile shell uses Material 3 NavigationBar; compact list app bars and shared filter chip strip; removed `cuberto_bottom_bar`
+- Mobile shell replaces bottom navigation with a compact top Network | Logs segmented switcher
+- Floating InfospectInvoker can be dragged to any screen edge, long-pressed to hide, and restored from the edge nub
+- Revealing the invoker from the hidden edge nub auto-hides it again after 5 seconds of inactivity
+
 ## 0.1.5
 
 ### Features

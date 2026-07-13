@@ -6,11 +6,20 @@ import 'package:infospect/features/network/ui/list/desktop_components/state_help
 abstract class DesktopCallListStates<T extends DraggableTable>
     extends State<T> {
   List<DataCellState> dataCellStates = [];
+  bool _widthCheckScheduled = false;
 
   @override
   void initState() {
     init();
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constraints.maxWidth != widget.constraints.maxWidth) {
+      scheduleWidthCheck();
+    }
   }
 
   @override
@@ -20,30 +29,45 @@ abstract class DesktopCallListStates<T extends DraggableTable>
   }
 
   void updateDataCellStates({required int id, required double width}) {
-    /// return if width is not changed
     if (dataCellStates[id].width == width) return;
 
     dataCellStates[id] = dataCellStates[id].copyWith(width: width);
     setState(() {});
   }
 
-  void checkWidth() {
-    double width = 0;
-    for (int i = 0; i < dataCellStates.length; i++) {
-      final element = dataCellStates[i];
+  /// Schedules a width pass after the current frame (never during build).
+  void scheduleWidthCheck() {
+    if (_widthCheckScheduled) return;
+    _widthCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _widthCheckScheduled = false;
+      if (!mounted) return;
+      _applyLastColumnWidth();
+    });
+  }
 
-      double w = widget.constraints.maxWidth - width;
+  void _applyLastColumnWidth() {
+    if (dataCellStates.isEmpty) return;
 
-      if (i == dataCellStates.length - 1 && w > 75) {
-        if (dataCellStates[i].width == w) return;
-        double maxWidth = (2 * w) - 50;
+    double used = 0;
+    for (int i = 0; i < dataCellStates.length - 1; i++) {
+      used += dataCellStates[i].width;
+    }
 
-        dataCellStates[i] =
-            dataCellStates[i].copyWith(width: w, maxWidth: maxWidth);
-        setState(() {});
-      } else {
-        width = width + element.width;
+    final remaining = widget.constraints.maxWidth - used;
+    final last = dataCellStates.length - 1;
+
+    if (remaining > 75) {
+      final maxWidth = (2 * remaining) - 50;
+      if (dataCellStates[last].width == remaining &&
+          dataCellStates[last].maxWidth == maxWidth) {
+        return;
       }
+      dataCellStates[last] = dataCellStates[last].copyWith(
+        width: remaining,
+        maxWidth: maxWidth,
+      );
+      setState(() {});
     }
   }
 
@@ -56,13 +80,14 @@ abstract class DesktopCallListStates<T extends DraggableTable>
         label: element.label,
         minWidth: element.minWidth,
         maxWidth: element.maxWidth,
+        width: (element.minWidth + element.maxWidth) / 2,
       );
       width = width + cellState.width;
-      double w = widget.constraints.maxWidth - width;
+      final remaining = widget.constraints.maxWidth - width;
 
-      if (i == CellType.values.length - 1 && w > 75) {
-        double maxWidth = (2 * w) - 50;
-        cellState = cellState.copyWith(width: w, maxWidth: maxWidth);
+      if (i == CellType.values.length - 1 && remaining > 75) {
+        final maxWidth = (2 * remaining) - 50;
+        cellState = cellState.copyWith(width: remaining, maxWidth: maxWidth);
       }
       dataCellStates.add(cellState);
     }
@@ -79,20 +104,28 @@ abstract class DraggableCellState<T extends DraggableCell> extends State<T> {
   void initState() {
     minimumColumnWidth = widget.minWidth;
     maximumColumnWidth = widget.maxWidth;
-    columnWidth = (minimumColumnWidth + maximumColumnWidth) / 2;
+    columnWidth = widget.width ?? (minimumColumnWidth + maximumColumnWidth) / 2;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       widget.onColumnWidthChanged(columnWidth);
     });
     super.initState();
   }
 
-  void updateInitX(double value) {
-    /// return if initX is not changed
-    if (initX == value) return;
+  @override
+  void didUpdateWidget(covariant T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    minimumColumnWidth = widget.minWidth;
+    maximumColumnWidth = widget.maxWidth;
+    if (widget.width != null && widget.width != columnWidth) {
+      columnWidth = widget.width!;
+    }
+  }
 
+  void updateInitX(double value) {
+    if (initX == value) return;
     initX = value;
-    setState(() {});
   }
 
   void updateColumnWidth(DragUpdateDetails details) {
@@ -112,7 +145,6 @@ abstract class DraggableCellState<T extends DraggableCell> extends State<T> {
       columnWidth = minimumColumnWidth;
     }
 
-    /// return if column width is not changed
     if (oldColumnWidth == columnWidth) return;
 
     widget.onColumnWidthChanged(columnWidth);

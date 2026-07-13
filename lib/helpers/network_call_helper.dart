@@ -31,7 +31,6 @@ class InfospectNetworkCallHelper {
       _infospect.networkCallsSubject
           .add([..._infospect.networkCallsSubject.value, call]);
     }
-    _infospect.sendNetworkCalls();
   }
 
   /// Logs an error associated with a specific network request.
@@ -52,7 +51,6 @@ class InfospectNetworkCallHelper {
         selectedCall.copyWith(error: error, loading: false);
     _infospect.networkCallsSubject
         .add([..._infospect.networkCallsSubject.value]);
-    _infospect.sendNetworkCalls();
   }
 
   /// Logs a response associated with a specific network request.
@@ -79,7 +77,6 @@ class InfospectNetworkCallHelper {
 
     _infospect.networkCallsSubject
         .add([..._infospect.networkCallsSubject.value]);
-    _infospect.sendNetworkCalls();
   }
 
   /// Logs an HTTP call which includes both the request and the response.
@@ -90,7 +87,6 @@ class InfospectNetworkCallHelper {
     assert(httpCall.response != null, "Http call response can't be null");
     _infospect.networkCallsSubject
         .add([..._infospect.networkCallsSubject.value, httpCall]);
-    _infospect.sendNetworkCalls();
   }
 
   /// Clears all logged network calls.

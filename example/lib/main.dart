@@ -1,60 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
 
 // ignore: depend_on_referenced_packages
 import 'package:dio/dio.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart';
 import 'package:infospect/infospect.dart';
-import 'package:share_plus/share_plus.dart';
 
 ///
 
 void main(List<String> args) {
-  WidgetsFlutterBinding.ensureInitialized();
-
   /// Initialize the `Infospect` instance.
-  ///handle the data received to the main window from Infospect window
-  void shareFile(String path) async {
-    final XFile file = XFile(path);
-    if (Platform.isLinux || Platform.isWindows) {
-      final String name = path.split(Platform.pathSeparator).last;
-      final FileSaveLocation? result = await getSaveLocation(
-        suggestedName: name,
-      );
-      if (result != null) {
-        final Uint8List fileData = await file.readAsBytes();
-        final XFile textFile = XFile.fromData(
-          fileData,
-          name: name,
-        );
-        await textFile.saveTo(result.path);
-      }
-    } else {
-      SharePlus.instance.share(ShareParams(files: [file]));
-    }
-  }
-
-  Infospect.ensureInitialized(
-    logAppLaunch: true,
-    onShareAllLogs: shareFile,
-    onShareAllNetworkCalls: shareFile,
-    onShareNetworkCall: (String curl) {
-      SharePlus.instance.share(
-        ShareParams(text: curl, subject: 'Request Details'),
-      );
-    },
-  );
-  Infospect.instance.handleMainWindowReceiveData();
+  Infospect.ensureInitialized(logAppLaunch: true);
 
   /// Run the app with the `Infospect` instance.
-  /// The `Infospect` instance is a singleton and can be accessed anywhere in the app.
-  /// As per the args if, it contains 'multi_window' then the app will be launched in multi-window mode.
-  /// else normal runApp will be called.
+  /// On desktop this uses multiview_desktop (single engine, multi-view).
+  /// On mobile this uses a normal runApp.
   Infospect.instance.run(args, myApp: const MainApp());
 }
 
@@ -95,7 +57,7 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
       themeMode: ThemeMode.dark,
       builder: (context, child) {
         return InfospectInvoker(
-          state: InvokerState.collapsible,
+          state: InvokerState.autoCollapse,
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -136,30 +98,27 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
   }
 
   void _onPressed() {
-    Timer.periodic(
-      const Duration(seconds: 2),
-      (timer) {
-        if (timer.tick >= DiagnosticLevel.values.length) {
-          timer.cancel();
-        }
+    Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (timer.tick >= DiagnosticLevel.values.length) {
+        timer.cancel();
+      }
 
-        /// Call the network library
-        if (radioValue == 1) {
-          dioCall(dio: _dio, index: timer.tick);
-        } else {
-          httpCall(httpClient: _client, index: timer.tick);
-        }
+      /// Call the network library
+      if (radioValue == 1) {
+        dioCall(dio: _dio, index: timer.tick);
+      } else {
+        httpCall(httpClient: _client, index: timer.tick);
+      }
 
-        /// Log something
-        log(
-          DiagnosticLevel.values.elementAtOrNull(timer.tick) ??
-              DiagnosticLevel.debug,
-          'test log ${timer.tick}',
-          error: _getError(timer.tick),
-          stackTrace: StackTrace.current,
-        );
-      },
-    );
+      /// Log something
+      log(
+        DiagnosticLevel.values.elementAtOrNull(timer.tick) ??
+            DiagnosticLevel.debug,
+        'test log ${timer.tick}',
+        error: _getError(timer.tick),
+        stackTrace: StackTrace.current,
+      );
+    });
   }
 
   String _getError(int tick) {
@@ -189,18 +148,8 @@ class _RadioGroup extends StatelessWidget {
       onChanged: onRadioValueChanged,
       child: const Row(
         children: [
-          Flexible(
-            child: RadioListTile(
-              value: 1,
-              title: Text('Dio'),
-            ),
-          ),
-          Flexible(
-            child: RadioListTile(
-              value: 2,
-              title: Text('Http'),
-            ),
-          )
+          Flexible(child: RadioListTile(value: 1, title: Text('Dio'))),
+          Flexible(child: RadioListTile(value: 2, title: Text('Http'))),
         ],
       ),
     );
@@ -222,8 +171,12 @@ mixin AppNetworkCall {
         return dio.get(val.$1, options: val.$2, queryParameters: val.$3);
 
       case Method.post:
-        return dio.post(val.$1,
-            options: val.$2, queryParameters: val.$3, data: jsonEncode(val.$3));
+        return dio.post(
+          val.$1,
+          options: val.$2,
+          queryParameters: val.$3,
+          data: jsonEncode(val.$3),
+        );
 
       case Method.put:
         return dio.put(val.$1, options: val.$2, queryParameters: val.$3);
@@ -251,8 +204,9 @@ mixin AppNetworkCall {
   Future<dynamic> httpCall({required Client httpClient, required index}) async {
     final val = (
       Uri.parse(
-          'https://official-joke-api.appspot.com/random_joke?client=http&id=$index'),
-      {'id': '$index'}
+        'https://official-joke-api.appspot.com/random_joke?client=http&id=$index',
+      ),
+      {'id': '$index'},
     );
 
     switch (Method.values.elementAtOrNull(index - 1)) {

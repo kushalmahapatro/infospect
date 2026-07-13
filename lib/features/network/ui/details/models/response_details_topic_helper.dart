@@ -1,5 +1,6 @@
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
+import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
 
@@ -96,13 +97,11 @@ class ResponseDetailsTopicHelper {
   void _setupBodyTopics() {
     _bodyTopics = (
       topic: 'Body',
-      body: TopicDetailsBodyMap(
-        map: {'': call.response?.body?.toString() ?? ''},
-        trailing: (
-          trailing: 'View Body',
-          data: call.response?.bodyMap ?? {},
-          beautificationRequired: true,
-        ),
+      body: TopicDetailsBodyJson(
+        json: call.response?.bodyMap ?? {},
+        call: call,
+        kind: NetworkBodyKind.response,
+        windowTitle: 'Response Body',
       ),
     );
   }

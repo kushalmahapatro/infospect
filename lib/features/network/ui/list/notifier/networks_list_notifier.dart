@@ -1,28 +1,35 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:collection/collection.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
+/// Sort order for network calls by [InfospectNetworkCall.createdTime].
+enum NetworkCallsTimeSort {
+  /// Oldest first.
+  ascending,
+
+  /// Newest first.
+  descending,
+}
+
 /// Notifier for managing networks list state.
 /// Handles network calls, filtering, searching, and sharing.
 class NetworksListNotifier extends ChangeNotifier {
-  final bool _isMultiWindow;
   StreamSubscription? _callsSubscription;
 
   List<InfospectNetworkCall> _calls = [];
   List<InfospectNetworkCall> _filteredCalls = [];
   String _searchedText = '';
   List<PopupAction> _filters = [];
+  NetworkCallsTimeSort _timeSort = NetworkCallsTimeSort.descending;
 
-  NetworksListNotifier({bool isMultiWindow = false})
-      : _isMultiWindow = isMultiWindow {
+  NetworksListNotifier() {
     _init();
   }
 
@@ -31,10 +38,13 @@ class NetworksListNotifier extends ChangeNotifier {
   List<InfospectNetworkCall> get filteredCalls => _filteredCalls;
   String get searchedText => _searchedText;
   List<PopupAction> get filters => _filters;
+  NetworkCallsTimeSort get timeSort => _timeSort;
+  bool get isTimeSortAscending => _timeSort == NetworkCallsTimeSort.ascending;
+  ValueChanged<File>? onShareAllNetworkCalls;
 
   void _init() {
     _callsSubscription = Infospect.instance.networkCallsSubject.listen((calls) {
-      _calls = calls.reversed.toList();
+      _calls = List<InfospectNetworkCall>.from(calls);
       _filterNetworkCalls();
     });
   }
@@ -47,8 +57,9 @@ class NetworksListNotifier extends ChangeNotifier {
   void addFilter(PopupAction action) {
     final finalFilters = List<PopupAction>.from(_filters);
 
-    if (finalFilters
-            .firstWhereOrNull((element) => element.name == action.name) !=
+    if (finalFilters.firstWhereOrNull(
+          (element) => element.name == action.name,
+        ) !=
         null) {
       finalFilters.remove(action);
     } else {
@@ -61,13 +72,22 @@ class NetworksListNotifier extends ChangeNotifier {
 
   void removeFilter(PopupAction action) {
     final finalFilters = List<PopupAction>.from(_filters);
-    if (finalFilters
-            .firstWhereOrNull((element) => element.name == action.name) !=
+    if (finalFilters.firstWhereOrNull(
+          (element) => element.name == action.name,
+        ) !=
         null) {
       finalFilters.remove(action);
       _filters = finalFilters;
       _filterNetworkCalls();
     }
+  }
+
+  /// Toggles time sort between ascending and descending.
+  void toggleTimeSort() {
+    _timeSort = _timeSort == NetworkCallsTimeSort.ascending
+        ? NetworkCallsTimeSort.descending
+        : NetworkCallsTimeSort.ascending;
+    _filterNetworkCalls();
   }
 
   void _filterNetworkCalls() {
@@ -81,16 +101,18 @@ class NetworksListNotifier extends ChangeNotifier {
     }
 
     if (_filters.isEmpty) {
-      _filteredCalls = searched.isEmpty ? _calls : filteredList;
+      _filteredCalls = _sortByTime(searched.isEmpty ? _calls : filteredList);
       notifyListeners();
       return;
     }
 
     final listToCheck = filteredList.isEmpty ? _calls : filteredList;
     List<InfospectNetworkCall> list = listToCheck
-        .where((element) => _filters
-            .map((e) => e.name.toLowerCase())
-            .contains(element.method.toLowerCase()))
+        .where(
+          (element) => _filters
+              .map((e) => e.name.toLowerCase())
+              .contains(element.method.toLowerCase()),
+        )
         .toList();
 
     final statusList = _filters.where((e) => e.parentId == 'status').toList();
@@ -101,8 +123,10 @@ class NetworksListNotifier extends ChangeNotifier {
       for (var element in statusList) {
         if (element.id == 'success') {
           list = listToCheck
-              .where((element) =>
-                  (element.response?.statusString ?? '').contains('OK'))
+              .where(
+                (element) =>
+                    (element.response?.statusString ?? '').contains('OK'),
+              )
               .toList();
         } else if (element.id == 'error') {
           list = listToCheck
@@ -115,31 +139,27 @@ class NetworksListNotifier extends ChangeNotifier {
       }
     }
 
-    _filteredCalls = list;
+    _filteredCalls = _sortByTime(list);
     notifyListeners();
   }
 
-  Future<void> shareNetworkLogs() async {
-    if (_isMultiWindow) {
-      try {
-        final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
-        await channel.invokeMethod(InfospectDataTransfer.onSend,
-            MainWindowArguments.shareNetworkCallLogs);
-      } catch (_) {}
-      return;
-    }
+  List<InfospectNetworkCall> _sortByTime(List<InfospectNetworkCall> calls) {
+    final sorted = List<InfospectNetworkCall>.from(calls);
+    sorted.sort((a, b) {
+      final compare = a.createdTime.compareTo(b.createdTime);
+      return _timeSort == NetworkCallsTimeSort.ascending ? compare : -compare;
+    });
+    return sorted;
+  }
 
-    await InfospectUtil.shareNetworkCallLogs();
+  Future<void> shareNetworkLogs() async {
+    final networkLogsFile = await InfospectUtil.shareNetworkCallLogs();
+    if (networkLogsFile != null) {
+      onShareAllNetworkCalls?.call(networkLogsFile);
+    }
   }
 
   Future<void> clearNetworkLogs() async {
-    if (_isMultiWindow) {
-      try {
-        final channel = WindowMethodChannel(InfospectDataTransfer.channelName);
-        await channel.invokeMethod(InfospectDataTransfer.onSend,
-            MainWindowArguments.clearNetworkCallLogs);
-      } catch (_) {}
-    }
     Infospect.instance.clearAllNetworkCalls();
   }
 

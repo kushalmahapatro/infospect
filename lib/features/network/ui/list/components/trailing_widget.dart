@@ -7,16 +7,26 @@ class TrailingWidget extends StatelessWidget {
   final Infospect infospect;
   final Map<String, dynamic> data;
   final bool beautificationRequired;
-  const TrailingWidget(
-      {super.key,
-      required this.text,
-      required this.infospect,
-      required this.data,
-      this.beautificationRequired = false});
+
+  const TrailingWidget({
+    super.key,
+    required this.text,
+    required this.infospect,
+    required this.data,
+    this.beautificationRequired = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return TextButton(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        minimumSize: const Size(0, 22),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
       onPressed: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => MobileRoutes().rawDataViewer(
@@ -27,7 +37,12 @@ class TrailingWidget extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelSmall,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          height: 1.1,
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }

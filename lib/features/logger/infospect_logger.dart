@@ -32,8 +32,9 @@ class InfospectLogger {
   ///
   /// The logs are converted to a Map with the key 'logs' containing a list of Map representations
   /// of each log entry using [InfospectLog.toMap()].
-  Map<String, List<Map<String, dynamic>>> get logsMap =>
-      {'logs': logs.map<Map<String, dynamic>>((e) => e.toMap()).toList()};
+  Map<String, List<Map<String, dynamic>>> get logsMap => {
+    'logs': logs.map<Map<String, dynamic>>((e) => e.toMap()).toList(),
+  };
 
   /// Gets the maximum number of logs to store or `null` for unlimited storage.
   ///

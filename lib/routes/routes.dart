@@ -16,12 +16,10 @@ class MobileRoutes {
     Infospect infospect, {
     required NetworksListNotifier networksListNotifier,
     required LogsListNotifier logsListNotifier,
-    bool isMultiWindow = false,
   }) {
     return infospect.infospectLaunchScreen(
       networksListNotifier: networksListNotifier,
       logsListNotifier: logsListNotifier,
-      isMultiWindow: isMultiWindow,
     );
   }
 
@@ -36,12 +34,16 @@ class MobileRoutes {
   Widget rawDataViewer({
     required Map<String, dynamic> data,
     bool beautificationRequired = false,
+    String title = 'Raw Data',
+    bool standaloneWindow = false,
   }) {
     final notifier = RawDataViewerNotifier();
     return RawDataViewerScreen(
       data: data,
       beautificationRequired: beautificationRequired,
       notifier: notifier,
+      title: title,
+      standaloneWindow: standaloneWindow,
     );
   }
 }

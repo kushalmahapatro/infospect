@@ -33,8 +33,8 @@ class InfospectLog {
     required this.message,
     this.error,
     this.stackTrace,
-  })  : assert(timestamp == null || !timestamp.isUtc),
-        timestamp = timestamp ?? DateTime.now();
+  }) : assert(timestamp == null || !timestamp.isUtc),
+       timestamp = timestamp ?? DateTime.now();
 
   /// Generates a hash code for the `InfospectLog` object.
   @override
@@ -78,12 +78,15 @@ class InfospectLog {
   static InfospectLog fromMap(Map map) {
     return InfospectLog(
       message: map['message'] ?? '',
-      level: DiagnosticLevel.values
-              .firstWhereOrNull((element) => element.name == map['level']) ??
+      level:
+          DiagnosticLevel.values.firstWhereOrNull(
+            (element) => element.name == map['level'],
+          ) ??
           DiagnosticLevel.info,
       timestamp: map['timestamp'] != null
           ? DateTime.fromMillisecondsSinceEpoch(
-              int.tryParse(map['timestamp'].toString()) ?? 0)
+              int.tryParse(map['timestamp'].toString()) ?? 0,
+            )
           : null,
       error: map['error'] ?? '',
       stackTrace: map['stackTrace'] != null

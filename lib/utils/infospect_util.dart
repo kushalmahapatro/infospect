@@ -19,13 +19,6 @@ typedef ShareFileData = ({
   Directory directory,
 });
 
-class MainWindowArguments {
-  static String shareNetworkCallLogs = 'shareNetworkCallLogs';
-  static String shareLogs = 'shareLogs';
-  static String clearNetworkCallLogs = 'clearNetworkCallLogs';
-  static String clearLogs = 'clearLogs';
-}
-
 class InfospectUtil {
   static bool get isDesktop =>
       (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
@@ -38,6 +31,27 @@ class InfospectUtil {
   }
 
   static const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+
+  /// Formats headers for clipboard paste into tools like Postman (bulk edit).
+  /// One `Key: Value` entry per line; list values are joined with `, `.
+  static String formatHeadersForCopy(Map<String, dynamic> headers) {
+    if (headers.isEmpty) return '';
+    return headers.entries
+        .map((e) => '${e.key}: ${_stringifyHeaderValue(e.value)}')
+        .join('\n');
+  }
+
+  static String _stringifyHeaderValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is Iterable && value is! String) {
+      return value
+          .map((item) => item?.toString() ?? '')
+          .where((item) => item.isNotEmpty)
+          .join(', ');
+    }
+    return value.toString();
+  }
 
   static String _parseJson(dynamic json) {
     try {
@@ -115,7 +129,7 @@ class InfospectUtil {
     );
   }
 
-  static Future<void> shareLogs() async {
+  static Future<File?> shareLogs() async {
     final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final String timestamp = f.format(DateTime.now());
     final String name = 'logs_$timestamp';
@@ -126,13 +140,10 @@ class InfospectUtil {
     }
     shareFileData.randomAccessFile.flushSync();
     shareFileData.randomAccessFile.closeSync();
-    final File? sharableFile = await _getCompressedFile(name, shareFileData);
-    if (sharableFile != null) {
-      Infospect.instance.onShareAllLogs?.call(sharableFile.path);
-    }
+    return await _getCompressedFile(name, shareFileData);
   }
 
-  static Future<void> shareNetworkCallLogs() async {
+  static Future<File?> shareNetworkCallLogs() async {
     final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final String timestamp = f.format(DateTime.now());
     final String name = 'network_calls_log_$timestamp';
@@ -151,11 +162,7 @@ class InfospectUtil {
     shareFileData.randomAccessFile.flushSync();
     shareFileData.randomAccessFile.closeSync();
 
-    final File? sharableFile = await _getCompressedFile(name, shareFileData);
-
-    if (sharableFile != null) {
-      Infospect.instance.onShareAllNetworkCalls?.call(sharableFile.path);
-    }
+    return await _getCompressedFile(name, shareFileData);
   }
 
   /// Compress the file and return the compressed file

@@ -10,13 +10,13 @@ to faster bug resolution.
 ## Preview
 
 ##### iOS
-![](images/preview/ios.gif)
-##### macOS - Opening Infospect in new Window
-![](images/preview/mac.gif)
-##### Linus (Ubuntu VM in mac)- Opening Infospect in new Window
-![](images/preview/linux(ubuntu%20vm).gif)
-##### Window 10 - (VM in mac) - Opening Infospect in new Window
-![](images/preview/windows.gif)
+![](https://raw.githubusercontent.com/kushalmahapatro/infospect/main/images/preview/ios.gif)
+##### macOS
+![](https://raw.githubusercontent.com/kushalmahapatro/infospect/main/images/preview/mac.gif)
+##### Linux (Ubuntu VM in mac) - Opening Infospect in new Window
+![](https://raw.githubusercontent.com/kushalmahapatro/infospect/main/images/preview/linux(ubuntu%20vm).gif)
+##### Windows 10 (VM in mac) - Opening Infospect in new Window
+![](https://raw.githubusercontent.com/kushalmahapatro/infospect/main/images/preview/windows.gif)
 
 ## Migrating from 0.1.5
 

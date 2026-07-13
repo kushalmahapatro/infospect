@@ -33,3 +33,6 @@ build/
 .fvm/flutter_sdk
 .fvm/fvm_config.json
 .vscode/settings.json
+
+# Keep demo GIFs on GitHub only — do not ship in the pub package.
+images/preview/

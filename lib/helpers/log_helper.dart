@@ -15,22 +15,14 @@ class InfospectLogHelper {
   ///
   /// - `log`: The log entry to be added.
   void addLog(InfospectLog log) {
-    // Adds the log entry to the logger.
     _infospect.infospectLogger.add(log);
-
-    // Sends the log to any potential subscribers or handlers.
-    _infospect.sendLogs([log]);
   }
 
   /// Aggregates and adds multiple `InfospectLog` entries to the logger of the `Infospect` instance.
   ///
   /// - `logs`: The list of log entries to be added.
   void addLogs(List<InfospectLog> logs) {
-    // Appends the list of logs to the logger.
     _infospect.infospectLogger.logs.addAll(logs);
-
-    // Sends the logs to any potential subscribers or handlers.
-    _infospect.sendLogs(logs);
   }
 
   /// Clears all the logs from the logger of the `Infospect` instance.

@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.10.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -12,6 +12,7 @@ dependencies:
   infospect:
     path: ../
   path_provider: any
+  file_selector: ^1.1.0
 
 dev_dependencies:
   flutter_test:

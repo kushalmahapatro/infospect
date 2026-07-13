@@ -1,8 +1,9 @@
 name: infospect
 description: Infospect meaning Information Inspector is a Flutter plugin for that empowers the developers to debug the network calls and logs in the app.
-version: 0.1.4
+version: 0.2.0
 repository: https://github.com/kushalmahapatro/infospect
 issue_tracker: https://github.com/kushalmahapatro/infospect/issues
+publish_to: https://pub.dev/packages/infospect
 topics:
   - interceptor
   - dio
@@ -11,8 +12,8 @@ topics:
   - multi-window
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.2"
 
 screenshots:
   - description: "Infospect Desktop Multi Window- macOS"
@@ -43,29 +44,24 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  archive: ^3.6.1
-  bloc: ^8.1.4
-  collection: ^1.18.0
-  cuberto_bottom_bar: ^3.1.0
-  cupertino_icons: ^1.0.8
-  desktop_multi_window: ^0.2.0
-  dio: ^5.6.0
-  equatable: ^2.0.5
-  flutter_bloc: ^8.1.6
-  flutter_json_view: ^1.1.2
-  font_awesome_flutter: ^10.7.0
-  http: ^1.2.2
+  archive: ^4.0.9
+  collection: ^1.19.1
+  multiview_desktop: ^1.2.0
+  dio: ^5.10.0
+  equatable: ^2.1.0
+  flutter_json_view: ^1.1.5
+  http: ^1.6.0
   menu_bar: ^0.5.3
-  meta: ^1.12.0
-  package_info_plus: ^8.0.2
-  path: ^1.9.0
-  path_provider: ^2.1.4
+  meta: ^1.18.0
+  package_info_plus: ^10.2.0
+  path: ^1.9.1
+  path_provider: ^2.1.6
   rxdart: ^0.28.0
-  share_plus: ^10.0.1
+  share_plus: ^13.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  bloc_test: ^9.1.7
-  lints: ^4.0.0
+  flutter_lints: ^6.0.0
+  lints: ^6.0.0

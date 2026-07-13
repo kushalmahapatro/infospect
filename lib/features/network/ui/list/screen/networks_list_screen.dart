@@ -1,59 +1,92 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
+import 'package:infospect/features/network/ui/details/notifier/interceptor_details_notifier.dart';
+import 'package:infospect/features/network/ui/details/screen/interceptor_details_screen.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_app_bar.dart';
 import 'package:infospect/features/network/ui/list/components/network_call_item.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/routes/routes.dart';
+import 'package:infospect/utils/common_widgets/live_edge_scroll_view.dart';
+import 'package:infospect/utils/infospect_share.dart';
 import 'package:share_plus/share_plus.dart';
 
-class NetworksListScreen extends StatelessWidget {
+class NetworksListScreen extends StatefulWidget {
   final Infospect infospect;
-  const NetworksListScreen(this.infospect, {super.key});
+  final NetworksListNotifier notifier;
+
+  const NetworksListScreen(this.infospect, {required this.notifier, super.key});
+
+  @override
+  State<NetworksListScreen> createState() => _NetworksListScreenState();
+}
+
+class _NetworksListScreenState extends State<NetworksListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+    widget.notifier.onShareAllNetworkCalls = (sharableFile) {
+      if (Infospect.instance.onShareAllNetworkCalls != null) {
+        Infospect.instance.onShareAllNetworkCalls!(sharableFile.path);
+      } else {
+        final XFile file = XFile(sharableFile.path);
+        InfospectShare.shareFiles([file], context: mounted ? context : null);
+      }
+    };
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    super.dispose();
+  }
+
+  String get _querySignature =>
+      '${widget.notifier.searchedText}|${widget.notifier.filters.map((e) => e.name).join('|')}|${widget.notifier.timeSort.name}';
 
   @override
   Widget build(BuildContext context) {
-    final networkListBloc = context.watch<NetworksListBloc>();
+    final calls = widget.notifier.filteredCalls;
+    final ascending = widget.notifier.isTimeSortAscending;
 
     return Scaffold(
       appBar: NetworkCallAppBar(
-        hasBottom: networkListBloc.state.filters.isNotEmpty,
-        infospect: infospect,
+        hasBottom: widget.notifier.filters.isNotEmpty,
+        infospect: widget.infospect,
+        notifier: widget.notifier,
       ),
-      body: BlocConsumer<NetworksListBloc, NetworksListState>(
-        listenWhen: (previous, current) =>
-            current is CompressedNetworkCallLogsFile,
-        listener: (context, state) {
-          if (state is CompressedNetworkCallLogsFile) {
-            if (Infospect.instance.onShareAllNetworkCalls != null) {
-              Infospect
-                  .instance.onShareAllNetworkCalls!(state.sharableFile.path);
-              return;
-            }
-            final XFile file = XFile(state.sharableFile.path);
-            Share.shareXFiles([file]);
-          }
-        },
-        builder: (context, state) {
-          if (state.filteredCalls.isEmpty) {
-            return const Center(child: Text("No network calls"));
-          }
-
-          return ListView.builder(
-            itemCount: state.filteredCalls.length,
-            itemBuilder: (context, index) {
-              return NetworkCallItem(
-                networkCall: state.filteredCalls[index],
-                searchedText: state.searchedText,
-                onItemClicked: (InfospectNetworkCall call) {
-                  mobileRoutes.logsList(context, infospect, call);
-                },
-              );
-            },
-          );
-        },
-      ),
+      body: calls.isEmpty
+          ? const SizedBox.shrink()
+          : LiveEdgeScrollableList(
+              itemCount: calls.length,
+              newestItemKey: calls.isEmpty
+                  ? null
+                  : (ascending ? calls.last.id : calls.first.id),
+              newItemsLabel: 'New calls',
+              edge: ascending ? LiveListEdge.bottom : LiveListEdge.top,
+              querySignature: _querySignature,
+              itemBuilder: (context, index) {
+                return NetworkCallItem(
+                  networkCall: calls[index],
+                  onItemClicked: (selectedCall) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InterceptorDetailsScreen(
+                          widget.infospect,
+                          call: selectedCall,
+                          notifier: InterceptorDetailsNotifier(),
+                        ),
+                      ),
+                    );
+                  },
+                  searchedText: widget.notifier.searchedText,
+                );
+              },
+            ),
     );
   }
 }

@@ -1,9 +1,12 @@
 extension ListExt on List<DataCellState> {
   double width(CellType cell) {
-    final CellType cellId =
-        CellType.values.firstWhere((element) => element == cell);
+    final CellType cellId = CellType.values.firstWhere(
+      (element) => element == cell,
+    );
     return this[cellId.id].width;
   }
+
+  double get totalWidth => fold<double>(0, (sum, e) => sum + e.width);
 }
 
 class DataCellState {
@@ -39,21 +42,25 @@ class DataCellState {
 }
 
 enum CellType {
-  columnState(0, '', minWidth: 26, maxWidth: 26),
-  columnId(1, 'Id', minWidth: 30, maxWidth: 40),
-  columnUrl(2, 'Url', maxWidth: 400, minWidth: 300),
-  columnClient(3, 'Client'),
-  columnMethod(4, 'Method'),
-  columnStatus(5, 'Status'),
-  columnCode(6, 'Code'),
-  columnTime(7, 'Time', minWidth: 80, maxWidth: 200),
-  columnDuration(8, 'Duration'),
-  columnSecure(9, 'Secure');
+  columnState(0, '', minWidth: 28, maxWidth: 28),
+  columnId(1, 'Id', minWidth: 36, maxWidth: 48),
+  columnUrl(2, 'Url', maxWidth: 520, minWidth: 220),
+  columnClient(3, 'Client', minWidth: 64, maxWidth: 120),
+  columnMethod(4, 'Method', minWidth: 64, maxWidth: 88),
+  columnStatus(5, 'Status', minWidth: 56, maxWidth: 80),
+  columnCode(6, 'Code', minWidth: 44, maxWidth: 64),
+  columnTime(7, 'Time', minWidth: 80, maxWidth: 120),
+  columnDuration(8, 'Duration', minWidth: 64, maxWidth: 96),
+  columnSecure(9, 'Secure', minWidth: 40, maxWidth: 52);
 
   final int id;
   final String label;
   final double minWidth;
   final double maxWidth;
-  const CellType(this.id, this.label,
-      {this.minWidth = 50, this.maxWidth = 100});
+  const CellType(
+    this.id,
+    this.label, {
+    this.minWidth = 50,
+    this.maxWidth = 100,
+  });
 }

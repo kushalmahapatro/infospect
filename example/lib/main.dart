@@ -11,16 +11,12 @@ import 'package:infospect/infospect.dart';
 ///
 
 void main(List<String> args) {
-  WidgetsFlutterBinding.ensureInitialized();
-
   /// Initialize the `Infospect` instance.
-  ///handle the data received to the main window from Infospect window
-  Infospect.ensureInitialized(logAppLaunch: true).handleMainWindowReceiveData();
+  Infospect.ensureInitialized(logAppLaunch: true);
 
   /// Run the app with the `Infospect` instance.
-  /// The `Infospect` instance is a singleton and can be accessed anywhere in the app.
-  /// As per the args if, it contains 'multi_window' then the app will be launched in multi-window mode.
-  /// else normal runApp will be called.
+  /// On desktop this uses multiview_desktop (single engine, multi-view).
+  /// On mobile this uses a normal runApp.
   Infospect.instance.run(args, myApp: const MainApp());
 }
 
@@ -61,7 +57,7 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
       themeMode: ThemeMode.dark,
       builder: (context, child) {
         return InfospectInvoker(
-          state: InvokerState.collapsible,
+          state: InvokerState.autoCollapse,
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -102,29 +98,27 @@ class _MainAppState extends State<MainApp> with AppLoggerMixin, AppNetworkCall {
   }
 
   void _onPressed() {
-    Timer.periodic(
-      const Duration(seconds: 2),
-      (timer) {
-        if (timer.tick >= 8) {
-          timer.cancel();
-        }
+    Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (timer.tick >= DiagnosticLevel.values.length) {
+        timer.cancel();
+      }
 
-        /// Call the network library
-        if (radioValue == 1) {
-          dioCall(dio: _dio, index: timer.tick);
-        } else {
-          httpCall(httpClient: _client, index: timer.tick);
-        }
+      /// Call the network library
+      if (radioValue == 1) {
+        dioCall(dio: _dio, index: timer.tick);
+      } else {
+        httpCall(httpClient: _client, index: timer.tick);
+      }
 
-        /// Log something
-        log(
-          DiagnosticLevel.values[timer.tick],
-          'test log ${timer.tick}',
-          error: _getError(timer.tick),
-          stackTrace: StackTrace.current,
-        );
-      },
-    );
+      /// Log something
+      log(
+        DiagnosticLevel.values.elementAtOrNull(timer.tick) ??
+            DiagnosticLevel.debug,
+        'test log ${timer.tick}',
+        error: _getError(timer.tick),
+        stackTrace: StackTrace.current,
+      );
+    });
   }
 
   String _getError(int tick) {
@@ -149,25 +143,15 @@ class _RadioGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Flexible(
-          child: RadioListTile(
-            value: 1,
-            groupValue: radioValue,
-            onChanged: onRadioValueChanged,
-            title: const Text('Dio'),
-          ),
-        ),
-        Flexible(
-          child: RadioListTile(
-            value: 2,
-            groupValue: radioValue,
-            onChanged: onRadioValueChanged,
-            title: const Text('Http'),
-          ),
-        )
-      ],
+    return RadioGroup<int>(
+      groupValue: radioValue,
+      onChanged: onRadioValueChanged,
+      child: const Row(
+        children: [
+          Flexible(child: RadioListTile(value: 1, title: Text('Dio'))),
+          Flexible(child: RadioListTile(value: 2, title: Text('Http'))),
+        ],
+      ),
     );
   }
 }
@@ -182,13 +166,17 @@ mixin AppNetworkCall {
       {'id': index},
     );
 
-    switch (Method.values[(index - 1)]) {
+    switch (Method.values.elementAtOrNull(index - 1)) {
       case Method.get:
         return dio.get(val.$1, options: val.$2, queryParameters: val.$3);
 
       case Method.post:
-        return dio.post(val.$1,
-            options: val.$2, queryParameters: val.$3, data: jsonEncode(val.$3));
+        return dio.post(
+          val.$1,
+          options: val.$2,
+          queryParameters: val.$3,
+          data: jsonEncode(val.$3),
+        );
 
       case Method.put:
         return dio.put(val.$1, options: val.$2, queryParameters: val.$3);
@@ -207,17 +195,21 @@ mixin AppNetworkCall {
 
       case Method.repeat:
         return dio.post(val.$1, options: val.$2, queryParameters: val.$3);
+
+      default:
+        return dio.get(val.$1, options: val.$2, queryParameters: val.$3);
     }
   }
 
   Future<dynamic> httpCall({required Client httpClient, required index}) async {
     final val = (
       Uri.parse(
-          'https://official-joke-api.appspot.com/random_joke?client=http&id=$index'),
-      {'id': '$index'}
+        'https://official-joke-api.appspot.com/random_joke?client=http&id=$index',
+      ),
+      {'id': '$index'},
     );
 
-    switch (Method.values[(index - 1)]) {
+    switch (Method.values.elementAtOrNull(index - 1)) {
       case Method.get:
         return httpClient.get(val.$1);
 
@@ -241,6 +233,9 @@ mixin AppNetworkCall {
 
       case Method.repeat:
         return httpClient.post(val.$1);
+
+      default:
+        return httpClient.get(val.$1);
     }
   }
 }

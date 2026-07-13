@@ -1,31 +1,29 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart';
-import 'package:infospect/features/launch/bloc/launch_bloc.dart';
+import 'package:infospect/features/launch/notifier/launch_notifier.dart';
 import 'package:infospect/features/logger/infospect_logger.dart';
-import 'package:infospect/features/logger/ui/logs_list/bloc/logs_list_bloc.dart';
+import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
+import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
 import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
 import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
-import 'package:infospect/features/network/ui/list/bloc/networks_list_bloc.dart';
-import 'package:infospect/helpers/desktop_theme_cubit/desktop_theme_cubit.dart';
+import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
+import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_screen.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
+import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/infospect_util.dart';
+import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:share_plus/share_plus.dart';
 
 part 'log_helper.dart';
-part 'multi_window_helper.dart';
 part 'navigation_helper.dart';
 part 'network_call_helper.dart';
 
@@ -46,13 +44,12 @@ class Infospect {
     bool logAppLaunch = false,
     this.onShareAllNetworkCalls,
     this.onShareAllLogs,
-  })  : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
-        infospectLogger = InfospectLogger() {
+  }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
+       infospectLogger = InfospectLogger() {
     _instance = this;
     _infospectLogHelper = InfospectLogHelper._(this);
     _infospectNavigationHelper = InfospectNavigationHelper._(this);
     _infospectNetworkCallHelper = InfospectNetworkCallHelper._(this);
-    _infospectMultiWindowHelper = InfospectMultiWindowHelper._(this);
 
     _logAppLaunch(logAppLaunch);
   }
@@ -76,7 +73,6 @@ class Infospect {
   late InfospectLogHelper _infospectLogHelper;
   late InfospectNavigationHelper _infospectNavigationHelper;
   late InfospectNetworkCallHelper _infospectNetworkCallHelper;
-  late InfospectMultiWindowHelper _infospectMultiWindowHelper;
 
   /// completer
   late final Completer<bool> _runAppCompleter = Completer<bool>();
@@ -112,12 +108,13 @@ class Infospect {
   }
 
   /// Checks if the `Infospect` instance is initialized and throws an error
-  static checkInstance(Infospect? instance) {
+  static Infospect checkInstance(Infospect? instance) {
     if (instance == null) {
       throw FlutterError.fromParts(<DiagnosticsNode>[
         ErrorSummary('Infospect is not yet initialized'),
         ErrorDescription(
-            'This probably indicates that Infospect.instance was used but was not initialized'),
+          'This probably indicates that Infospect.instance was used but was not initialized',
+        ),
         ErrorHint('To fix this use Infospect.ensureInitialized() at the main'),
       ]);
     }
@@ -131,6 +128,18 @@ class Infospect {
   Brightness get brightness => PlatformDispatcher.instance.platformBrightness;
 
   BuildContext? get context => _navigatorKey?.currentState?.overlay?.context;
+
+  /// get the launch screen widget
+  Widget infospectLaunchScreen({
+    required NetworksListNotifier networksListNotifier,
+    required LogsListNotifier logsListNotifier,
+  }) {
+    return InfospectLaunchScreen(
+      this,
+      networksListNotifier: networksListNotifier,
+      logsListNotifier: logsListNotifier,
+    );
+  }
 
   /// run app
   void run(List<String> args, {required Widget myApp}) =>
@@ -147,23 +156,64 @@ class Infospect {
   Future<void> openInspectorInNewWindow() =>
       _infospectNavigationHelper.openInspectorInNewWindow();
 
+  /// Opens a network call body with request metadata in a new desktop window.
+  Future<void> openNetworkBodyInNewWindow({
+    required InfospectNetworkCall call,
+    required NetworkBodyKind kind,
+    bool detailsInitiallyExpanded = false,
+  }) =>
+      _infospectNavigationHelper.openNetworkBodyInNewWindow(
+        call: call,
+        kind: kind,
+        detailsInitiallyExpanded: detailsInitiallyExpanded,
+      );
+
+  /// Opens JSON / raw data (e.g. headers) in a new desktop window.
+  Future<void> openRawDataInNewWindow({
+    required Map<String, dynamic> data,
+    String title = 'Body',
+    bool beautificationRequired = true,
+  }) => _infospectNavigationHelper.openRawDataInNewWindow(
+    data: data,
+    title: title,
+    beautificationRequired: beautificationRequired,
+  );
+
+  /// Tabs currently shown in their own desktop windows (removed from the main
+  /// Infospect sidebar until those windows close).
+  ValueListenable<Set<InfospectDesktopTab>> get poppedOutDesktopTabs =>
+      _infospectNavigationHelper.poppedOutTabs;
+
+  /// Opens [tab] in a separate desktop window and removes it from the main
+  /// Infospect window sidebar.
+  Future<void> popOutDesktopTab(InfospectDesktopTab tab) =>
+      _infospectNavigationHelper.popOutDesktopTab(tab);
+
+  /// Focuses an already-open popped-out tab window, if any.
+  Future<void> focusPoppedOutDesktopTab(InfospectDesktopTab tab) =>
+      _infospectNavigationHelper.focusPoppedOutDesktopTab(tab);
+
   void navigateToInterceptor() =>
       _infospectNavigationHelper.navigateToInterceptor();
 
-  /// multi window
-  void sendNetworkCalls() => _infospectMultiWindowHelper.sendNetworkCalls();
+  /// No-ops kept for API compatibility with 0.1.x.
+  ///
+  /// With [multiview_desktop], all windows share one isolate and Infospect
+  /// state — remove these calls when you migrate (see MIGRATION.md).
+  @Deprecated('Unnecessary with multiview_desktop shared-isolate windows')
+  void sendNetworkCalls() {}
 
-  void sendLogs([List<InfospectLog>? logs]) =>
-      _infospectMultiWindowHelper.sendLogs(logs);
+  @Deprecated('Unnecessary with multiview_desktop shared-isolate windows')
+  void sendLogs([List<InfospectLog>? logs]) {}
 
-  void sendThemeMode({required bool isDarkTheme}) =>
-      _infospectMultiWindowHelper.sendThemeMode(isDarkTheme);
+  @Deprecated('Unnecessary with multiview_desktop shared-isolate windows')
+  void sendThemeMode({required bool isDarkTheme}) {}
 
-  void handleMultiWindowReceivedData(BuildContext context) =>
-      _infospectMultiWindowHelper.handleMultiWindowReceivedData(context);
+  @Deprecated('Unnecessary with multiview_desktop shared-isolate windows')
+  void handleMultiWindowReceivedData(BuildContext context) {}
 
-  void handleMainWindowReceiveData() =>
-      _infospectMultiWindowHelper.handleMainWindowReceiveData();
+  @Deprecated('Unnecessary with multiview_desktop shared-isolate windows')
+  void handleMainWindowReceiveData() {}
 
   /// Network calls
   void addCall(InfospectNetworkCall call) =>
@@ -185,9 +235,9 @@ class Infospect {
   InfospectDioInterceptor get dioInterceptor =>
       _infospectNetworkCallHelper.dioInterceptor;
 
-  InfospectHttpClientInterceptor httpClientInterceptor(
-          {required Client client}) =>
-      _infospectNetworkCallHelper.httpClientInterceptor(client: client);
+  InfospectHttpClientInterceptor httpClientInterceptor({
+    required Client client,
+  }) => _infospectNetworkCallHelper.httpClientInterceptor(client: client);
 
   /// Dispose subjects and subscriptions
   void dispose() {

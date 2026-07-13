@@ -1,145 +1,223 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_json_view/flutter_json_view.dart';
-import 'package:infospect/features/network/ui/raw_data_viewer/bloc/raw_data_viewer_bloc.dart';
+import 'package:infospect/features/network/ui/raw_data_viewer/notifier/raw_data_viewer_notifier.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/models/raw_data_view.dart';
+import 'package:infospect/features/network/ui/raw_data_viewer/widgets/json_viewer_desktop_toolbar.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
-class RawDataViewerScreen extends StatelessWidget {
+class RawDataViewerScreen extends StatefulWidget {
   final Map<String, dynamic> data;
   final bool beautificationRequired;
+  final RawDataViewerNotifier notifier;
+  final String title;
 
-  const RawDataViewerScreen(
-      {super.key, required this.data, this.beautificationRequired = false});
+  /// When true, this screen is hosted in its own desktop window — hide
+  /// navigation chrome and the open-in-new-window action.
+  final bool standaloneWindow;
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => RawDataViewerBloc(),
-      child: Scaffold(
-        appBar: AppBar(
-          elevation: 0,
-          title: RawDataViewerSelector<RawDataView>(
-            selector: (state) => state.view,
-            builder: (context, view) {
-              return ConditionalWidget(
-                condition: view == RawDataView.beautified,
-                ifTrue: CupertinoSearchTextField(
-                  padding: const EdgeInsetsDirectional.fromSTEB(5.5, 8, 5.5, 8),
-                  style: Theme.of(context).textTheme.labelLarge,
-                  itemSize: 20,
-                  prefixInsets:
-                      const EdgeInsetsDirectional.fromSTEB(6, 0, 0, 3),
-                  onChanged: (search) {
-                    context
-                        .read<RawDataViewerBloc>()
-                        .add(SearchValueChanged(search));
-                  },
-                ),
-                ifFalse: const SizedBox.shrink(),
-              );
-            },
-          ),
-        ),
-        bottomNavigationBar:
-            beautificationRequired ? const BottomNavBarWidget() : null,
-        body: RawDataViewerBuilder(
-          buildWhen: (previous, current) =>
-              previous.view != current.view ||
-              previous.searchValue != current.searchValue,
-          builder: (context, state) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ConditionalWidget(
-                condition: state.view == RawDataView.beautified,
-                ifTrue: ConditionalWidget(
-                  condition: beautificationRequired,
-                  ifTrue: HighlightText(
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    text: InfospectUtil.encoder.convert(data),
-                    highlight: state.searchValue,
-                  ),
-                  ifFalse: ListView(
-                    children: data.entries
-                        .map(
-                          (e) => Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.start,
-                            children: [
-                              HighlightText(
-                                text: '${e.key}:',
-                                highlight: state.searchValue,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              const Padding(padding: EdgeInsets.only(left: 5)),
-                              HighlightText(
-                                text: e.value.toString(),
-                                highlight: state.searchValue,
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 18),
-                              )
-                            ],
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                ifFalse: JsonView.map(
-                  data,
-                  theme: JsonViewTheme(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    separator: const Text(':'),
-                    closeIcon: Icon(
-                      Icons.arrow_drop_up,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    openIcon: Icon(
-                      Icons.arrow_drop_down,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class BottomNavBarWidget extends StatelessWidget {
-  const BottomNavBarWidget({
+  const RawDataViewerScreen({
     super.key,
+    required this.data,
+    this.beautificationRequired = false,
+    required this.notifier,
+    this.title = 'Raw Data',
+    this.standaloneWindow = false,
   });
 
   @override
+  State<RawDataViewerScreen> createState() => _RawDataViewerScreenState();
+}
+
+class _RawDataViewerScreenState extends State<RawDataViewerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.notifier.addListener(_onNotifierChanged);
+  }
+
+  void _onNotifierChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onNotifierChanged);
+    widget.notifier.dispose();
+    super.dispose();
+  }
+
+  bool get _isDesktop => !kIsWeb && InfospectUtil.isDesktop;
+
+  bool get _canOpenInWindow =>
+      _isDesktop && !widget.standaloneWindow;
+
+  bool get _useDesktopChrome => _isDesktop || widget.standaloneWindow;
+
+  @override
   Widget build(BuildContext context) {
-    return RawDataViewerSelector<RawDataView>(
-      selector: (state) => state.view,
-      builder: (context, view) {
-        return AppBottomBar(
-          selectedIndex: view.index,
-          tabs: RawDataView.values
-              .map(
-                (e) => (
-                  icon: e.icon,
-                  title: e.value,
-                ),
-              )
-              .toList(),
-          tabChangedCallback: (position) {
-            context
-                .read<RawDataViewerBloc>()
-                .add(RawDataViewChanged(RawDataView.values[position]));
-          },
+    if (_useDesktopChrome) {
+      return _buildDesktop(context);
+    }
+    return _buildMobile(context);
+  }
+
+  Widget _buildDesktop(BuildContext context) {
+    final theme = Theme.of(context);
+    final canToggle = widget.beautificationRequired;
+    final showSearch =
+        canToggle && widget.notifier.view == RawDataView.beautified;
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          JsonViewerDesktopToolbar(
+            title: widget.standaloneWindow ? null : widget.title,
+            view: widget.notifier.view,
+            onViewChanged: widget.notifier.changeView,
+            showViewToggle: canToggle,
+            showSearch: showSearch,
+            searchValue: widget.notifier.searchValue,
+            onSearchChanged: widget.notifier.changeSearchValue,
+            showOpenInWindow: _canOpenInWindow,
+            onOpenInWindow: () => Infospect.instance.openRawDataInNewWindow(
+              data: widget.data,
+              title: widget.title,
+              beautificationRequired: widget.beautificationRequired,
+            ),
+          ),
+          Expanded(child: _buildBody(context)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobile(BuildContext context) {
+    final canToggle = widget.beautificationRequired;
+    final showSearch =
+        canToggle && widget.notifier.view == RawDataView.beautified;
+
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        title: Text(widget.title),
+      ),
+      body: Column(
+        children: [
+          if (canToggle || showSearch)
+            JsonViewerDesktopToolbar(
+              view: widget.notifier.view,
+              onViewChanged: widget.notifier.changeView,
+              showViewToggle: canToggle,
+              showSearch: showSearch,
+              searchValue: widget.notifier.searchValue,
+              onSearchChanged: widget.notifier.changeSearchValue,
+            ),
+          Expanded(child: _buildBody(context)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (widget.notifier.view == RawDataView.beautified) {
+      if (widget.beautificationRequired) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: HighlightText(
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              height: 1.45,
+            ),
+            text: InfospectUtil.encoder.convert(widget.data),
+            highlight: widget.notifier.searchValue,
+            ignoreCase: true,
+            highlightColor:
+                theme.colorScheme.primary.withValues(alpha: 0.22),
+          ),
         );
-      },
+      }
+
+      return ListView(
+        padding: const EdgeInsets.all(12),
+        children: widget.data.entries
+            .map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.key,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    SelectableText(
+                      e.value.toString(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      child: JsonView.map(
+        widget.data,
+        theme: JsonViewTheme(
+          backgroundColor: theme.colorScheme.surface,
+          defaultTextStyle: theme.textTheme.bodySmall!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 12,
+          ),
+          keyStyle: theme.textTheme.bodySmall!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          stringStyle: theme.textTheme.bodySmall!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 12,
+          ),
+          boolStyle: theme.textTheme.bodySmall!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 12,
+          ),
+          closeIcon: Icon(
+            Icons.keyboard_arrow_right,
+            size: 16,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+          ),
+          openIcon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 16,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+          ),
+          separator: Text(
+            ' : ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -27,7 +27,7 @@ class ExpansionWidget extends StatelessWidget {
             e.value.toString(),
             showDivider: i != map.length - 1,
           ),
-        )
+        ),
       ],
     );
   }
@@ -42,37 +42,60 @@ class ExpansionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor =
+        theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      margin: const EdgeInsets.all(6),
+      margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: borderColor),
+        color: theme.colorScheme.surface,
       ),
-      child: ExpansionTile(
-        initiallyExpanded: initiallyExpanded,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 8),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 10),
-        expandedAlignment: Alignment.center,
-        controlAffinity: ListTileControlAffinity.platform,
-        shape: Border.all(color: Colors.transparent),
-        iconColor: Theme.of(context).colorScheme.primary,
-        collapsedIconColor: Theme.of(context).colorScheme.primary,
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ListTileTheme(
+          data: const ListTileThemeData(
+            dense: true,
+            visualDensity: VisualDensity(horizontal: 0, vertical: -4),
+            minVerticalPadding: 0,
+            contentPadding: EdgeInsets.symmetric(horizontal: 8),
+          ),
+          child: ExpansionTile(
+            initiallyExpanded: initiallyExpanded,
+            dense: true,
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+            childrenPadding: const EdgeInsets.fromLTRB(8, 0, 4, 4),
+            expandedAlignment: Alignment.centerLeft,
+            controlAffinity: ListTileControlAffinity.trailing,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.06),
+            collapsedBackgroundColor: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.18),
+            iconColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            collapsedIconColor:
+                theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+                ?trailing,
+              ],
             ),
-            trailing ?? const SizedBox.shrink(),
-          ],
+            children: children,
+          ),
         ),
-        children: children,
       ),
     );
   }

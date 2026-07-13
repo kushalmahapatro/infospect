@@ -1,53 +1,374 @@
 import 'dart:io';
+import 'dart:math' as math;
 
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infospect/features/launch/bloc/launch_bloc.dart';
+import 'package:infospect/features/launch/models/infospect_desktop_tab.dart';
 import 'package:infospect/features/launch/models/navigation_tab_data.dart';
+import 'package:infospect/features/launch/notifier/launch_notifier.dart';
+import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
+import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_screen.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/divider.dart';
 
-class LaunchDesktopScreen extends StatelessWidget {
+class LaunchDesktopScreen extends StatefulWidget {
   final Infospect infospect;
-  const LaunchDesktopScreen(this.infospect, {super.key});
+  final NetworksListNotifier networksListNotifier;
+  final LogsListNotifier logsListNotifier;
+
+  const LaunchDesktopScreen(
+    this.infospect, {
+    required this.networksListNotifier,
+    required this.logsListNotifier,
+    super.key,
+  });
+
+  @override
+  State<LaunchDesktopScreen> createState() => _LaunchDesktopScreenState();
+}
+
+class _LaunchDesktopScreenState extends State<LaunchDesktopScreen> {
+  static const double _minSidebarWidth = 140;
+  static const double _maxSidebarWidth = 360;
+  static const double _defaultSidebarWidth = 180;
+  static const double _dividerHitWidth = 6;
+
+  double _sidebarWidth = _defaultSidebarWidth;
+
+  void _onDragUpdate(DragUpdateDetails details, double maxWidth) {
+    final maxAllowed = math.min(_maxSidebarWidth, maxWidth * 0.45);
+    setState(() {
+      _sidebarWidth = (_sidebarWidth + details.delta.dx)
+          .clamp(_minSidebarWidth, maxAllowed);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    infospect.handleMultiWindowReceivedData(context);
+    final theme = Theme.of(context);
+    final borderColor =
+        theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
 
     return Scaffold(
-      body: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _FirstSection(infospect),
-          AppDivider.vertical(),
-          _SecondSection(infospect),
-        ],
+      body: ValueListenableBuilder<Set<InfospectDesktopTab>>(
+        valueListenable: widget.infospect.poppedOutDesktopTabs,
+        builder: (context, poppedOut, _) {
+          final visibleTabs = InfospectDesktopTab.values
+              .where((tab) => !poppedOut.contains(tab))
+              .toList(growable: false);
+          final showSidebar = visibleTabs.isNotEmpty;
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final maxAllowed =
+                  math.min(_maxSidebarWidth, constraints.maxWidth * 0.45);
+              final sidebarWidth =
+                  _sidebarWidth.clamp(_minSidebarWidth, maxAllowed);
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showSidebar) ...[
+                    SizedBox(
+                      width: sidebarWidth,
+                      child: _Sidebar(
+                        infospect: widget.infospect,
+                        visibleTabs: visibleTabs,
+                        poppedOutTabs: poppedOut,
+                      ),
+                    ),
+                    _ResizeHandle(
+                      color: borderColor,
+                      hitWidth: _dividerHitWidth,
+                      onDragUpdate: (details) =>
+                          _onDragUpdate(details, constraints.maxWidth),
+                    ),
+                  ],
+                  Expanded(
+                    child: _ContentPane(
+                      infospect: widget.infospect,
+                      networksListNotifier: widget.networksListNotifier,
+                      logsListNotifier: widget.logsListNotifier,
+                      visibleTabs: visibleTabs,
+                      poppedOutTabs: poppedOut,
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _SecondSection extends StatelessWidget {
-  final Infospect infospect;
-  const _SecondSection(this.infospect);
+class _ResizeHandle extends StatefulWidget {
+  const _ResizeHandle({
+    required this.color,
+    required this.hitWidth,
+    required this.onDragUpdate,
+  });
+
+  final Color color;
+  final double hitWidth;
+  final GestureDragUpdateCallback onDragUpdate;
+
+  @override
+  State<_ResizeHandle> createState() => _ResizeHandleState();
+}
+
+class _ResizeHandleState extends State<_ResizeHandle> {
+  bool _hovering = false;
+  bool _dragging = false;
+
   @override
   Widget build(BuildContext context) {
-    return Flexible(
-      flex: 8,
-      child: BlocSelector<LaunchBloc, LaunchState, int>(
-        selector: (state) => state.selectedTab,
-        builder: (context, selectedIndex) {
-          return IndexedStack(
-            index: selectedIndex,
+    final theme = Theme.of(context);
+    final active = _hovering || _dragging;
+    final lineColor = active ? theme.colorScheme.primary : widget.color;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragStart: (_) => setState(() => _dragging = true),
+        onHorizontalDragUpdate: widget.onDragUpdate,
+        onHorizontalDragEnd: (_) => setState(() => _dragging = false),
+        onHorizontalDragCancel: () => setState(() => _dragging = false),
+        child: SizedBox(
+          width: widget.hitWidth,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              width: active ? 2 : 1,
+              color: lineColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContentPane extends StatelessWidget {
+  const _ContentPane({
+    required this.infospect,
+    required this.networksListNotifier,
+    required this.logsListNotifier,
+    required this.visibleTabs,
+    required this.poppedOutTabs,
+  });
+
+  final Infospect infospect;
+  final NetworksListNotifier networksListNotifier;
+  final LogsListNotifier logsListNotifier;
+  final List<InfospectDesktopTab> visibleTabs;
+  final Set<InfospectDesktopTab> poppedOutTabs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (visibleTabs.isEmpty) {
+      return _AllTabsPoppedOutState(
+        infospect: infospect,
+        poppedOutTabs: poppedOutTabs,
+      );
+    }
+
+    final showNetwork = visibleTabs.contains(InfospectDesktopTab.network);
+    final showLogs = visibleTabs.contains(InfospectDesktopTab.logs);
+
+    if (showNetwork && !showLogs) {
+      return DesktopNetworksListScreen(
+        infospect,
+        notifier: networksListNotifier,
+      );
+    }
+    if (!showNetwork && showLogs) {
+      return DesktopLogsListScreen(
+        infospect,
+        notifier: logsListNotifier,
+      );
+    }
+
+    final launchNotifier = LaunchNotifier.instance;
+    return ValueListenableBuilder<int>(
+      valueListenable: launchNotifier,
+      builder: (context, selectedIndex, _) {
+        return IndexedStack(
+          index: selectedIndex,
+          children: [
+            DesktopNetworksListScreen(
+              infospect,
+              notifier: networksListNotifier,
+            ),
+            DesktopLogsListScreen(
+              infospect,
+              notifier: logsListNotifier,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AllTabsPoppedOutState extends StatelessWidget {
+  const _AllTabsPoppedOutState({
+    required this.infospect,
+    required this.poppedOutTabs,
+  });
+
+  final Infospect infospect;
+  final Set<InfospectDesktopTab> poppedOutTabs;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ColoredBox(
+      color: theme.colorScheme.surface,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Infospect',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Network and Logs are open in separate windows. '
+                  'Close a window to bring that tab back here.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ...InfospectDesktopTab.values
+                    .where(poppedOutTabs.contains)
+                    .map(
+                      (tab) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              infospect.focusPoppedOutDesktopTab(tab),
+                          icon: Icon(
+                            tab == InfospectDesktopTab.network
+                                ? Icons.public
+                                : Icons.terminal,
+                            size: 16,
+                          ),
+                          label: Text('Focus ${tab.windowTitle}'),
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Sidebar extends StatelessWidget {
+  const _Sidebar({
+    required this.infospect,
+    required this.visibleTabs,
+    required this.poppedOutTabs,
+  });
+
+  final Infospect infospect;
+  final List<InfospectDesktopTab> visibleTabs;
+  final Set<InfospectDesktopTab> poppedOutTabs;
+
+  @override
+  Widget build(BuildContext context) {
+    final launchNotifier = LaunchNotifier.instance;
+    final theme = Theme.of(context);
+    final allTabs = NavigationTabData.tabs;
+
+    return ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+      child: ValueListenableBuilder<int>(
+        valueListenable: launchNotifier,
+        builder: (context, selectedIndex, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DesktopNetworksListScreen(infospect),
-              DesktopLogsListScreen(infospect)
+              SizedBox(
+                height: 40,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: _AppBarLeadingWidget(infospect: infospect),
+                  ),
+                ),
+              ),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color:
+                    theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+              ),
+              const SizedBox(height: 4),
+              ...visibleTabs.map((tab) {
+                final item = allTabs[tab.tabIndex];
+                final selected = selectedIndex == tab.tabIndex;
+                return Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: _SidebarTab(
+                    icon: selected ? item.selectedIcon : item.icon,
+                    title: item.title,
+                    selected: selected,
+                    onTap: () => launchNotifier.selectTab(tab.tabIndex),
+                    onPopOut: () => infospect.popOutDesktopTab(tab),
+                  ),
+                );
+              }),
+              if (poppedOutTabs.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'Opened in new window',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...poppedOutTabs.map((tab) {
+                  final item = allTabs[tab.tabIndex];
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: _SidebarTab(
+                      icon: item.icon,
+                      title: item.title,
+                      selected: false,
+                      dimmed: true,
+                      trailingIcon: Icons.open_in_new,
+                      onTap: () => infospect.focusPoppedOutDesktopTab(tab),
+                      onPopOut: () => infospect.focusPoppedOutDesktopTab(tab),
+                    ),
+                  );
+                }),
+              ],
             ],
           );
         },
@@ -56,92 +377,108 @@ class _SecondSection extends StatelessWidget {
   }
 }
 
-class _FirstSection extends StatelessWidget {
-  const _FirstSection(this.infospect);
+class _SidebarTab extends StatefulWidget {
+  const _SidebarTab({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    required this.onPopOut,
+    this.dimmed = false,
+    this.trailingIcon,
+  });
 
-  final Infospect infospect;
+  final IconData icon;
+  final String title;
+  final bool selected;
+  final bool dimmed;
+  final IconData? trailingIcon;
+  final VoidCallback onTap;
+  final VoidCallback onPopOut;
+
+  @override
+  State<_SidebarTab> createState() => _SidebarTabState();
+}
+
+class _SidebarTabState extends State<_SidebarTab> {
+  bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
-    return Flexible(
-      flex: 2,
-      child: BlocSelector<LaunchBloc, LaunchState, int>(
-        selector: (state) => state.selectedTab,
-        builder: (context, selectedIndex) {
-          return Scaffold(
-            appBar: AppBar(
-              toolbarHeight: 40,
-              leading: _AppBarLeadingWidget(
-                infospect: infospect,
-              ),
-            ),
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: NavigationTabData.tabs.mapIndexed(
-                (index, item) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: _getSelectionColor(
-                        context,
-                        selected: selectedIndex == index,
-                        inverse: true,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    width: double.maxFinite,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                    child: InkWell(
-                      onTap: () => context.read<LaunchBloc>().add(
-                            TabChanged(
-                              selectedTab: index,
-                            ),
-                          ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 14,
-                            color: _getSelectionColor(
-                              context,
-                              selected: selectedIndex == index,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            item.title.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: _getSelectionColor(
-                                context,
-                                selected: selectedIndex == index,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ).toList(),
-            ),
+    final theme = Theme.of(context);
+    final canPopOut = !kIsWeb &&
+        !widget.dimmed &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.windows);
+    final showPopOut = canPopOut && _hovering;
+    final foreground = widget.selected
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurface.withValues(
+            alpha: widget.dimmed ? 0.45 : 0.62,
           );
-        },
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Material(
+        color: widget.selected
+            ? theme.colorScheme.onSurface.withValues(alpha: 0.12)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(5),
+        child: InkWell(
+          onTap: widget.onTap,
+          onDoubleTap: canPopOut ? widget.onPopOut : null,
+          borderRadius: BorderRadius.circular(5),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
+            child: Row(
+              children: [
+                Icon(widget.icon, size: 14, color: foreground),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: widget.selected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: widget.selected
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurface.withValues(
+                              alpha: widget.dimmed ? 0.5 : 0.72,
+                            ),
+                    ),
+                  ),
+                ),
+                if (showPopOut || widget.trailingIcon != null)
+                  Tooltip(
+                    message: widget.dimmed
+                        ? 'Focus window'
+                        : 'Open in new window',
+                    waitDuration: const Duration(milliseconds: 400),
+                    child: InkWell(
+                      onTap: widget.onPopOut,
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(
+                          widget.trailingIcon ?? Icons.open_in_new,
+                          size: 12,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-  }
-
-  Color _getSelectionColor(BuildContext context,
-      {required bool selected, bool inverse = false}) {
-    final Color unSelectedColor = Theme.of(context).colorScheme.onSurface;
-    final Color selectedColor = Theme.of(context).colorScheme.surface;
-    if (selected) {
-      return inverse ? unSelectedColor : selectedColor;
-    } else {
-      return inverse ? selectedColor : unSelectedColor;
-    }
   }
 }
 
@@ -155,9 +492,15 @@ class _AppBarLeadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      return const SizedBox();
+      return const SizedBox.shrink();
     } else if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
-      return const SizedBox();
+      return Text(
+        'Infospect',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+      );
     }
     return IconButton(
       icon: const Icon(Icons.chevron_left),

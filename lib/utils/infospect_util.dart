@@ -8,6 +8,7 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/infospect.dart';
 import 'package:infospect/utils/extensions/infospect_log/infospect_log_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
+import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,15 +16,8 @@ import 'package:path_provider/path_provider.dart';
 typedef ShareFileData = ({
   RandomAccessFile randomAccessFile,
   String path,
-  Directory directory
+  Directory directory,
 });
-
-enum MainWindowArguments {
-  shareNetworkCallLogs,
-  shareLogs,
-  clearNetworkCallLogs,
-  clearLogs,
-}
 
 class InfospectUtil {
   static bool get isDesktop =>
@@ -37,6 +31,27 @@ class InfospectUtil {
   }
 
   static const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+
+  /// Formats headers for clipboard paste into tools like Postman (bulk edit).
+  /// One `Key: Value` entry per line; list values are joined with `, `.
+  static String formatHeadersForCopy(Map<String, dynamic> headers) {
+    if (headers.isEmpty) return '';
+    return headers.entries
+        .map((e) => '${e.key}: ${_stringifyHeaderValue(e.value)}')
+        .join('\n');
+  }
+
+  static String _stringifyHeaderValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is Iterable && value is! String) {
+      return value
+          .map((item) => item?.toString() ?? '')
+          .where((item) => item.isNotEmpty)
+          .join(', ');
+    }
+    return value.toString();
+  }
 
   static String _parseJson(dynamic json) {
     try {
@@ -115,7 +130,9 @@ class InfospectUtil {
   }
 
   static Future<File?> shareLogs() async {
-    const String name = 'logs';
+    final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    final String timestamp = f.format(DateTime.now());
+    final String name = 'logs_$timestamp';
 
     final ShareFileData shareFileData = await _getShareFileData(name);
     for (final InfospectLog item in Infospect.instance.infospectLogger.logs) {
@@ -127,7 +144,9 @@ class InfospectUtil {
   }
 
   static Future<File?> shareNetworkCallLogs() async {
-    const String name = 'network_calls_log';
+    final f = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    final String timestamp = f.format(DateTime.now());
+    final String name = 'network_calls_log_$timestamp';
     final ShareFileData shareFileData = await _getShareFileData(name);
 
     for (int i = 1;
@@ -158,7 +177,7 @@ class InfospectUtil {
     await TarFileEncoder().tarDirectory(
       shareFileData.directory,
       filename: zipFilePath,
-      compression: TarFileEncoder.GZIP,
+      compression: TarFileEncoder.gzip,
     );
 
     return File(zipFilePath);
@@ -185,7 +204,7 @@ class InfospectUtil {
     return (
       randomAccessFile: randomAccessFile,
       path: path,
-      directory: directory
+      directory: directory,
     );
   }
 

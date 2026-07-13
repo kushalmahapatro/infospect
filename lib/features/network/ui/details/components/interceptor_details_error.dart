@@ -3,7 +3,6 @@ import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/widgets/details_row_widget.dart';
 import 'package:infospect/features/network/ui/list/components/expansion_widget.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/conditional_widget.dart';
 
 class InterceptorDetailsError extends StatelessWidget {
   final InfospectNetworkCall call;
@@ -16,39 +15,61 @@ class InterceptorDetailsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConditionalWidget(
-      condition: call.loading || call.response == null,
-      ifTrue: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [CircularProgressIndicator(), Text("Waiting for response")],
+    final error = call.error;
+    if (error == null) {
+      return const _AwaitingResponseState(message: 'No error for this call');
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+      children: [
+        ExpansionWidget(
+          title: 'Error',
+          children: [
+            DetailsRowWidget(
+              'Message',
+              error.error.toString(),
+              showDivider: error.stackTrace != null,
+            ),
+            if (error.stackTrace != null)
+              DetailsRowWidget(
+                'Stack Trace',
+                error.stackTrace.toString(),
+                showDivider: false,
+              ),
+          ],
         ),
-      ),
-      ifFalse: ListView(
+      ],
+    );
+  }
+}
+
+class _AwaitingResponseState extends StatelessWidget {
+  const _AwaitingResponseState({this.message = 'Waiting for response'});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// Errors
-              if (call.error != null) ...[
-                ExpansionWidget(
-                  title: 'Error',
-                  children: [
-                    DetailsRowWidget(
-                      'Message',
-                      call.error?.error.toString() ?? '',
-                      showDivider: call.error?.stackTrace != null,
-                    ),
-                    if (call.error?.stackTrace != null)
-                      DetailsRowWidget(
-                        'Stack Trace',
-                        call.error?.stackTrace.toString() ?? '',
-                        showDivider: false,
-                      ),
-                  ],
-                ),
-              ],
-            ],
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+            ),
           ),
         ],
       ),

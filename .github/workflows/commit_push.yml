@@ -7,7 +7,7 @@ on:
       - '*'
 
 env:
-  flutter_version: "3.22.0"
+  flutter_channel: "stable"
   java_version: "12.x"
 
 permissions:
@@ -27,10 +27,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /opt/hostedtoolcache/flutter
-          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
+          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_channel }}
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.flutter_version }}
+          channel: ${{ env.flutter_channel }}
       - run: flutter --version
 
       - name: Install dependencies

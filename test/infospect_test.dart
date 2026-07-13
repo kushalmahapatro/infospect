@@ -1,39 +1,52 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
-  blocTest<TestBloc, TestState>(
-    'emits [MyState] when MyEvent is added.',
-    build: () => TestBloc(),
-    act: (bloc) => bloc.add(const TestEvent(1)),
-    expect: () => const <TestState>[
-      TestState(<A>[
-        A(<B>[B(1)])
-      ])
-    ],
-  );
-}
+  test('TestNotifier emits correct state when update is called', () {
+    final notifier = TestNotifier();
 
-class TestBloc extends Bloc<TestEvent, TestState> {
-  TestBloc()
-      : super(const TestState([
+    // Track state changes
+    final states = <TestState>[];
+    notifier.addListener(() {
+      states.add(notifier.state);
+    });
+
+    // Initial state
+    expect(
+        notifier.state,
+        const TestState([
           A([B(0)])
-        ])) {
-    on<TestEvent>(
-      (event, emit) {
-        emit(state.copyWith(a: [
-          A([B(event.id)])
         ]));
-      },
-    );
-  }
+
+    // Update state
+    notifier.updateState(1);
+
+    // Verify state changed
+    expect(states, [
+      const TestState([
+        A([B(1)])
+      ])
+    ]);
+
+    notifier.dispose();
+  });
 }
 
-class TestEvent {
-  final int id;
-  const TestEvent(this.id);
+class TestNotifier extends ChangeNotifier {
+  TestState _state = const TestState([
+    A([B(0)])
+  ]);
+
+  TestState get state => _state;
+
+  void updateState(int id) {
+    _state = _state.copyWith(a: [
+      A([B(id)])
+    ]);
+    notifyListeners();
+  }
 }
 
 class TestState extends Equatable {

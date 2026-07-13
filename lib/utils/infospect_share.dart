@@ -25,7 +25,9 @@ class InfospectShare {
       for (final file in files) {
         await Process.run('open', ['-R', file.path]);
       }
-      _showSnackBar(context, 'Revealed in Finder');
+      if (context != null && context.mounted) {
+        _showSnackBar(context, 'Revealed in Finder');
+      }
       return;
     }
 
@@ -46,7 +48,9 @@ class InfospectShare {
   }) async {
     if (_useMacosFallback) {
       await Clipboard.setData(ClipboardData(text: text));
-      _showSnackBar(context, 'Copied to clipboard');
+      if (context != null && context.mounted) {
+        _showSnackBar(context, 'Copied to clipboard');
+      }
       return;
     }
 

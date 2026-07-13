@@ -22,47 +22,55 @@ jobs:
     - name: Get version
       id: yq
       uses: mikefarah/yq@master
-
       with:
         cmd: yq -r '.version' 'pubspec.yaml'
+
+    - name: Get package name
+      id: package
+      uses: mikefarah/yq@master
+      with:
+        cmd: yq -r '.name' 'pubspec.yaml'
 
     - name: Print version
       run: echo ${{ steps.yq.outputs.result }}
     
-    - name: Get Latest Tag
-      id: get_tag
+    - name: Get Latest Published Version
+      id: get_latest
       run: |
-        REPO_NAME=${{ github.repository }}
-        LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO_NAME/releases" | jq -r '.[0].tag_name')
-        echo "latest=${LATEST_TAG}">> $GITHUB_OUTPUT
+        PACKAGE_NAME=${{ steps.package.outputs.result }}
+        LATEST=$(curl -sS "https://pub.dev/api/packages/${PACKAGE_NAME}" | jq -r '.latest.version')
+        if [[ -z "$LATEST" || "$LATEST" == "null" ]]; then
+          echo "Failed to resolve latest published version for ${PACKAGE_NAME}"
+          exit 1
+        fi
+        echo "latest=${LATEST}" >> "$GITHUB_OUTPUT"
 
     - name: Print version
-      run: echo "provided_version=${{ steps.yq.outputs.result }} and latest_tag=${{ steps.get_tag.outputs.latest }}"
+      run: echo "provided_version=${{ steps.yq.outputs.result }} and latest_published=${{ steps.get_latest.outputs.latest }}"
 
     - name: Check Version
       id: check_version
       run: |
-        latest_tag=${{ steps.get_tag.outputs.latest }}
-        provided_tag=${{ steps.yq.outputs.result }}
-        
-        # Extract numerical version parts from the tags
-        latest_version=$(echo "$latest_tag" | sed 's/v\?\([0-9.]*\)[-a-zA-Z]*$/\1/')
-        provided_version=$(echo "$provided_tag" | sed 's/v\?\([0-9.]*\)[-a-zA-Z]*$/\1/')
+        latest_version=${{ steps.get_latest.outputs.latest }}
+        provided_version=$(echo "${{ steps.yq.outputs.result }}" | sed 's/^v//')
 
         echo "latest_version=${latest_version} and provided_version=${provided_version}"
-        echo "$provided_version" == "$latest_version"
-        
+
         if [[ "$provided_version" == "$latest_version" ]]; then
-          echo "Provided version is equal to latest version"
-          echo "trigger_next_action=false">> $GITHUB_OUTPUT
+          echo "Provided version is equal to latest published version"
+          echo "trigger_next_action=false" >> "$GITHUB_OUTPUT"
           exit 1
-        elif [[ "$provided_version" < "$latest_version" ]]; then
-          echo "Provided version is less than latest version"
-          echo "trigger_next_action=false">> $GITHUB_OUTPUT
-          exit 1
-        else
-          echo "trigger_next_action=true">> $GITHUB_OUTPUT
         fi
+
+        # Proper semver ordering (avoid bash string comparison).
+        lowest=$(printf '%s\n' "$latest_version" "$provided_version" | sort -V | head -n1)
+        if [[ "$lowest" == "$provided_version" ]]; then
+          echo "Provided version is less than latest published version"
+          echo "trigger_next_action=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+
+        echo "trigger_next_action=true" >> "$GITHUB_OUTPUT"
 
     - name: Trigger Next Action
       run: |

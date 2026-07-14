@@ -22,6 +22,14 @@ to faster bug resolution.
 
 Upgrading from **0.1.5** to **0.2.0**? See **[MIGRATION.md](MIGRATION.md)** for consumer breaking changes (Flutter / SDK floors, `multiview_desktop` desktop runner setup, and obsolete multi-window IPC APIs).
 
+### Desktop compatibility (Multiview hosts)
+
+If your desktop runners use Multiview — especially with a feature-flagged Infospect
+build or a host dependency like `window_manager` — read
+**[DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)** before shipping. It covers
+the `registrar.view` hang, always-`runMultiApp` requirement, quit lifecycle, and
+`hiddenWindowAtLaunch` pitfalls.
+
 ## Getting started
 
 1. Add the dependency to your pubspec.yaml file. (Replace latest-version with the latest version of
@@ -93,6 +101,7 @@ If not provided, the default platform share option will be invoked.
 
     // Multiview natives installed but Infospect logging off:
     Infospect.bootstrapMultiViewApp(const MainApp());
+    // or: InfospectDesktopBootstrap.runAppOrMultiApp(const MainApp());
   ```
 
    On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop)

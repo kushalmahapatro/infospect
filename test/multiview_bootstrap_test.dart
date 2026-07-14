@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infospect/utils/infospect_desktop_bootstrap.dart';
 import 'package:infospect/utils/infospect_multiview_bootstrap.dart';
 
 void main() {
@@ -25,8 +26,6 @@ void main() {
     });
 
     test('uses defaultTargetPlatform when desktopOs is omitted', () {
-      // On the Flutter test binding this is typically Android; assert it
-      // agrees with an explicit false desktop override path.
       final withoutOverride =
           isMultiViewDesktopBootstrapRequired(isWeb: false);
       expect(
@@ -39,9 +38,47 @@ void main() {
     });
   });
 
+  group('InfospectDesktopBootstrap', () {
+    test('isDesktopMultiViewRequired mirrors top-level predicate', () {
+      expect(
+        InfospectDesktopBootstrap.isDesktopMultiViewRequired(
+          isWeb: true,
+          desktopOs: true,
+        ),
+        isFalse,
+      );
+      expect(
+        InfospectDesktopBootstrap.isDesktopMultiViewRequired(
+          isWeb: false,
+          desktopOs: true,
+        ),
+        isTrue,
+      );
+      expect(
+        InfospectDesktopBootstrap.isDesktopMultiViewRequired(
+          isWeb: false,
+          desktopOs: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('flag-off Multiview path requires desktop bootstrap', () {
+      // Hosts that gate Infospect off must still Multiview-bootstrap on desktop.
+      const infospectEnabled = false;
+      final needsMultiView = InfospectDesktopBootstrap.isDesktopMultiViewRequired(
+        isWeb: false,
+        desktopOs: true,
+      );
+      expect(infospectEnabled, isFalse);
+      expect(needsMultiView, isTrue);
+      // API surface for the flag-off branch:
+      expect(InfospectDesktopBootstrap.runAppOrMultiApp, isA<Function>());
+    });
+  });
+
   group('bootstrapMultiViewApp aliases', () {
     test('bootstrapDesktopApp is an alias for bootstrapMultiViewApp', () {
-      // Compile-time / API surface check — both are top-level functions.
       expect(bootstrapDesktopApp, isA<Function>());
       expect(bootstrapMultiViewApp, isA<Function>());
     });

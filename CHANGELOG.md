@@ -7,7 +7,7 @@
 - Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
 - Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
-- **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `bootstrapDesktopApp` (and top-level `bootstrapMultiViewApp`) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
+- **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `InfospectDesktopBootstrap.runAppOrMultiApp` (and top-level helpers) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
@@ -27,6 +27,9 @@
 
 ### Docs
 - README / MIGRATION: Multiview entry must use Infospect bootstrap/`run` (never plain `runApp` on desktop); macOS AppDelegate terminate forwarding; `window_manager` + Multiview hang warning; obsolete multi_window args path
+- **[DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)** — Multiview consumer hazards (`window_manager` / `registrar.view`, feature-flagged Infospect, quit lifecycle, `hiddenWindowAtLaunch`, plugin safety)
+- `InfospectDesktopBootstrap` (`isDesktopMultiViewRequired` / `runAppOrMultiApp`) for flag-off Multiview hosts
+- [AGENTS.md](AGENTS.md) + Cursor rule for Multiview consumer footguns
 
 ## 0.2.0
 

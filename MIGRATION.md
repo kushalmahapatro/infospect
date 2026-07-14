@@ -87,9 +87,74 @@ class MainFlutterWindow: NSWindow {
 }
 ```
 
+Keep `display: false`. Multiview already `orderOut`s the primary window during
+`prepareEngine`. **Do not** also call `window_manager`’s `hiddenWindowAtLaunch`
+(or equivalent early hide) — see [DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md).
+
 #### `macos/Runner/AppDelegate.swift`
 
-Forward terminate / reopen / dock-menu handling to `MultiviewDesktopPlugin`:
+Forward terminate / reopen / dock-menu handling to `MultiviewDesktopPlugin`.
+**Important:** Multiview returns `.terminateCancel` until Dart Multiview replies.
+If your host can start without `runMultiApp` (e.g. Infospect behind a flag), add a
+lifecycle-ready failsafe so quit is not cancelled forever:
+
+```swift
+import Cocoa
+import FlutterMacOS
+import multiview_desktop
+
+@main
+class AppDelegate: FlutterAppDelegate {
+  /// Set true from Dart after Multiview bootstrap (host method channel).
+  private var multiviewLifecycleReady = false
+
+  override func applicationShouldTerminateAfterLastWindowClosed(
+      _ sender: NSApplication
+  ) -> Bool {
+    return MultiviewDesktopPlugin.applicationShouldTerminateAfterLastWindowClosed()
+  }
+
+  override func applicationShouldHandleReopen(
+      _ sender: NSApplication,
+      hasVisibleWindows flag: Bool
+  ) -> Bool {
+    if MultiviewDesktopPlugin.applicationShouldHandleReopen(
+      sender,
+      hasVisibleWindows: flag
+    ) {
+      return true
+    }
+    return super.applicationShouldHandleReopen(sender, hasVisibleWindows: flag)
+  }
+
+  override func applicationSupportsSecureRestorableState(_ app: NSApplication)
+      -> Bool
+  {
+    return true
+  }
+
+  override func applicationShouldTerminate(_ sender: NSApplication)
+      -> NSApplication.TerminateReply
+  {
+    if !multiviewLifecycleReady {
+      // Dart never started Multiview — do not cancel quit forever.
+      return .terminateNow
+    }
+    return MultiviewDesktopPlugin.applicationShouldTerminate(sender)
+  }
+
+  override func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    return MultiviewDesktopPlugin.applicationDockMenu(sender)
+  }
+}
+```
+
+Infospect’s example AppDelegate forwards unconditionally because its Dart entry
+always Multiview-bootstraps. Feature-flagged hosts should use the failsafe above
+(full detail in [DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)).
+
+<details>
+<summary>Minimal AppDelegate (Infospect example — always Multiview Dart)</summary>
 
 ```swift
 import Cocoa
@@ -134,6 +199,44 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 ```
+
+</details>
+
+---
+
+### Hosts that also use `window_manager`
+
+Upstream `window_manager` 0.3.x resolves the primary window via `registrar.view`,
+which is often nil under Multiview and can **hang the platform thread** (macOS) or
+null-deref (Windows/Linux). Infospect does not depend on `window_manager`.
+
+Required host mitigations:
+
+1. Call `runMultiApp` (via Infospect / `InfospectDesktopBootstrap`) **before**
+   `windowManager.ensureInitialized()`.
+2. Do **not** use `hiddenWindowAtLaunch` on Multiview hosts.
+3. Patch host-window resolution (macOS: `NSApp.windows` / FlutterViewController;
+   Windows/Linux: null-safe view fallbacks) or migrate chrome to Multiview
+   `WindowOptions`.
+
+Full guidance: [DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md).
+
+### Infospect behind a feature flag
+
+When Multiview runners are installed but Infospect logging is disabled:
+
+```dart
+void main() {
+  if (kEnableInfospect) {
+    Infospect.ensureInitialized(...);
+    Infospect.instance.run(const [], myApp: const MyApp());
+  } else {
+    InfospectDesktopBootstrap.runAppOrMultiApp(const MyApp());
+  }
+}
+```
+
+Never fall back to plain `runApp` on desktop in the “flag off” branch.
 
 ---
 
@@ -486,6 +589,8 @@ None of these require consumer code changes beyond the migration steps above.
 
 ## Further reading
 
-- [CHANGELOG.md](CHANGELOG.md) — full 0.2.0 release notes
+- [DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md) — Multiview + `window_manager` / feature-flag / quit hazards
+- [CHANGELOG.md](CHANGELOG.md) — full 0.2.0 / 0.3.0 release notes
 - [README.md](README.md) — current usage
 - [multiview_desktop on pub.dev](https://pub.dev/packages/multiview_desktop) — native runner details
+- [AGENTS.md](AGENTS.md) — notes for automated agents working in this repo

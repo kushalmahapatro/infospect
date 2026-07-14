@@ -23,6 +23,7 @@ import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_
 import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/data_transfer.dart';
+import 'package:infospect/utils/infospect_desktop_window.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:rxdart/rxdart.dart';

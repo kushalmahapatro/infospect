@@ -92,6 +92,10 @@ If not provided, the default platform share option will be invoked.
    Desktop hosts also need the [multiview_desktop platform setup](https://pub.dev/packages/multiview_desktop)
    in their macOS / Windows / Linux runners (see the package README and the Infospect example app).
 
+   `Infospect.instance.run` sets `windowButtonVisibility: true` so the host window keeps native
+   minimize / maximize / close controls after multiview startup. If you call `runMultiApp`
+   yourself instead of `Infospect.instance.run`, pass the same via `MultiAppConfig.globalWindowOptions`.
+
 3. Adding network call interceptor
    a. dio:
   ```dart

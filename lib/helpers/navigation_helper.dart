@@ -52,7 +52,7 @@ class InfospectNavigationHelper {
 
     _infospectWindowId = await openWindow(
       (context, id) => interceptorScreen(isDarkTheme: darkTheme),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: InfospectDataTransfer.windowName,
         size: const Size(1280, 720),
         minimumSize: const Size(800, 600),
@@ -87,7 +87,7 @@ class InfospectNavigationHelper {
     final bool darkTheme = _infospect.context != null ? isDarkTheme : true;
     final windowId = await openWindow(
       (context, id) => _tabWindowScreen(tab),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: '${tab.windowTitle} · Infospect',
         size: const Size(1100, 720),
         minimumSize: const Size(720, 480),
@@ -305,7 +305,7 @@ class InfospectNavigationHelper {
         kind: kind,
         detailsInitiallyExpanded: detailsInitiallyExpanded,
       ),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: '$title · ${call.method} ${call.endpoint}',
         size: const Size(980, 760),
         minimumSize: const Size(560, 420),
@@ -343,7 +343,7 @@ class InfospectNavigationHelper {
         title: title,
         standaloneWindow: true,
       ),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: title,
         size: const Size(900, 700),
         minimumSize: const Size(480, 360),
@@ -392,7 +392,10 @@ class InfospectNavigationHelper {
   /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) {
     if (!kIsWeb && InfospectUtil.isDesktop) {
-      runMultiApp(home: (context, id) => myApp);
+      runMultiApp(
+        home: (context, id) => myApp,
+        config: infospectMultiAppConfig(),
+      );
     } else {
       runApp(myApp);
     }

@@ -409,6 +409,11 @@ void main(List<String> args) {
 
 `run` still accepts `args` for compatibility, but they are unused on desktop with `multiview_desktop`. Network calls, logs, and theme are shared in-process — no IPC.
 
+`Infospect.instance.run` configures `MultiAppConfig.globalWindowOptions` with
+`titleBarStyle: TitleBarStyle.normal` and `windowButtonVisibility: true`. Without that,
+`multiview_desktop` resets the host OS window and hides minimize / maximize / close.
+If you call `runMultiApp` yourself, set the same options.
+
 ### Obsolete APIs (remove when convenient)
 
 These remain as **deprecated no-ops** so existing call sites compile, but you should delete them:

@@ -7,6 +7,7 @@ import 'package:infospect/features/network/breakpoints/models/infospect_breakpoi
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_intercept_screen.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
+import 'package:infospect/utils/infospect_desktop_window.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
@@ -103,7 +104,7 @@ class InfospectBreakpointPresenter {
           );
         },
       ),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: '$title · ${payload.method} ${payload.endpoint}',
         size: const Size(720, 580),
         minimumSize: const Size(520, 420),

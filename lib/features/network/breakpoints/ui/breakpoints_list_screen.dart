@@ -4,6 +4,7 @@ import 'package:infospect/features/network/breakpoints/infospect_breakpoint_mana
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
+import 'package:infospect/utils/infospect_desktop_window.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
@@ -52,7 +53,7 @@ class BreakpointsListScreen extends StatelessWidget {
         key: _desktopScreenKey,
         embedded: true,
       ),
-      options: WindowOptions(
+      options: infospectDesktopWindowOptions(
         title: 'Breakpoints · Infospect',
         size: const Size(560, 520),
         minimumSize: const Size(420, 360),

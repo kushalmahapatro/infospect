@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 
 /// Compact request / response breakpoint editor.
+///
+/// On desktop (`desktop: true`) uses a Scaffold + summary bar so the window
+/// matches other Infospect popouts. Mobile keeps the denser sheet layout.
 class BreakpointInterceptScreen extends StatefulWidget {
   const BreakpointInterceptScreen({
     super.key,
@@ -11,6 +14,7 @@ class BreakpointInterceptScreen extends StatefulWidget {
     required this.onContinue,
     required this.onAbort,
     this.compact = true,
+    this.desktop = false,
   });
 
   final InfospectBreakpointPhase phase;
@@ -18,6 +22,7 @@ class BreakpointInterceptScreen extends StatefulWidget {
   final ValueChanged<InfospectBreakpointPayload> onContinue;
   final ValueChanged<InfospectBreakpointPayload> onAbort;
   final bool compact;
+  final bool desktop;
 
   @override
   State<BreakpointInterceptScreen> createState() =>
@@ -114,6 +119,82 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.desktop) {
+      return _buildDesktop(context);
+    }
+    return _buildMobile(context);
+  }
+
+  Widget _buildDesktop(BuildContext context) {
+    final theme = Theme.of(context);
+    final border = theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
+    final title =
+        _isResponse ? 'Response Breakpoint' : 'Request Breakpoint';
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        toolbarHeight: 40,
+        automaticallyImplyLeading: false,
+        titleSpacing: 12,
+        title: Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('breakpoint_abort'),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              foregroundColor: theme.colorScheme.error,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            onPressed: () => widget.onAbort(_buildPayload()),
+            child: const Text('Abort'),
+          ),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: FilledButton(
+              key: const Key('breakpoint_continue'),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => widget.onContinue(_buildPayload()),
+              child: const Text('Continue'),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _DesktopSummaryBar(
+            payload: widget.initialPayload,
+            isResponse: _isResponse,
+            statusController: _isResponse ? _statusController : null,
+          ),
+          Divider(height: 1, thickness: 1, color: border),
+          _DesktopSectionTabs(
+            sections: _sections,
+            selected: _section,
+            onSelected: (index) => setState(() => _section = index),
+          ),
+          Divider(height: 1, thickness: 1, color: border),
+          Expanded(child: _sectionBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobile(BuildContext context) {
     final theme = Theme.of(context);
     final title =
         _isResponse ? 'Response Breakpoint' : 'Request Breakpoint';
@@ -249,24 +330,235 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
             ),
           ),
           Divider(height: 1, color: border),
+          Expanded(child: _sectionBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionBody() {
+    return switch (_sections[_section]) {
+      'Headers' => _KvEditor(
+          entries: _headers,
+          keyHint: 'Header',
+          valueHint: 'Value',
+          onChanged: () => setState(() {}),
+        ),
+      'Query' => _KvEditor(
+          entries: _params,
+          keyHint: 'Param',
+          valueHint: 'Value',
+          onChanged: () => setState(() {}),
+        ),
+      _ => _BodyEditor(controller: _bodyController),
+    };
+  }
+}
+
+class _DesktopSummaryBar extends StatelessWidget {
+  const _DesktopSummaryBar({
+    required this.payload,
+    required this.isResponse,
+    this.statusController,
+  });
+
+  final InfospectBreakpointPayload payload;
+  final bool isResponse;
+  final TextEditingController? statusController;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 40),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      child: Row(
+        children: [
+          _Chip(
+            label: payload.method,
+            background: theme.colorScheme.primary.withValues(alpha: 0.2),
+            foreground: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          _Chip(
+            label: isResponse ? 'Response' : 'Request',
+            background: theme.colorScheme.tertiary.withValues(alpha: 0.18),
+            foreground: theme.colorScheme.tertiary,
+          ),
+          if (isResponse && statusController != null) ...[
+            const SizedBox(width: 10),
+            Text(
+              'Status',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 64,
+              height: 28,
+              child: TextField(
+                key: const Key('breakpoint_status_field'),
+                controller: statusController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 12),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  border: OutlineInputBorder(),
+                  hintText: '200',
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 10),
           Expanded(
-            child: switch (_sections[_section]) {
-              'Headers' => _KvEditor(
-                  entries: _headers,
-                  keyHint: 'Header',
-                  valueHint: 'Value',
-                  onChanged: () => setState(() {}),
-                ),
-              'Query' => _KvEditor(
-                  entries: _params,
-                  keyHint: 'Param',
-                  valueHint: 'Value',
-                  onChanged: () => setState(() {}),
-                ),
-              _ => _BodyEditor(controller: _bodyController),
-            },
+            child: SelectableText(
+              payload.uri.isNotEmpty ? payload.uri : payload.endpoint,
+              maxLines: 1,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DesktopSectionTabs extends StatelessWidget {
+  const _DesktopSectionTabs({
+    required this.sections,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> sections;
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final border = theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
+
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+      child: Row(
+        children: [
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            _SectionTab(
+              label: sections[i],
+              selected: selected == i,
+              onTap: () => onSelected(i),
+              border: border,
+            ),
+          ],
+          const Spacer(),
+          Text(
+            'Edit values, then Continue',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 10,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTab extends StatelessWidget {
+  const _SectionTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.border,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color border;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: selected
+          ? theme.colorScheme.primary.withValues(alpha: 0.14)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(5),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(5),
+        child: Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.35)
+                  : border.withValues(alpha: 0),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.62),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        color: background,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: foreground,
+        ),
       ),
     );
   }

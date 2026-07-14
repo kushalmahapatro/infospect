@@ -4,9 +4,9 @@
 ### Features
 - Proxyman-style network breakpoints without a proxy: match by endpoint (optional method), pause request and/or response, edit headers / query params / body, then Continue or Abort
 - Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
-- Request breakpoint editors open as a fullscreen dialog on mobile and a new window on desktop; response editors follow the same pattern after the server replies
+- Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
-- Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details
+- Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
@@ -16,7 +16,9 @@
 ### Fixes
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
 - Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
-- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, smaller desktop window)
+- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop)
+- Desktop Breakpoints management window is a singleton (reopen focuses the existing window); concurrent intercept windows keep their edit state across multiview rebuilds
+- Desktop network details refresh the selected call live and show Original vs Edited when a breakpoint changed the request/response
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
 
 ## 0.2.0

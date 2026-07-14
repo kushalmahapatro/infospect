@@ -185,14 +185,17 @@ If not provided, the default platform share option will be invoked.
 
    - **Mobile:** a fullscreen dialog opens to edit the request; after the
      server responds, another dialog opens for the response.
-   - **Desktop:** the same editors open in a new window.
+   - **Desktop:** the same editors open in a native window (AppBar, summary
+     bar, section tabs). Reopening **Breakpoints** focuses the existing
+     management window. Concurrent intercept windows keep their edit state.
 
    Use **Continue** to send the (possibly edited) request / response ahead, or
    **Abort** to cancel the call.
 
    Edited calls keep both the **original** and **edited** URL / params /
    headers / body (and response status) on the logged call, shown as an
-   Original vs Edited section in request / response details.
+   Original vs Edited section in request / response details (mobile and
+   desktop).
 
    **UI / integration tests**
 

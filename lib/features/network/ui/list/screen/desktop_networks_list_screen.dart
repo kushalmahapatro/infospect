@@ -46,7 +46,53 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
   }
 
   void _onNotifierChanged() {
-    setState(() {});
+    setState(() {
+      _refreshSelectedCallFromNotifier();
+    });
+  }
+
+  void _refreshSelectedCallFromNotifier() {
+    final selected = _selectedCall;
+    if (selected == null) return;
+
+    InfospectNetworkCall? updated;
+    for (final call in widget.notifier.calls) {
+      if (call.id == selected.id) {
+        updated = call;
+        break;
+      }
+    }
+    if (updated == null) {
+      _selectedCall = null;
+      _topicHelper = null;
+      _responseTopicHelper = null;
+      _selectedTopic = null;
+      _selectedResponseTopic = null;
+      return;
+    }
+
+    final requestTopicName = _selectedTopic?.topic;
+    final responseTopicName = _selectedResponseTopic?.topic;
+    _selectedCall = updated;
+    _topicHelper = RequestDetailsTopicHelper(updated);
+    _responseTopicHelper = ResponseDetailsTopicHelper(updated);
+    _selectedTopic = _findTopic(
+      _topicHelper!.desktopTopics,
+      requestTopicName,
+    );
+    _selectedResponseTopic = _findTopic(
+      _responseTopicHelper!.desktopTopics,
+      responseTopicName,
+    );
+  }
+
+  TopicData? _findTopic(List<TopicData> topics, String? name) {
+    if (topics.isEmpty) return null;
+    if (name == null) return topics.first;
+    for (final topic in topics) {
+      if (topic.topic == name) return topic;
+    }
+    return topics.first;
   }
 
   void _onCallSelected(InfospectNetworkCall call) {
@@ -54,8 +100,12 @@ class _DesktopNetworksListScreenState extends State<DesktopNetworksListScreen> {
       _selectedCall = call;
       _topicHelper = RequestDetailsTopicHelper(call);
       _responseTopicHelper = ResponseDetailsTopicHelper(call);
-      _selectedTopic = _topicHelper!.desktopTopics.first;
-      _selectedResponseTopic = _responseTopicHelper!.desktopTopics.first;
+      _selectedTopic = _topicHelper!.desktopTopics.isNotEmpty
+          ? _topicHelper!.desktopTopics.first
+          : null;
+      _selectedResponseTopic = _responseTopicHelper!.desktopTopics.isNotEmpty
+          ? _responseTopicHelper!.desktopTopics.first
+          : null;
     });
   }
 

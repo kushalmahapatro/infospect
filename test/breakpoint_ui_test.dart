@@ -9,7 +9,10 @@ import 'package:infospect/features/network/breakpoints/ui/breakpoint_intercept_s
 import 'package:infospect/features/network/breakpoints/ui/breakpoints_list_screen.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_request.dart';
+import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/details/components/interceptor_details_request.dart';
+import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
+import 'package:infospect/features/network/ui/details/screen/desktop_details_screen.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
 
@@ -556,6 +559,130 @@ void main() {
       expect(find.textContaining('page=1'), findsWidgets);
       expect(find.textContaining('page=2'), findsWidgets);
     });
+
+    testWidgets('desktop details show Original vs Edited for request/response',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+      final call = InfospectNetworkCall(92).copyWith(
+        method: 'POST',
+        endpoint: '/checkout',
+        uri: 'https://example.com/checkout?v=2',
+        server: 'example.com',
+        loading: false,
+        request: InfospectNetworkRequest(
+          headers: const {'content-type': 'application/json'},
+          queryParameters: const {'v': '2'},
+          body: '{"ok":true}',
+        ),
+        response: InfospectNetworkResponse(
+          status: 200,
+          headers: const {'content-type': 'application/json'},
+          body: '{"ok":true}',
+        ),
+        requestEditedAtBreakpoint: true,
+        responseEditedAtBreakpoint: true,
+        hadRequestBreakpoint: true,
+        hadResponseBreakpoint: true,
+        requestBreakpointEdit: const InfospectBreakpointEdit(
+          original: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/checkout?v=1',
+            endpoint: '/checkout',
+            headers: {'content-type': 'application/json'},
+            queryParameters: {'v': '1'},
+            body: '{"ok":false}',
+          ),
+          edited: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/checkout?v=2',
+            endpoint: '/checkout',
+            headers: {'content-type': 'application/json'},
+            queryParameters: {'v': '2'},
+            body: '{"ok":true}',
+          ),
+        ),
+        responseBreakpointEdit: const InfospectBreakpointEdit(
+          original: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/checkout?v=2',
+            endpoint: '/checkout',
+            headers: {'content-type': 'application/json'},
+            body: '{"ok":false}',
+            statusCode: 500,
+          ),
+          edited: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/checkout?v=2',
+            endpoint: '/checkout',
+            headers: {'content-type': 'application/json'},
+            body: '{"ok":true}',
+            statusCode: 200,
+          ),
+        ),
+      );
+
+      final topicHelper = RequestDetailsTopicHelper(call);
+      final responseHelper = ResponseDetailsTopicHelper(call);
+
+      await tester.pumpWidget(
+        wrap(
+          Scaffold(
+            body: DesktopDetailsScreen(
+              infospect: Infospect.instance,
+              selectedCall: call,
+              topicHelper: topicHelper,
+              responseTopicHelper: responseHelper,
+              selectedTopic: topicHelper.desktopTopics.first,
+              selectedResponseTopic: responseHelper.desktopTopics.first,
+              onTopicSelected: (_) {},
+              onResponseTopicSelected: (_) {},
+            ),
+          ),
+          size: const Size(1280, 800),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Original vs Edited'), findsNWidgets(2));
+      expect(find.text('BP✎'), findsOneWidget);
+      expect(find.textContaining('Original:'), findsWidgets);
+      expect(find.text('edited'), findsWidgets);
+    });
+
+    testWidgets('desktop intercept screen uses native chrome', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(720, 580));
+      await tester.pumpWidget(
+        wrap(
+          BreakpointInterceptScreen(
+            phase: InfospectBreakpointPhase.request,
+            initialPayload: const InfospectBreakpointPayload(
+              method: 'GET',
+              uri: 'https://example.com/native',
+              endpoint: '/native',
+              headers: {'accept': 'application/json'},
+              queryParameters: {'q': '1'},
+              body: '',
+            ),
+            desktop: true,
+            onContinue: (_) {},
+            onAbort: (_) {},
+          ),
+          size: const Size(720, 580),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.text('Request Breakpoint'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
+      expect(find.text('Abort'), findsOneWidget);
+      expect(find.textContaining('https://example.com/native'), findsOneWidget);
+
+      await expectLater(
+        find.byType(BreakpointInterceptScreen),
+        matchesGoldenFile('goldens/breakpoint_desktop_request.png'),
+      );
+    });
   });
 
   group('Artifact export', () {
@@ -569,6 +696,7 @@ void main() {
         'goldens/breakpoint_request_body_dark.png',
         'goldens/breakpoint_integration_request_dialog.png',
         'goldens/breakpoint_integration_response_dialog.png',
+        'goldens/breakpoint_desktop_request.png',
       ];
 
       for (final relative in candidates) {

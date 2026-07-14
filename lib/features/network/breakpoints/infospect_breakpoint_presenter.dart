@@ -11,11 +11,18 @@ import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
 /// Presents request/response breakpoint editors (compact sheet on mobile,
-/// compact window on desktop).
+/// native desktop window on desktop).
+///
+/// Desktop intercept windows are cached by session id so opening another
+/// window (which rebuilds every multiview builder) does not wipe in-progress
+/// edits. Multiple concurrent intercept windows are supported.
 class InfospectBreakpointPresenter {
   InfospectBreakpointPresenter(this._infospect);
 
   final Infospect _infospect;
+
+  /// Keeps intercept screen [Element]/s alive across multiview rebuilds.
+  final Map<String, GlobalKey> _desktopScreenKeys = <String, GlobalKey>{};
 
   Future<InfospectBreakpointResult> present({
     required InfospectBreakpointPhase phase,
@@ -59,30 +66,47 @@ class InfospectBreakpointPresenter {
         ? 'Request Breakpoint'
         : 'Response Breakpoint';
 
+    final screenKey = _desktopScreenKeys.putIfAbsent(
+      sessionId,
+      GlobalKey.new,
+    );
+
+    Future<void> finish(InfospectBreakpointResult result, int id) async {
+      _desktopScreenKeys.remove(sessionId);
+      _infospect.breakpointManager.completePending(sessionId, result);
+      try {
+        await MultiViewDesktop.fromId(id).closeWindow();
+      } catch (_) {}
+    }
+
     final windowId = await openWindow(
       (context, id) => BreakpointInterceptScreen(
+        key: screenKey,
         phase: phase,
         initialPayload: payload,
         compact: true,
-        onContinue: (edited) async {
-          _infospect.breakpointManager.completePending(
-            sessionId,
-            InfospectBreakpointResult.continueWith(edited),
+        desktop: true,
+        onContinue: (edited) {
+          unawaited(
+            finish(
+              InfospectBreakpointResult.continueWith(edited),
+              id,
+            ),
           );
-          await MultiViewDesktop.fromId(id).closeWindow();
         },
-        onAbort: (edited) async {
-          _infospect.breakpointManager.completePending(
-            sessionId,
-            InfospectBreakpointResult.abort(edited),
+        onAbort: (edited) {
+          unawaited(
+            finish(
+              InfospectBreakpointResult.abort(edited),
+              id,
+            ),
           );
-          await MultiViewDesktop.fromId(id).closeWindow();
         },
       ),
       options: WindowOptions(
         title: '$title · ${payload.method} ${payload.endpoint}',
-        size: const Size(640, 520),
-        minimumSize: const Size(480, 360),
+        size: const Size(720, 580),
+        minimumSize: const Size(520, 420),
         alignment: Alignment.center,
         shellOverrides: ViewShellOverrides(
           appearance: AppShellPatch(
@@ -97,6 +121,7 @@ class InfospectBreakpointPresenter {
     void onWindowsChanged() {
       if (!MultiViewDesktop.allWindowViewIds.contains(windowId)) {
         MultiViewDesktop.allWindowIdsNotifier.removeListener(onWindowsChanged);
+        _desktopScreenKeys.remove(sessionId);
         if (!completer.isCompleted) {
           _infospect.breakpointManager.completePending(
             sessionId,

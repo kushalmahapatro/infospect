@@ -14,27 +14,16 @@ class BreakpointsListScreen extends StatelessWidget {
   /// When true, omits close/back chrome (used inside a desktop window).
   final bool embedded;
 
+  /// Singleton desktop management window — reopening focuses the existing one.
+  static int? _desktopWindowId;
+  static final GlobalKey _desktopScreenKey = GlobalKey();
+  static bool _listeningForClose = false;
+
   static Future<void> open(BuildContext context) async {
     if (!kIsWeb &&
         InfospectUtil.isDesktop &&
         !Infospect.instance.preferInAppBreakpointDialogs) {
-      final darkTheme = Theme.of(context).brightness == Brightness.dark;
-      await openWindow(
-        (ctx, id) => const BreakpointsListScreen(embedded: true),
-        options: WindowOptions(
-          title: 'Breakpoints · Infospect',
-          size: const Size(560, 480),
-          minimumSize: const Size(420, 320),
-          alignment: Alignment.center,
-          shellOverrides: ViewShellOverrides(
-            appearance: AppShellPatch(
-              theme: InfospectTheme.lightTheme,
-              darkTheme: InfospectTheme.darkTheme,
-              themeMode: darkTheme ? ThemeMode.dark : ThemeMode.light,
-            ),
-          ),
-        ),
-      );
+      await _openDesktop(context);
       return;
     }
 
@@ -44,6 +33,50 @@ class BreakpointsListScreen extends StatelessWidget {
         builder: (_) => const BreakpointsListScreen(),
       ),
     );
+  }
+
+  static Future<void> _openDesktop(BuildContext context) async {
+    final existing = _desktopWindowId;
+    if (existing != null &&
+        MultiViewDesktop.allWindowViewIds.contains(existing)) {
+      final window = MultiViewDesktop.fromId(existing);
+      await window.show();
+      await window.focus();
+      return;
+    }
+
+    final darkTheme = Theme.of(context).brightness == Brightness.dark;
+    _ensureCloseListener();
+    _desktopWindowId = await openWindow(
+      (ctx, id) => BreakpointsListScreen(
+        key: _desktopScreenKey,
+        embedded: true,
+      ),
+      options: WindowOptions(
+        title: 'Breakpoints · Infospect',
+        size: const Size(560, 520),
+        minimumSize: const Size(420, 360),
+        alignment: Alignment.center,
+        shellOverrides: ViewShellOverrides(
+          appearance: AppShellPatch(
+            theme: InfospectTheme.lightTheme,
+            darkTheme: InfospectTheme.darkTheme,
+            themeMode: darkTheme ? ThemeMode.dark : ThemeMode.light,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static void _ensureCloseListener() {
+    if (_listeningForClose) return;
+    _listeningForClose = true;
+    MultiViewDesktop.allWindowIdsNotifier.addListener(() {
+      final id = _desktopWindowId;
+      if (id != null && !MultiViewDesktop.allWindowViewIds.contains(id)) {
+        _desktopWindowId = null;
+      }
+    });
   }
 
   @override
@@ -213,22 +246,46 @@ class BreakpointsListScreen extends StatelessWidget {
     BuildContext context, {
     InfospectNetworkBreakpoint? existing,
   }) async {
-    final result = await showModalBottomSheet<InfospectNetworkBreakpoint>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-      ),
-      builder: (dialogContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+    final theme = Theme.of(context);
+    final useDesktopDialog = embedded ||
+        (!kIsWeb &&
+            InfospectUtil.isDesktop &&
+            !Infospect.instance.preferInAppBreakpointDialogs);
+
+    final InfospectNetworkBreakpoint? result;
+    if (useDesktopDialog) {
+      result = await showDialog<InfospectNetworkBreakpoint>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => Dialog(
+          backgroundColor: theme.colorScheme.surface,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+              child: _BreakpointRuleSheet(existing: existing),
+            ),
+          ),
         ),
-        child: _BreakpointRuleSheet(existing: existing),
-      ),
-    );
+      );
+    } else {
+      result = await showModalBottomSheet<InfospectNetworkBreakpoint>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        showDragHandle: true,
+        backgroundColor: theme.colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+        ),
+        builder: (dialogContext) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+          ),
+          child: _BreakpointRuleSheet(existing: existing),
+        ),
+      );
+    }
     if (result == null) return;
 
     final manager = Infospect.instance.breakpointManager;

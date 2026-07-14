@@ -206,7 +206,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+            padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
             child: Row(
               children: [
                 Expanded(
@@ -216,11 +216,11 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
                       Text(
                         title,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         '${widget.initialPayload.method}  ${widget.initialPayload.endpoint}',
                         maxLines: 1,
@@ -241,6 +241,8 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
                     visualDensity: VisualDensity.compact,
                     foregroundColor: theme.colorScheme.error,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   onPressed: () => widget.onAbort(_buildPayload()),
                   child: const Text('Abort'),
@@ -250,7 +252,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 32),
+                    minimumSize: const Size(0, 30),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   onPressed: () => widget.onContinue(_buildPayload()),
@@ -262,7 +264,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
           ),
           if (_isResponse)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
               child: Row(
                 children: [
                   Text(
@@ -307,7 +309,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
             child: SizedBox(
               width: double.infinity,
               child: SegmentedButton<int>(

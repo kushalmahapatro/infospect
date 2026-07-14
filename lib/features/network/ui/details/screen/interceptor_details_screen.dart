@@ -9,6 +9,7 @@ import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_call_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
+import 'package:infospect/utils/common_widgets/infospect_mobile_chrome.dart';
 import 'package:infospect/utils/infospect_share.dart';
 
 class InterceptorDetailsScreen extends StatefulWidget {
@@ -62,7 +63,10 @@ class _InterceptorDetailsScreenState extends State<InterceptorDetailsScreen> {
   Widget build(BuildContext context) {
     if (widget.call == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Network call')),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: const InfospectMobileToolbar(
+          title: Text('Network call'),
+        ),
         body: Center(
           child: Text(
             'No call selected',
@@ -85,24 +89,26 @@ class _InterceptorDetailsScreenState extends State<InterceptorDetailsScreen> {
     final selectedTab = widget.notifier.selectedTab.clamp(0, tabs.length - 1);
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        toolbarHeight: 44,
-        titleSpacing: 0,
+      backgroundColor: theme.colorScheme.surface,
+      appBar: InfospectMobileToolbar(
         title: Text(
           call.endpoint.isNotEmpty ? call.endpoint : 'Network call',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleSmall?.copyWith(
             fontFamily: 'monospace',
-            fontSize: 13,
+            fontSize: InfospectMobileChrome.titleFontSize,
             fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         actions: [
           IconButton(
             tooltip: 'Share',
             visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints:
+                BoxConstraints.tight(InfospectMobileChrome.backTapTarget),
             icon: const Icon(Icons.share_rounded, size: 18),
             onPressed: _shareCall,
           ),

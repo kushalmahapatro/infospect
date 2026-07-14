@@ -6,6 +6,7 @@ import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifi
 import 'package:infospect/features/network/ui/list/screen/networks_list_screen.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/infospect.dart';
+import 'package:infospect/utils/common_widgets/infospect_mobile_chrome.dart';
 
 class LaunchMobileScreen extends StatelessWidget {
   final Infospect infospect;
@@ -46,15 +47,8 @@ class LaunchMobileScreen extends StatelessWidget {
                   selectedIndex: index,
                   tabs: NavigationTabData.tabs,
                   tabChangedCallback: launchNotifier.selectTab,
-                  leading: IconButton(
+                  leading: InfospectCompactBackButton(
                     tooltip: 'Close',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
                     onPressed: () => _close(context),
                   ),
                 ),

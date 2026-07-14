@@ -20,7 +20,7 @@
 ### Fixes
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
 - Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
-- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop)
+- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop); mobile Breakpoints / details / intercept chrome aligned with the compact main Infospect toolbar (shared back button, 40px height)
 - Desktop Breakpoints management uses a table + inspector pane (not mobile list/sheets); reopen focuses the existing window
 - Concurrent intercept windows keep their edit state across multiview rebuilds
 - Desktop network details use a side-by-side Original vs Edited diff panel with top spacing and flex layout (no overflow when expanded)

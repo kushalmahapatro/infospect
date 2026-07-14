@@ -4,6 +4,7 @@ import 'package:infospect/features/network/breakpoints/infospect_breakpoint_mana
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
+import 'package:infospect/utils/common_widgets/infospect_mobile_chrome.dart';
 import 'package:infospect/utils/infospect_desktop_window.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
@@ -838,19 +839,16 @@ class _BreakpointsMobileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
+      appBar: InfospectMobileToolbar(
         title: const Text('Breakpoints'),
-        titleTextStyle: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: theme.colorScheme.onSurface,
-        ),
-        toolbarHeight: 44,
         actions: [
           IconButton(
             tooltip: 'Add breakpoint',
             visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: BoxConstraints.tight(InfospectMobileChrome.backTapTarget),
             onPressed: () => _showMobileEditor(context),
-            icon: const Icon(Icons.add, size: 20),
+            icon: const Icon(Icons.add_rounded, size: 20),
           ),
         ],
       ),
@@ -873,7 +871,9 @@ class _BreakpointsMobileScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       'No breakpoints yet',
-                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: InfospectMobileChrome.titleFontSize,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1077,7 +1077,7 @@ class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1085,10 +1085,11 @@ class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
             Text(
               isEdit ? 'Edit breakpoint' : 'Add breakpoint',
               style: theme.textTheme.titleSmall?.copyWith(
+                fontSize: InfospectMobileChrome.titleFontSize,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             TextField(
               controller: _endpointController,
               style: const TextStyle(fontSize: 13),

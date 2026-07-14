@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/features/logger/models/infospect_log.dart';
 import 'package:infospect/features/logger/ui/logs_list/components/log_details_pane.dart';
+import 'package:infospect/utils/common_widgets/infospect_mobile_chrome.dart';
 
 class LogDetailsScreen extends StatelessWidget {
   const LogDetailsScreen({
@@ -15,7 +16,10 @@ class LogDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Log details')),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: const InfospectMobileToolbar(
+        title: Text('Log details'),
+      ),
       body: LogDetailsContent(log: log, searchedText: searchedText),
     );
   }

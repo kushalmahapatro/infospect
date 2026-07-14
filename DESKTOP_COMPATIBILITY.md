@@ -190,6 +190,27 @@ Before adding desktop plugins, check for force-unwraps of `registrar.view` /
 
 ---
 
+## Menu bars — never replace the host
+
+Infospect’s **inspector window** uses an in-window Material menu bar
+(`InfospectDesktopMenuShell`). That is scoped to the Infospect view and does
+**not** call `platformMenuDelegate.setMenus` or
+`MultiViewDesktop.setMenuItems`.
+
+For the **host** app:
+
+| Approach | Effect on host menus |
+|---|---|
+| `InfospectInvoker` (recommended default) | Keyboard shortcut only — no menu changes |
+| `InfospectDesktopInvoker(menus: hostMenus, …)` | Appends Infospect; keeps `menus` / `barButtons` |
+| `InfospectDesktopInvoker.mergePlatformMenus(host)` | Insert Infospect into an existing `PlatformMenuBar` |
+| `InfospectDesktopInvoker.mergeTaskbarMenus(host)` | Merge before `MultiViewDesktop.setMenuItems` (that API replaces the full list) |
+
+Do **not** call `setMenus` / `setMenuItems` with Infospect-only items, or wrap
+`InfospectDesktopInvoker` without passing the host’s existing menus.
+
+---
+
 ## Stale `multi_window` args / second isolate
 
 Infospect 0.1.x + `desktop_multi_window` used CLI args and a child isolate.
@@ -212,3 +233,5 @@ are deprecated no-ops — remove call sites (see [MIGRATION.md](MIGRATION.md)).
 - [ ] Quit failsafe if terminate is forwarded before Dart Multiview is ready
 - [ ] No stale `multi_window` child-isolate `main` branches
 - [ ] Other plugins audited for `registrar.view` force-unwraps
+- [ ] Host menus not replaced — use `InfospectInvoker`, or pass host menus into
+      `InfospectDesktopInvoker` / `merge*Menus` helpers

@@ -204,6 +204,30 @@ If not provided, the default platform share option will be invoked.
 
   But in mobile the infospect window will be opened in a new route.
 
+  **Desktop Infospect window — menu bar & shortcuts**
+
+  The inspector window has its own in-window menu bar (View / Network / Logs /
+  Window). It does **not** replace the host app’s platform menu bar or
+  dock/taskbar menus.
+
+  | Action | macOS | Windows / Linux |
+  |---|---|---|
+  | Network tab | ⌘1 | Ctrl+1 |
+  | Logs tab | ⌘2 | Ctrl+2 |
+  | Breakpoints… | ⌘B | Ctrl+B |
+  | Clear network calls | ⌘⇧K | Ctrl+Shift+K |
+  | Share network calls | ⌘⇧S | Ctrl+Shift+S |
+  | Open Network in new window | ⌘⇧N | Ctrl+Shift+N |
+  | Clear logs | ⌘⇧L | Ctrl+Shift+L |
+  | Share logs | ⌘⇧E | Ctrl+Shift+E |
+  | Open Logs in new window | ⌘⇧G | Ctrl+Shift+G |
+  | Close window | ⌘W | Ctrl+W |
+
+  Prefer `InfospectInvoker` when the host already owns its menus (shortcut only).
+  If you use `InfospectDesktopInvoker`, pass host menus via `menus` (macOS) /
+  `barButtons` (Windows/Linux) so they are preserved — Infospect is appended.
+  Helpers: `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`.
+
 6. Network breakpoints (Proxyman-style, without a proxy)
 
    Pause matching requests and/or responses so you can edit headers, query

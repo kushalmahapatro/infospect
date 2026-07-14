@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:infospect/features/launch/desktop/infospect_desktop_menu_bar.dart';
 import 'package:infospect/features/launch/models/infospect_desktop_tab.dart';
 import 'package:infospect/features/launch/models/navigation_tab_data.dart';
 import 'package:infospect/features/launch/notifier/launch_notifier.dart';
@@ -51,54 +52,59 @@ class _LaunchDesktopScreenState extends State<LaunchDesktopScreen> {
         theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
 
     return Scaffold(
-      body: ValueListenableBuilder<Set<InfospectDesktopTab>>(
-        valueListenable: widget.infospect.poppedOutDesktopTabs,
-        builder: (context, poppedOut, _) {
-          final visibleTabs = InfospectDesktopTab.values
-              .where((tab) => !poppedOut.contains(tab))
-              .toList(growable: false);
-          final showSidebar = visibleTabs.isNotEmpty;
+      body: InfospectDesktopMenuShell(
+        infospect: widget.infospect,
+        networksListNotifier: widget.networksListNotifier,
+        logsListNotifier: widget.logsListNotifier,
+        child: ValueListenableBuilder<Set<InfospectDesktopTab>>(
+          valueListenable: widget.infospect.poppedOutDesktopTabs,
+          builder: (context, poppedOut, _) {
+            final visibleTabs = InfospectDesktopTab.values
+                .where((tab) => !poppedOut.contains(tab))
+                .toList(growable: false);
+            final showSidebar = visibleTabs.isNotEmpty;
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final maxAllowed =
-                  math.min(_maxSidebarWidth, constraints.maxWidth * 0.45);
-              final sidebarWidth =
-                  _sidebarWidth.clamp(_minSidebarWidth, maxAllowed);
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final maxAllowed =
+                    math.min(_maxSidebarWidth, constraints.maxWidth * 0.45);
+                final sidebarWidth =
+                    _sidebarWidth.clamp(_minSidebarWidth, maxAllowed);
 
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (showSidebar) ...[
-                    SizedBox(
-                      width: sidebarWidth,
-                      child: _Sidebar(
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showSidebar) ...[
+                      SizedBox(
+                        width: sidebarWidth,
+                        child: _Sidebar(
+                          infospect: widget.infospect,
+                          visibleTabs: visibleTabs,
+                          poppedOutTabs: poppedOut,
+                        ),
+                      ),
+                      _ResizeHandle(
+                        color: borderColor,
+                        hitWidth: _dividerHitWidth,
+                        onDragUpdate: (details) =>
+                            _onDragUpdate(details, constraints.maxWidth),
+                      ),
+                    ],
+                    Expanded(
+                      child: _ContentPane(
                         infospect: widget.infospect,
+                        networksListNotifier: widget.networksListNotifier,
+                        logsListNotifier: widget.logsListNotifier,
                         visibleTabs: visibleTabs,
                         poppedOutTabs: poppedOut,
                       ),
                     ),
-                    _ResizeHandle(
-                      color: borderColor,
-                      hitWidth: _dividerHitWidth,
-                      onDragUpdate: (details) =>
-                          _onDragUpdate(details, constraints.maxWidth),
-                    ),
                   ],
-                  Expanded(
-                    child: _ContentPane(
-                      infospect: widget.infospect,
-                      networksListNotifier: widget.networksListNotifier,
-                      logsListNotifier: widget.logsListNotifier,
-                      visibleTabs: visibleTabs,
-                      poppedOutTabs: poppedOut,
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

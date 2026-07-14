@@ -8,12 +8,14 @@
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
 - Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
 - **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `InfospectDesktopBootstrap.runAppOrMultiApp` (and top-level helpers) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
+- **Desktop Infospect menu bar & shortcuts:** in-window Material menu (View / Network / Logs / Window) with keyboard shortcuts; does not replace host platform or dock menus. `InfospectDesktopInvoker` merges host `menus` / `barButtons`; helpers `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
 - Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
 - Coverage for breakpoint edit traces, original/edited snapshots, and non-success (error-path) response breakpoints
 - Unit coverage for Multiview desktop bootstrap gating (`isMultiViewDesktopBootstrapRequired`)
+- Coverage for desktop menu merge helpers and Infospect-window shortcut bindings
 
 ### Fixes
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)

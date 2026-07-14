@@ -54,7 +54,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(wrap(const BreakpointsListScreen(embedded: true)));
+      await tester.pumpWidget(wrap(const BreakpointsListScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('No breakpoints yet'), findsOneWidget);
@@ -109,6 +109,44 @@ void main() {
 
       expect(find.byType(BreakpointsListScreen), findsOneWidget);
       expect(find.text('Breakpoints'), findsOneWidget);
+    });
+
+    testWidgets('desktop breakpoints window uses table + inspector pane',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(780, 560));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        wrap(
+          const BreakpointsListScreen(embedded: true),
+          size: const Size(780, 560),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No breakpoints'), findsOneWidget);
+
+      await expectLater(
+        find.byType(BreakpointsListScreen),
+        matchesGoldenFile('goldens/breakpoints_desktop_empty.png'),
+      );
+
+      await tester.tap(find.text('Add breakpoint').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New rule'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '/api/orders*');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add').last);
+      await tester.pumpAndSettle();
+
+      expect(Infospect.instance.breakpoints, hasLength(1));
+      expect(find.text('/api/orders*'), findsWidgets);
+      expect(find.text('Edit rule'), findsOneWidget);
+
+      await expectLater(
+        find.byType(BreakpointsListScreen),
+        matchesGoldenFile('goldens/breakpoints_desktop_with_rule.png'),
+      );
     });
   });
 
@@ -647,6 +685,15 @@ void main() {
       expect(find.text('BP✎'), findsOneWidget);
       expect(find.textContaining('Original:'), findsWidgets);
       expect(find.text('edited'), findsWidgets);
+      expect(find.text('Expand'), findsWidgets);
+
+      await tester.tap(find.text('Original vs Edited').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Collapse'), findsOneWidget);
+      expect(find.text('Original'), findsWidgets);
+      expect(find.text('Edited'), findsWidgets);
+      expect(find.text('Field'), findsOneWidget);
     });
 
     testWidgets('desktop intercept screen uses native chrome', (tester) async {
@@ -690,6 +737,8 @@ void main() {
       final candidates = <String>[
         'goldens/breakpoints_list_empty.png',
         'goldens/breakpoints_list_with_rule.png',
+        'goldens/breakpoints_desktop_empty.png',
+        'goldens/breakpoints_desktop_with_rule.png',
         'goldens/breakpoint_request_headers.png',
         'goldens/breakpoint_request_body.png',
         'goldens/breakpoint_response.png',

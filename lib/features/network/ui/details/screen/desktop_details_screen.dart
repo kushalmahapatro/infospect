@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
-import 'package:infospect/features/network/breakpoints/ui/breakpoint_edit_compare_section.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_edit_compare_desktop.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
@@ -202,7 +202,7 @@ class _Pill extends StatelessWidget {
   }
 }
 
-class _DetailsPane extends StatelessWidget {
+class _DetailsPane extends StatefulWidget {
   const _DetailsPane({
     required this.onTopicSelected,
     required this.desktopTopics,
@@ -220,27 +220,35 @@ class _DetailsPane extends StatelessWidget {
   final bool isResponseEdit;
 
   @override
+  State<_DetailsPane> createState() => _DetailsPaneState();
+}
+
+class _DetailsPaneState extends State<_DetailsPane> {
+  bool _compareExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    if (desktopTopics.isEmpty && breakpointEdit == null) {
+    if (widget.desktopTopics.isEmpty && widget.breakpointEdit == null) {
       return const Expanded(child: SizedBox.shrink());
     }
 
-    final selected = selectedTopicData ??
-        (desktopTopics.isNotEmpty ? desktopTopics.first : null);
+    final selected = widget.selectedTopicData ??
+        (widget.desktopTopics.isNotEmpty ? widget.desktopTopics.first : null);
     final theme = Theme.of(context);
     final borderColor =
         theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
+    final hasEdit = widget.breakpointEdit != null;
 
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PaneToolbar(
-            title: title,
-            topics: desktopTopics,
+            title: widget.title,
+            topics: widget.desktopTopics,
             selected: selected,
-            onTopicSelected: onTopicSelected,
-            hasEdits: breakpointEdit != null,
+            onTopicSelected: widget.onTopicSelected,
+            hasEdits: hasEdit,
           ),
           Expanded(
             child: DecoratedBox(
@@ -251,19 +259,24 @@ class _DetailsPane extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (breakpointEdit != null)
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 260),
-                      child: SingleChildScrollView(
-                        child: BreakpointEditCompareSection(
-                          title: 'Original vs Edited',
-                          edit: breakpointEdit!,
-                          isResponse: isResponseEdit,
-                        ),
+                  if (hasEdit)
+                    Flexible(
+                      flex: _compareExpanded ? 4 : 0,
+                      fit: _compareExpanded ? FlexFit.tight : FlexFit.loose,
+                      child: BreakpointEditCompareDesktop(
+                        edit: widget.breakpointEdit!,
+                        isResponse: widget.isResponseEdit,
+                        initiallyExpanded: false,
+                        onExpandedChanged: (expanded) {
+                          setState(() => _compareExpanded = expanded);
+                        },
                       ),
                     ),
                   if (selected != null)
-                    Expanded(child: _TopicContent(selected: selected)),
+                    Expanded(
+                      flex: _compareExpanded ? 5 : 1,
+                      child: _TopicContent(selected: selected),
+                    ),
                 ],
               ),
             ),

@@ -17,8 +17,9 @@
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
 - Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
 - Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop)
-- Desktop Breakpoints management window is a singleton (reopen focuses the existing window); concurrent intercept windows keep their edit state across multiview rebuilds
-- Desktop network details refresh the selected call live and show Original vs Edited when a breakpoint changed the request/response
+- Desktop Breakpoints management uses a table + inspector pane (not mobile list/sheets); reopen focuses the existing window
+- Concurrent intercept windows keep their edit state across multiview rebuilds
+- Desktop network details use a side-by-side Original vs Edited diff panel with top spacing and flex layout (no overflow when expanded)
 - Desktop host and Infospect windows keep native title-bar buttons (minimize / maximize / close) via `windowButtonVisibility: true` in `MultiAppConfig` / `WindowOptions`
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
 

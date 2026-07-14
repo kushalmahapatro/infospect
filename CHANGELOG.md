@@ -7,11 +7,13 @@
 - Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
 - Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
+- **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `bootstrapDesktopApp` (and top-level `bootstrapMultiViewApp`) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
 - Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
 - Coverage for breakpoint edit traces, original/edited snapshots, and non-success (error-path) response breakpoints
+- Unit coverage for Multiview desktop bootstrap gating (`isMultiViewDesktopBootstrapRequired`)
 
 ### Fixes
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
@@ -22,6 +24,9 @@
 - Desktop network details use a side-by-side Original vs Edited diff panel with top spacing and flex layout (no overflow when expanded)
 - Desktop host and Infospect windows keep native title-bar buttons (minimize / maximize / close) via `windowButtonVisibility: true` in `MultiAppConfig` / `WindowOptions`
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
+
+### Docs
+- README / MIGRATION: Multiview entry must use Infospect bootstrap/`run` (never plain `runApp` on desktop); macOS AppDelegate terminate forwarding; `window_manager` + Multiview hang warning; obsolete multi_window args path
 
 ## 0.2.0
 

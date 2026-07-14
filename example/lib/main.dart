@@ -14,9 +14,9 @@ void main(List<String> args) {
   /// Initialize the `Infospect` instance.
   Infospect.ensureInitialized(logAppLaunch: true);
 
-  /// Run the app with the `Infospect` instance.
-  /// On desktop this uses multiview_desktop (single engine, multi-view).
-  /// On mobile this uses a normal runApp.
+  /// Run with Multiview on desktop (`runMultiApp`). Prefer
+  /// `Infospect.bootstrapMultiViewApp(const MainApp())` when logging is off
+  /// but Multiview natives are still wired — never plain `runApp` on desktop.
   Infospect.instance.run(args, myApp: const MainApp());
 }
 

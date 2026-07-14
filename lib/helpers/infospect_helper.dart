@@ -24,6 +24,8 @@ import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/data_transfer.dart';
 import 'package:infospect/utils/infospect_desktop_window.dart';
+import 'package:infospect/utils/infospect_multiview_bootstrap.dart'
+    as package_bootstrap;
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:rxdart/rxdart.dart';
@@ -156,9 +158,39 @@ class Infospect {
     );
   }
 
-  /// run app
+  /// Boots [myApp] via [bootstrapMultiViewApp] (Multiview on desktop, [runApp]
+  /// elsewhere). Prefer this or [Infospect.bootstrapMultiViewApp] over plain
+  /// [runApp] whenever Multiview native runners are wired.
+  ///
+  /// - `args`: Kept for API compatibility; unused with multiview_desktop
+  ///   (secondary windows share one isolate — no `multi_window` CLI args).
+  /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) =>
       _infospectNavigationHelper.run(args, myApp: myApp);
+
+  /// Desktop-safe entry that does **not** require [ensureInitialized].
+  ///
+  /// Use when Multiview natives are installed but Infospect logging may be
+  /// disabled (e.g. production builds that skip inspector init).
+  static void bootstrapMultiViewApp(
+    Widget app, {
+    MultiAppConfig? config,
+  }) {
+    package_bootstrap.bootstrapMultiViewApp(app, config: config);
+  }
+
+  /// Alias for [bootstrapMultiViewApp].
+  static void bootstrapDesktopApp(
+    Widget app, {
+    MultiAppConfig? config,
+  }) {
+    Infospect.bootstrapMultiViewApp(app, config: config);
+  }
+
+  /// Whether desktop entry must use Multiview ([runMultiApp]) instead of
+  /// [runApp]. See [isMultiViewDesktopBootstrapRequired].
+  static bool get requiresMultiViewDesktopBootstrap =>
+      package_bootstrap.isMultiViewDesktopBootstrapRequired();
 
   /// Logs an instance of `InfospectLog`.
   void addLog(InfospectLog log) => _infospectLogHelper.addLog(log);

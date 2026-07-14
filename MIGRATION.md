@@ -407,12 +407,25 @@ void main(List<String> args) {
 }
 ```
 
-`run` still accepts `args` for compatibility, but they are unused on desktop with `multiview_desktop`. Network calls, logs, and theme are shared in-process — no IPC.
+`run` still accepts `args` for compatibility, but they are unused on desktop with `multiview_desktop`. Network calls, logs, and theme are shared in-process — no IPC. Obsolete `multi_window` CLI / second-isolate entry is not the Multiview model.
 
-`Infospect.instance.run` configures `MultiAppConfig.globalWindowOptions` with
-`titleBarStyle: TitleBarStyle.normal` and `windowButtonVisibility: true`. Without that,
-`multiview_desktop` resets the host OS window and hides minimize / maximize / close.
-If you call `runMultiApp` yourself, set the same options.
+`Infospect.instance.run` and `Infospect.bootstrapMultiViewApp` share one helper that
+configures `MultiAppConfig.globalWindowOptions` with `titleBarStyle: TitleBarStyle.normal`
+and `windowButtonVisibility: true`. Without that, `multiview_desktop` resets the host OS
+window and hides minimize / maximize / close.
+
+### Multiview host safety (desktop)
+
+After Multiview native runners are wired:
+
+| Do | Don't |
+|---|---|
+| `Infospect.instance.run(...)` or `Infospect.bootstrapMultiViewApp(...)` | Plain `runApp` on desktop |
+| Forward macOS AppDelegate terminate / reopen / dock menu to `MultiviewDesktopPlugin` | Leave Multiview AppDelegate without Dart `runMultiApp` (quit stays `.terminateCancel`) |
+| Prefer Multiview `WindowOptions` / `MultiViewDesktop` for window chrome | Rely on `window_manager` 0.3.x `registrar.view` for the primary macOS window (hang / `UE`) |
+
+`Infospect.bootstrapMultiViewApp` does **not** require `ensureInitialized` — use it when
+production builds skip Infospect logging but still ship Multiview natives.
 
 ### Obsolete APIs (remove when convenient)
 

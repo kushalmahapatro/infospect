@@ -385,20 +385,13 @@ class InfospectNavigationHelper {
 
   /// Initiates the app.
   ///
-  /// On desktop this uses [runMultiApp] so Infospect can open a secondary
-  /// window in the same Flutter engine. On mobile / web this uses [runApp].
+  /// Delegates to [bootstrapMultiViewApp] so Multiview native runners always
+  /// get [runMultiApp] on desktop (even when hosts only call [Infospect.run]).
   ///
   /// - `args`: Kept for API compatibility; unused with multiview_desktop.
   /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) {
-    if (!kIsWeb && InfospectUtil.isDesktop) {
-      runMultiApp(
-        home: (context, id) => myApp,
-        config: infospectMultiAppConfig(),
-      );
-    } else {
-      runApp(myApp);
-    }
+    package_bootstrap.bootstrapMultiViewApp(myApp);
     if (!_infospect._runAppCompleter.isCompleted) {
       _infospect._runAppCompleter.complete(true);
     }

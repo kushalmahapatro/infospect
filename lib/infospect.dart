@@ -8,6 +8,7 @@ export 'package:infospect/features/network/breakpoints/models/infospect_network_
 export 'package:infospect/helpers/infospect_helper.dart';
 export 'package:infospect/infospect.dart';
 export 'package:infospect/styling/themes/infospect_theme.dart';
+export 'package:infospect/utils/infospect_multiview_bootstrap.dart';
 // common widgets
 export 'package:infospect/utils/common_widgets/action_widget.dart';
 export 'package:infospect/utils/common_widgets/app_bottom_bar.dart';

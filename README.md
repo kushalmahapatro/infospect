@@ -81,20 +81,58 @@ This will provide the path of the compressed file name infospect_logs.tar.gz, wh
 accordingly.
 If not provided, the default platform share option will be invoked.
 
-2. Rather than using `runApp`, use `Infospect.instance.run(args, myApp: EntryWidget())`.
-   On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop) so Infospect
-   can open in a secondary OS window on the same Flutter engine (no separate isolate / IPC).
-   On mobile this behaves like a normal `runApp`.
+2. Desktop / Multiview entry (required when Multiview natives are wired)
+
+   Prefer `Infospect.instance.run` when the inspector is initialized, or
+   `Infospect.bootstrapMultiViewApp` when logging may be disabled:
+
   ```dart
+    // Inspector enabled:
+    Infospect.ensureInitialized(logAppLaunch: true);
     Infospect.instance.run(args, myApp: const MainApp());
+
+    // Multiview natives installed but Infospect logging off:
+    Infospect.bootstrapMultiViewApp(const MainApp());
   ```
+
+   On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop)
+   (`runMultiApp`) so Infospect can open secondary OS windows on the same Flutter
+   engine. On mobile / web this behaves like a normal `runApp`.
+
+   **Never use plain `runApp` on desktop** after Multiview native runners are
+   installed — macOS terminate stays cancelled until Multiview Dart replies, and
+   the process can hang as an unkillable `UE` task.
 
    Desktop hosts also need the [multiview_desktop platform setup](https://pub.dev/packages/multiview_desktop)
    in their macOS / Windows / Linux runners (see the package README and the Infospect example app).
 
-   `Infospect.instance.run` sets `windowButtonVisibility: true` so the host window keeps native
-   minimize / maximize / close controls after multiview startup. If you call `runMultiApp`
-   yourself instead of `Infospect.instance.run`, pass the same via `MultiAppConfig.globalWindowOptions`.
+   `Infospect.instance.run` / `bootstrapMultiViewApp` set `windowButtonVisibility: true`
+   so the host window keeps native minimize / maximize / close controls.
+
+   ### Multiview host lifecycle (macOS)
+
+   Forward these AppDelegate methods to `MultiviewDesktopPlugin` (see Multiview README
+   and `example/macos/Runner/AppDelegate.swift`):
+
+   - `applicationShouldTerminateAfterLastWindowClosed`
+   - `applicationShouldTerminate`
+   - `applicationShouldHandleReopen`
+   - `applicationDockMenu`
+
+   Without Dart `runMultiApp`, `applicationShouldTerminate` returns `.terminateCancel`
+   forever — quit never completes.
+
+   ### `window_manager` hazard (macOS + Multiview)
+
+   `window_manager` 0.3.x resolving the primary window via `registrar.view` is
+   **unsafe** with Multiview / `enableMultiView` on macOS (main-thread hang at
+   `(registrar.view?.window)!`). Do not rely on that for the primary window.
+   Prefer Multiview `WindowOptions` / `MultiViewDesktop` APIs, or patch window
+   resolution (e.g. `NSApp.windows` / null-safe `GetView`) if you must keep
+   `window_manager`.
+
+   Obsolete `multi_window` CLI args / second-isolate Infospect entry is **not**
+   the Multiview model — secondary windows share one isolate.
 
 3. Adding network call interceptor
    a. dio:

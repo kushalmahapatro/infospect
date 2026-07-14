@@ -365,7 +365,7 @@ class _BreakpointTable extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
-              const SizedBox(width: 44, child: _HeaderCell('On')),
+              const SizedBox(width: 36, child: _HeaderCell('On')),
               SizedBox(width: 1, height: 14, child: ColoredBox(color: border)),
               const SizedBox(width: 64, child: _HeaderCell('Method')),
               SizedBox(width: 1, height: 14, child: ColoredBox(color: border)),
@@ -404,24 +404,19 @@ class _BreakpointTable extends StatelessWidget {
                 child: InkWell(
                   onTap: () => onSelect(rule),
                   child: SizedBox(
-                    height: 34,
+                    height: 32,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Row(
                         children: [
                           SizedBox(
-                            width: 44,
+                            width: 36,
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: SizedBox(
-                                height: 22,
-                                child: Switch.adaptive(
-                                  value: rule.enabled,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  onChanged: (value) =>
-                                      onToggle(rule.id, value),
-                                ),
+                              child: _CompactDesktopSwitch(
+                                value: rule.enabled,
+                                onChanged: (value) =>
+                                    onToggle(rule.id, value),
                               ),
                             ),
                           ),
@@ -780,24 +775,52 @@ class _DesktopToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+      padding: const EdgeInsets.only(bottom: 2),
+      child: SizedBox(
+        height: 26,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+              ),
             ),
-          ),
-          SizedBox(
-            height: 28,
-            child: Switch.adaptive(
+            _CompactDesktopSwitch(
               value: value,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               onChanged: onChanged,
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact switch for desktop tables / inspector panes (~0.7× Material size).
+class _CompactDesktopSwitch extends StatelessWidget {
+  const _CompactDesktopSwitch({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  static const double _scale = 0.68;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.scale(
+      scale: _scale,
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        height: 20,
+        child: Switch.adaptive(
+          value: value,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          onChanged: onChanged,
+        ),
       ),
     );
   }

@@ -6,11 +6,12 @@
 - Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
 - Request breakpoint editors open as a fullscreen dialog on mobile and a new window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
+- Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
 - Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
-- Coverage for breakpoint edit traces and non-success (error-path) response breakpoints
+- Coverage for breakpoint edit traces, original/edited snapshots, and non-success (error-path) response breakpoints
 
 ### Fixes
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)

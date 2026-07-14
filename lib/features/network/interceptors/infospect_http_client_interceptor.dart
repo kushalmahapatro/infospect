@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:infospect/features/logger/models/infospect_log.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/models/infospect_form_data.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
@@ -134,8 +136,24 @@ class InfospectHttpClientInterceptor extends BaseClient {
             request.url,
           );
         }
-        outgoing = _applyRequestEdits(request, requestResult.payload);
-        _updateLoggedRequest(request.hashCode, requestResult.payload);
+        final original = InfospectBreakpointPayload(
+          method: request.method,
+          uri: request.url.toString(),
+          endpoint: request.url.path,
+          headers: InfospectBreakpointManager.stringifyMap(
+            Map<String, dynamic>.from(request.headers),
+          ),
+          queryParameters: InfospectBreakpointManager.stringifyMap(
+            Map<String, dynamic>.from(request.url.queryParameters),
+          ),
+          body: request is Request ? request.body : '',
+        );
+        final edited = _withRebuiltUri(requestResult.payload, original.uri);
+        outgoing = _applyRequestEdits(request, edited);
+        infospect.applyRequestBreakpointEdit(
+          requestId: request.hashCode,
+          edit: InfospectBreakpointEdit(original: original, edited: edited),
+        );
       }
 
       response = await client.send(outgoing).onError((e, st) async {
@@ -175,6 +193,17 @@ class InfospectHttpClientInterceptor extends BaseClient {
         var finalBody = responseBody;
         var finalBytes = responseBytes;
 
+        final originalResponse = InfospectBreakpointPayload(
+          method: outgoing.method,
+          uri: outgoing.url.toString(),
+          endpoint: outgoing.url.path,
+          headers: Map<String, String>.from(responseHeaders),
+          body: responseBody is String
+              ? responseBody
+              : InfospectBreakpointManager.stringifyBody(responseBody),
+          statusCode: statusCode,
+        );
+
         final responseResult = await infospect.interceptResponseIfNeeded(
           method: outgoing.method,
           endpoint: outgoing.url.path,
@@ -204,6 +233,13 @@ class InfospectHttpClientInterceptor extends BaseClient {
           responseHeaders = Map<String, String>.from(edited.headers);
           finalBody = edited.body;
           finalBytes = utf8.encode(edited.body);
+          infospect.applyResponseBreakpointEdit(
+            requestId: request.hashCode,
+            edit: InfospectBreakpointEdit(
+              original: originalResponse,
+              edited: edited,
+            ),
+          );
         }
 
         infospect.addResponse(
@@ -273,9 +309,9 @@ class InfospectHttpClientInterceptor extends BaseClient {
     BaseRequest original,
     InfospectBreakpointPayload payload,
   ) {
-        final uri = original.url.replace(
-          queryParameters: payload.queryParameters,
-        );
+    final uri = original.url.replace(
+      queryParameters: payload.queryParameters,
+    );
 
     if (original is Request) {
       final next = Request(original.method, uri)
@@ -307,36 +343,21 @@ class InfospectHttpClientInterceptor extends BaseClient {
     return original;
   }
 
-  void _updateLoggedRequest(
-    int requestId,
+  InfospectBreakpointPayload _withRebuiltUri(
     InfospectBreakpointPayload payload,
+    String originalUri,
   ) {
-    final calls = List<InfospectNetworkCall>.from(
-      infospect.networkCallsSubject.value,
-    );
-    final index = calls.indexWhere((call) => call.id == requestId);
-    if (index == -1) return;
-
-    final existing = calls[index];
-    final request = existing.request?.copyWith(
-          headers: payload.headers,
-          queryParameters: payload.queryParameters,
-          body: payload.body,
-          size: utf8.encode(payload.body).length,
-        ) ??
-        InfospectNetworkRequest(
-          headers: payload.headers,
-          queryParameters: payload.queryParameters,
-          body: payload.body,
-          size: utf8.encode(payload.body).length,
-        );
-
-    calls[index] = existing.copyWith(
-      request: request,
-      uri: payload.uri,
-      endpoint: payload.endpoint,
-      method: payload.method,
-    );
-    infospect.networkCallsSubject.add(calls);
+    try {
+      final rebuilt = Uri.parse(originalUri).replace(
+        queryParameters:
+            payload.queryParameters.isEmpty ? null : payload.queryParameters,
+      );
+      return payload.copyWith(
+        uri: rebuilt.toString(),
+        endpoint: rebuilt.path.isEmpty ? payload.endpoint : rebuilt.path,
+      );
+    } catch (_) {
+      return payload;
+    }
   }
 }

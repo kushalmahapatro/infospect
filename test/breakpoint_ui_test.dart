@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_intercept_screen.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoints_list_screen.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
+import 'package:infospect/features/network/models/infospect_network_request.dart';
+import 'package:infospect/features/network/ui/details/components/interceptor_details_request.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
 
@@ -393,51 +396,165 @@ void main() {
       expect(result!.aborted, isTrue);
     });
 
-    testWidgets('marks breakpoint edit traces on the logged call', (tester) async {
+    testWidgets('stores original and edited request/response snapshots', (tester) async {
       Infospect.instance.addCall(
-        InfospectNetworkCall(77).copyWith(
-          method: 'GET',
-          endpoint: '/traced',
-          uri: 'https://example.com/traced',
+        InfospectNetworkCall(88).copyWith(
+          method: 'POST',
+          endpoint: '/orders',
+          uri: 'https://example.com/orders?x=1',
+          request: InfospectNetworkRequest(
+            headers: const {'content-type': 'application/json'},
+            queryParameters: const {'x': '1'},
+            body: '{"total":1}',
+          ),
         ),
       );
-      Infospect.instance.addEndpointBreakpoint(endpoint: '/traced');
+      Infospect.instance.addEndpointBreakpoint(endpoint: '/orders');
 
       await tester.pumpWidget(wrap(const Scaffold(body: Text('Host'))));
       await tester.pumpAndSettle();
 
-      final future = Infospect.instance.interceptRequestIfNeeded(
-        method: 'GET',
-        endpoint: '/traced',
-        uri: 'https://example.com/traced',
-        headers: const {},
-        queryParameters: const {},
-        body: '',
-        requestId: 77,
+      final requestFuture = Infospect.instance.interceptRequestIfNeeded(
+        method: 'POST',
+        endpoint: '/orders',
+        uri: 'https://example.com/orders?x=1',
+        headers: const {'content-type': 'application/json'},
+        queryParameters: const {'x': '1'},
+        body: '{"total":1}',
+        requestId: 88,
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Query'));
+      await tester.pumpAndSettle();
 
-      expect(
-        Infospect.instance.networkCallsSubject.value
-            .firstWhere((c) => c.id == 77)
-            .hadRequestBreakpoint,
-        isTrue,
-      );
-
+      // Edit the query value field (second text field in the row after key).
+      final queryValueFields = find.byType(TextField);
+      await tester.enterText(queryValueFields.at(1), '99');
       await tester.tap(find.text('Body'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('breakpoint_body_field')),
-        '{"edited":true}',
+        '{"total":99}',
       );
       await tester.tap(find.byKey(const Key('breakpoint_continue')));
       await tester.pumpAndSettle();
-      await future;
+      await requestFuture;
+
+      // Apply the same storage path the interceptors use.
+      Infospect.instance.applyRequestBreakpointEdit(
+        requestId: 88,
+        edit: InfospectBreakpointEdit(
+          original: const InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/orders?x=1',
+            endpoint: '/orders',
+            headers: {'content-type': 'application/json'},
+            queryParameters: {'x': '1'},
+            body: '{"total":1}',
+          ),
+          edited: const InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/orders?x=99',
+            endpoint: '/orders',
+            headers: {'content-type': 'application/json'},
+            queryParameters: {'x': '99'},
+            body: '{"total":99}',
+          ),
+        ),
+      );
 
       final call = Infospect.instance.networkCallsSubject.value
-          .firstWhere((c) => c.id == 77);
-      expect(call.requestEditedAtBreakpoint, isTrue);
-      expect(call.hasBreakpointTrace, isTrue);
+          .firstWhere((c) => c.id == 88);
+      expect(call.requestBreakpointEdit, isNotNull);
+      expect(call.requestBreakpointEdit!.original.queryParameters['x'], '1');
+      expect(call.requestBreakpointEdit!.edited.queryParameters['x'], '99');
+      expect(call.requestBreakpointEdit!.original.body, contains('"total":1'));
+      expect(call.requestBreakpointEdit!.edited.body, contains('"total":99'));
+      expect(call.request!.queryParameters['x'], '99');
+      expect(call.uri, contains('x=99'));
+
+      Infospect.instance.applyResponseBreakpointEdit(
+        requestId: 88,
+        edit: const InfospectBreakpointEdit(
+          original: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/orders?x=99',
+            endpoint: '/orders',
+            headers: {'content-type': 'application/json'},
+            body: '{"ok":false}',
+            statusCode: 500,
+          ),
+          edited: InfospectBreakpointPayload(
+            method: 'POST',
+            uri: 'https://example.com/orders?x=99',
+            endpoint: '/orders',
+            headers: {'content-type': 'application/json'},
+            body: '{"ok":true}',
+            statusCode: 200,
+          ),
+        ),
+      );
+
+      final updated = Infospect.instance.networkCallsSubject.value
+          .firstWhere((c) => c.id == 88);
+      expect(updated.responseBreakpointEdit, isNotNull);
+      expect(updated.responseBreakpointEdit!.original.statusCode, 500);
+      expect(updated.responseBreakpointEdit!.edited.statusCode, 200);
+      expect(updated.responseBreakpointEdit!.original.body, contains('false'));
+      expect(updated.responseBreakpointEdit!.edited.body, contains('true'));
+    });
+
+    testWidgets('request details show Original vs Edited compare section',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      final call = InfospectNetworkCall(91).copyWith(
+        method: 'GET',
+        endpoint: '/items',
+        uri: 'https://example.com/items?page=2',
+        server: 'example.com',
+        loading: false,
+        request: InfospectNetworkRequest(
+          headers: const {'x-token': 'new'},
+          queryParameters: const {'page': '2'},
+          body: '',
+        ),
+        requestEditedAtBreakpoint: true,
+        hadRequestBreakpoint: true,
+        requestBreakpointEdit: const InfospectBreakpointEdit(
+          original: InfospectBreakpointPayload(
+            method: 'GET',
+            uri: 'https://example.com/items?page=1',
+            endpoint: '/items',
+            headers: {'x-token': 'old'},
+            queryParameters: {'page': '1'},
+          ),
+          edited: InfospectBreakpointPayload(
+            method: 'GET',
+            uri: 'https://example.com/items?page=2',
+            endpoint: '/items',
+            headers: {'x-token': 'new'},
+            queryParameters: {'page': '2'},
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        wrap(
+          Scaffold(
+            body: InterceptorDetailsRequest(
+              call,
+              infospect: Infospect.instance,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Breakpoint edits'), findsOneWidget);
+      expect(find.text('Original'), findsWidgets);
+      expect(find.text('Edited'), findsWidgets);
+      expect(find.textContaining('page=1'), findsWidgets);
+      expect(find.textContaining('page=2'), findsWidgets);
     });
   });
 

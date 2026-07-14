@@ -54,6 +54,12 @@ class ResponseDetailsTopicHelper {
 
   /// general topic data setup
   void _setupSummaryTopics() {
+    final responseEdit = call.responseBreakpointEdit;
+    final statusSubtitle = responseEdit != null && responseEdit.statusChanged
+        ? 'Delivered: ${call.response!.statusString}  '
+            '(was ${responseEdit.original.statusCode ?? '-'})'
+        : call.response!.statusString;
+
     _summaryTopics = (
       topic: 'Summary',
       body: TopicDetailsBodyList(
@@ -70,7 +76,7 @@ class ResponseDetailsTopicHelper {
           ),
           (
             title: 'Status: ',
-            subtitle: call.response!.statusString,
+            subtitle: statusSubtitle,
             other: null,
           ),
         ],

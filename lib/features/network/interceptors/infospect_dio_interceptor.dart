@@ -139,8 +139,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
           );
           return;
         }
-        _applyRequestEdits(options, result.payload);
-        _updateLoggedRequest(options.hashCode, result.payload);
+        final original = _requestPayloadFromOptions(options);
+        final edited = _withRebuiltUri(result.payload, original.uri);
+        _applyRequestEdits(options, edited);
+        infospect.applyRequestBreakpointEdit(
+          requestId: options.hashCode,
+          edit: InfospectBreakpointEdit(original: original, edited: edited),
+        );
       }
     } catch (e, st) {
       infospect.addLog(
@@ -167,6 +172,16 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
     ResponseInterceptorHandler handler,
   ) async {
     try {
+      final originalResponsePayload = InfospectBreakpointPayload(
+        method: response.requestOptions.method,
+        uri: response.requestOptions.uri.toString(),
+        endpoint: response.requestOptions.uri.path,
+        headers: _dioHeadersToMap(response.headers)
+            .map((k, v) => MapEntry(k, v.toString())),
+        body: InfospectBreakpointManager.stringifyBody(response.data),
+        statusCode: response.statusCode,
+      );
+
       final result = await infospect.interceptResponseIfNeeded(
         method: response.requestOptions.method,
         endpoint: response.requestOptions.uri.path,
@@ -191,6 +206,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
           return;
         }
         _applyResponseEdits(response, result.payload);
+        infospect.applyResponseBreakpointEdit(
+          requestId: response.requestOptions.hashCode,
+          edit: InfospectBreakpointEdit(
+            original: originalResponsePayload,
+            edited: result.payload,
+          ),
+        );
       }
     } catch (e, st) {
       infospect.addLog(
@@ -203,40 +225,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
       );
     }
 
-    try {
-      InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
-
-      dynamic body = '';
-      int size = 0;
-      if (response.data != null) {
-        body = response.data;
-        size = utf8.encode(response.data.toString()).length;
-      }
-
-      final Map<String, String> headers = {};
-      response.headers.forEach((header, values) {
-        headers[header] = values.toString();
-      });
-
-      infospect.addResponse(
-        httpResponse.copyWith(
-          status: response.statusCode,
-          body: body,
-          size: size,
-          headers: headers,
-        ),
-        response.requestOptions.hashCode,
-      );
-    } catch (e, st) {
-      infospect.addLog(
-        InfospectLog(
-          message: e.toString(),
-          stackTrace: st,
-          error: e,
-          level: DiagnosticLevel.error,
-        ),
-      );
-    }
+    _logResponse(response);
     handler.next(response);
   }
 
@@ -258,6 +247,16 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
     try {
       final response = error.response;
       if (response != null) {
+        final originalResponsePayload = InfospectBreakpointPayload(
+          method: error.requestOptions.method,
+          uri: error.requestOptions.uri.toString(),
+          endpoint: error.requestOptions.uri.path,
+          headers: _dioHeadersToMap(response.headers)
+              .map((k, v) => MapEntry(k, v.toString())),
+          body: InfospectBreakpointManager.stringifyBody(response.data),
+          statusCode: response.statusCode,
+        );
+
         final result = await infospect.interceptResponseIfNeeded(
           method: error.requestOptions.method,
           endpoint: error.requestOptions.uri.path,
@@ -283,6 +282,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
           }
 
           _applyResponseEdits(response, result.payload);
+          infospect.applyResponseBreakpointEdit(
+            requestId: error.requestOptions.hashCode,
+            edit: InfospectBreakpointEdit(
+              original: originalResponsePayload,
+              edited: result.payload,
+            ),
+          );
 
           // If the user patched the status into the success range, resolve
           // instead of rejecting so the client receives a normal response.
@@ -441,34 +447,39 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
     response.headers = headers;
   }
 
-  void _updateLoggedRequest(int requestId, InfospectBreakpointPayload payload) {
-    final calls = List<InfospectNetworkCall>.from(
-      infospect.networkCallsSubject.value,
+  InfospectBreakpointPayload _requestPayloadFromOptions(RequestOptions options) {
+    return InfospectBreakpointPayload(
+      method: options.method,
+      uri: options.uri.toString(),
+      endpoint: options.uri.path,
+      headers: InfospectBreakpointManager.stringifyMap(
+        Map<String, dynamic>.from(options.headers),
+      ),
+      queryParameters: InfospectBreakpointManager.stringifyMap(
+        Map<String, dynamic>.from(options.queryParameters),
+      ),
+      body: options.data is FormData
+          ? ''
+          : InfospectBreakpointManager.stringifyBody(options.data),
     );
-    final index = calls.indexWhere((call) => call.id == requestId);
-    if (index == -1) return;
+  }
 
-    final existing = calls[index];
-    final request = existing.request?.copyWith(
-          headers: payload.headers,
-          queryParameters: payload.queryParameters,
-          body: payload.body,
-          size: utf8.encode(payload.body).length,
-        ) ??
-        InfospectNetworkRequest(
-          headers: payload.headers,
-          queryParameters: payload.queryParameters,
-          body: payload.body,
-          size: utf8.encode(payload.body).length,
-        );
-
-    calls[index] = existing.copyWith(
-      request: request,
-      uri: payload.uri,
-      endpoint: payload.endpoint,
-      method: payload.method,
-    );
-    infospect.networkCallsSubject.add(calls);
+  InfospectBreakpointPayload _withRebuiltUri(
+    InfospectBreakpointPayload payload,
+    String originalUri,
+  ) {
+    try {
+      final rebuilt = Uri.parse(originalUri).replace(
+        queryParameters:
+            payload.queryParameters.isEmpty ? null : payload.queryParameters,
+      );
+      return payload.copyWith(
+        uri: rebuilt.toString(),
+        endpoint: rebuilt.path.isEmpty ? payload.endpoint : rebuilt.path,
+      );
+    } catch (_) {
+      return payload;
+    }
   }
 
   Map<String, dynamic> _dioHeadersToMap(Headers headers) {

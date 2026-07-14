@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:infospect/features/network/interceptors/infospect_dio_intercepto
 import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
+import 'package:infospect/features/network/models/infospect_network_request.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
@@ -257,6 +259,26 @@ class Infospect {
         responseHit: responseHit,
         requestEdited: requestEdited,
         responseEdited: responseEdited,
+      );
+
+  /// Stores original + edited request data and updates the live logged request.
+  void applyRequestBreakpointEdit({
+    required int requestId,
+    required InfospectBreakpointEdit edit,
+  }) =>
+      _infospectNetworkCallHelper.applyRequestBreakpointEdit(
+        requestId: requestId,
+        edit: edit,
+      );
+
+  /// Stores original + edited response data for a breakpoint.
+  void applyResponseBreakpointEdit({
+    required int requestId,
+    required InfospectBreakpointEdit edit,
+  }) =>
+      _infospectNetworkCallHelper.applyResponseBreakpointEdit(
+        requestId: requestId,
+        edit: edit,
       );
 
   /// interceptors

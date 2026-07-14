@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_edit_compare_section.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
@@ -34,42 +35,50 @@ class InterceptorDetailsRequest extends StatelessWidget {
       180.0,
       300.0,
     );
+    final edit = call.requestBreakpointEdit;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
-      children: topicHelper.topics.map((e) {
-        final expanded = _expandedByDefault(e.topic);
-        return switch (e.body) {
-          TopicDetailsBodyJson(
-            json: Map<String, dynamic> json,
-            windowTitle: String windowTitle,
-            call: InfospectNetworkCall networkCall,
-            kind: NetworkBodyKind kind,
-          ) =>
-            ExpansionWidget(
-              title: e.topic,
-              initiallyExpanded: expanded,
-              children: [
-                SizedBox(
-                  height: bodyHeight,
-                  child: JsonBodyViewer(
-                    data: json,
-                    windowTitle: windowTitle,
-                    call: networkCall,
-                    kind: kind,
+      children: [
+        if (edit != null)
+          BreakpointEditCompareSection(
+            title: 'Breakpoint edits',
+            edit: edit,
+          ),
+        ...topicHelper.topics.map((e) {
+          final expanded = _expandedByDefault(e.topic);
+          return switch (e.body) {
+            TopicDetailsBodyJson(
+              json: Map<String, dynamic> json,
+              windowTitle: String windowTitle,
+              call: InfospectNetworkCall networkCall,
+              kind: NetworkBodyKind kind,
+            ) =>
+              ExpansionWidget(
+                title: e.topic,
+                initiallyExpanded: expanded,
+                children: [
+                  SizedBox(
+                    height: bodyHeight,
+                    child: JsonBodyViewer(
+                      data: json,
+                      windowTitle: windowTitle,
+                      call: networkCall,
+                      kind: kind,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          TopicDetailsBodyMap(
-            map: Map<String, dynamic> map,
-            trailing: TrailingData? trailing,
-          ) =>
-            _mapSection(e, map, trailing, expanded),
-          TopicDetailsBodyList(list: List<ListData> list) =>
-            _listSection(e, list, expanded),
-        };
-      }).toList(),
+                ],
+              ),
+            TopicDetailsBodyMap(
+              map: Map<String, dynamic> map,
+              trailing: TrailingData? trailing,
+            ) =>
+              _mapSection(e, map, trailing, expanded),
+            TopicDetailsBodyList(list: List<ListData> list) =>
+              _listSection(e, list, expanded),
+          };
+        }),
+      ],
     );
   }
 

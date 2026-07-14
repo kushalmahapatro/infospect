@@ -190,6 +190,10 @@ If not provided, the default platform share option will be invoked.
    Use **Continue** to send the (possibly edited) request / response ahead, or
    **Abort** to cancel the call.
 
+   Edited calls keep both the **original** and **edited** URL / params /
+   headers / body (and response status) on the logged call, shown as an
+   Original vs Edited section in request / response details.
+
    **UI / integration tests**
 
    ```console

@@ -73,14 +73,19 @@ class RequestDetailsTopicHelper {
 
   /// general topic data setup
   void _setupGeneralTopics() {
+    final requestEdit = call.requestBreakpointEdit;
     _generalTopics = (
       topic: 'General',
       body: TopicDetailsBodyList(
         [
           (
             title: 'Url:',
-            subtitle: 'Server: ${call.server}',
-            other: 'Endpoint: ${call.endpoint}',
+            subtitle: requestEdit != null && requestEdit.urlChanged
+                ? 'Sent: ${call.uri}'
+                : 'Server: ${call.server}',
+            other: requestEdit != null && requestEdit.urlChanged
+                ? 'Original: ${requestEdit.original.uri}'
+                : 'Endpoint: ${call.endpoint}',
           ),
           (
             title: 'Time:',
@@ -89,7 +94,13 @@ class RequestDetailsTopicHelper {
                 ? 'Finish : ${call.response!.time.toString()}'
                 : '',
           ),
-          (title: 'Method: ', subtitle: call.method, other: null),
+          (
+            title: 'Method: ',
+            subtitle: requestEdit != null && requestEdit.methodChanged
+                ? 'Sent: ${call.method}  (was ${requestEdit.original.method})'
+                : call.method,
+            other: null,
+          ),
           (
             title: 'Duration:',
             subtitle: call.duration.toReadableTime,

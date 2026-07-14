@@ -43,7 +43,7 @@ class InfospectDesktopMenuShell extends StatefulWidget {
   @Deprecated('Native menu is unavailable under Multiview; always in-app.')
   final bool forceInAppMenuBar;
 
-  static const double inAppMenuBarHeight = 34;
+  static const double inAppMenuBarHeight = 28;
 
   @override
   State<InfospectDesktopMenuShell> createState() =>
@@ -415,22 +415,30 @@ class InfospectDesktopInAppMenuBar extends StatelessWidget {
     );
     final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.75);
     final shortcutStyle = TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
+      fontSize: 11,
+      fontWeight: FontWeight.w400,
       color: shortcutFg,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
+    // Native desktop menu bars use ~11–12px regular weight, not bold 12–13.
     final barLabelStyle = theme.textTheme.labelLarge?.copyWith(
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
       color: barFg,
+      height: 1.0,
+    );
+    final menuItemStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: barFg,
+      height: 1.15,
     );
 
     ButtonStyle barButtonStyle() => ButtonStyle(
           foregroundColor: WidgetStatePropertyAll(barFg),
           textStyle: WidgetStatePropertyAll(barLabelStyle),
           padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 10),
+            EdgeInsets.symmetric(horizontal: 8),
           ),
           minimumSize: const WidgetStatePropertyAll(
             Size(0, InfospectDesktopMenuShell.inAppMenuBarHeight),
@@ -447,15 +455,26 @@ class InfospectDesktopInAppMenuBar extends StatelessWidget {
           }),
         );
 
+    ButtonStyle menuButtonStyle() => ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(barFg),
+          textStyle: WidgetStatePropertyAll(menuItemStyle),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          ),
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+
     MenuItemButton item({
       required String label,
       required VoidCallback onPressed,
       required String shortcutText,
     }) {
       return MenuItemButton(
+        style: menuButtonStyle(),
         onPressed: onPressed,
         trailingIcon: Padding(
-          padding: const EdgeInsets.only(left: 28),
+          padding: const EdgeInsets.only(left: 24),
           child: Text(shortcutText, style: shortcutStyle),
         ),
         child: Text(label),

@@ -206,13 +206,18 @@ If not provided, the default platform share option will be invoked.
 
   **Desktop Infospect window — menu bar & shortcuts**
 
-  - **macOS:** native system menu bar (View / Network / Logs / Window). The OS
-    shows shortcut glyphs beside each item.
-  - **Windows / Linux:** in-window menu bar with the same items and trailing
-    shortcut labels (Flutter has no built-in native menu bar on these platforms).
+  Flutter’s native `PlatformMenuBar` only targets the main window, so it does
+  **not** appear on Multiview secondary windows. Infospect therefore uses an
+  **in-window** menu bar (View / Network / Logs / Window) with trailing
+  shortcut labels on every platform.
 
-  Shortcuts also work via a global keyboard handler (even when a search field
-  has focus):
+  Every Infospect-opened window (inspector, popped tabs, breakpoints,
+  intercept editors, body windows) closes with:
+
+  > macOS: `⌘W` · Windows / Linux: `Ctrl+W`
+
+  Other inspector shortcuts (focus-gated so they only apply to the focused
+  Infospect window):
 
   | Action | macOS | Windows / Linux |
   |---|---|---|

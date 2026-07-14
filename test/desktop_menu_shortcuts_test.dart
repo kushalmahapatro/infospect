@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +9,7 @@ import 'package:infospect/features/launch/screen/launch_desktop_screen.dart';
 import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/infospect_desktop_window.dart';
 import 'package:menu_bar/menu_bar.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
@@ -79,6 +79,30 @@ void main() {
     });
   });
 
+  group('close shortcut on Infospect windows', () {
+    test('secondary windows enable close shortcut by default', () {
+      final options = infospectDesktopWindowOptions(title: 'Test');
+      expect(options.shellOverrides?.builder, isNotNull);
+    });
+
+    test('host MultiAppConfig disables close shortcut', () {
+      final config = infospectMultiAppConfig();
+      expect(config.globalOptions.shellOverrides?.builder, isNull);
+    });
+
+    testWidgets('InfospectDesktopWindowShortcuts is installed', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: InfospectDesktopWindowShortcuts(
+            child: Text('window-body'),
+          ),
+        ),
+      );
+      expect(find.byType(InfospectDesktopWindowShortcuts), findsOneWidget);
+      expect(find.text('window-body'), findsOneWidget);
+    });
+  });
+
   group('InfospectDesktopMenuShell', () {
     late Infospect infospect;
     late NetworksListNotifier networks;
@@ -97,25 +121,21 @@ void main() {
       logs.dispose();
     });
 
-    Widget pumpTarget({bool forceInApp = true}) {
+    Widget pumpTarget() {
       return MaterialApp(
         home: Scaffold(
           body: InfospectDesktopMenuShell(
             infospect: infospect,
             networksListNotifier: networks,
             logsListNotifier: logs,
-            forceInAppMenuBar: forceInApp,
             child: const SizedBox.expand(child: Text('content')),
           ),
         ),
       );
     }
 
-    test('native menu bar is macOS-only', () {
-      expect(
-        infospectSupportsNativeMenuBar(),
-        defaultTargetPlatform == TargetPlatform.macOS,
-      );
+    test('native menu bar is disabled under Multiview', () {
+      expect(infospectSupportsNativeMenuBar(), isFalse);
     });
 
     testWidgets('in-app menu renders View / Network / Logs / Window',
@@ -143,18 +163,6 @@ void main() {
         find.text(InfospectDesktopShortcuts.breakpointsLabel),
         findsOneWidget,
       );
-    });
-
-    testWidgets('native path uses PlatformMenuBar without in-app bar',
-        (tester) async {
-      await tester.pumpWidget(pumpTarget(forceInApp: false));
-      if (infospectSupportsNativeMenuBar()) {
-        expect(find.byType(PlatformMenuBar), findsOneWidget);
-        expect(find.byType(InfospectDesktopInAppMenuBar), findsNothing);
-        expect(find.text('content'), findsOneWidget);
-      } else {
-        expect(find.byType(InfospectDesktopInAppMenuBar), findsOneWidget);
-      }
     });
 
     testWidgets('⌘/Ctrl+2 selects logs tab via HardwareKeyboard',
@@ -210,6 +218,7 @@ void main() {
         ),
       );
       expect(find.byType(InfospectDesktopMenuShell), findsOneWidget);
+      expect(find.byType(InfospectDesktopInAppMenuBar), findsOneWidget);
     });
   });
 
@@ -278,8 +287,7 @@ void main() {
 
       final network = findItem('Network');
       expect(network, isNotNull);
-      expect(network!.shortcut, isA<SingleActivator>());
-      expect((network.shortcut! as SingleActivator).trigger,
+      expect((network!.shortcut! as SingleActivator).trigger,
           LogicalKeyboardKey.digit1);
 
       final breakpoints = findItem('Breakpoints…');

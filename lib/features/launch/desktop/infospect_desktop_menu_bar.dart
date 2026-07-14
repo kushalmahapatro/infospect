@@ -11,25 +11,18 @@ import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/app_adaptive_dialog.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
-/// Whether Flutter can render a **native** system menu bar for Infospect.
+/// Native [PlatformMenuBar] is **not** used under Multiview.
 ///
-/// Flutter only ships a native [PlatformMenuBar] implementation on macOS.
-/// Windows / Linux fall back to the in-window Material menu bar.
-bool infospectSupportsNativeMenuBar() {
-  if (kIsWeb) return false;
-  return defaultTargetPlatform == TargetPlatform.macOS;
-}
+/// Flutter's `flutter/menu` channel only targets a single main window, so the
+/// system menu bar never appears for Infospect secondary Multiview windows.
+/// Always use the in-window Material menu instead.
+bool infospectSupportsNativeMenuBar() => false;
 
-/// Menu bar + keyboard shortcuts for the Infospect desktop inspector window.
+/// In-window menu bar + keyboard shortcuts for the Infospect desktop inspector.
 ///
-/// - **macOS:** native [PlatformMenuBar] (system menu bar; shortcut glyphs shown
-///   by the OS). Does not merge into the host app’s menus while Infospect is
-///   open — only one [PlatformMenuBar] can be active per isolate.
-/// - **Windows / Linux:** in-window Material [MenuBar] with trailing shortcut
-///   labels (native menu bar is not available in Flutter without a plugin).
-///
-/// Shortcuts are also registered with [HardwareKeyboard] so they work even when
-/// focus is inside a search field or list (Multiview window focus quirks).
+/// Shortcut labels are shown on each menu item. Keys are handled with a
+/// focus-gated [HardwareKeyboard] handler so they work inside search fields
+/// without affecting other Infospect windows.
 class InfospectDesktopMenuShell extends StatefulWidget {
   const InfospectDesktopMenuShell({
     super.key,
@@ -37,7 +30,8 @@ class InfospectDesktopMenuShell extends StatefulWidget {
     required this.networksListNotifier,
     required this.logsListNotifier,
     required this.child,
-    this.forceInAppMenuBar = false,
+    @Deprecated('Native menu is unavailable under Multiview; always in-app.')
+    this.forceInAppMenuBar = true,
   });
 
   final Infospect infospect;
@@ -45,7 +39,8 @@ class InfospectDesktopMenuShell extends StatefulWidget {
   final LogsListNotifier logsListNotifier;
   final Widget child;
 
-  /// When true, always use the in-window Material menu (skip native).
+  /// Ignored — in-app menu is always used under Multiview.
+  @Deprecated('Native menu is unavailable under Multiview; always in-app.')
   final bool forceInAppMenuBar;
 
   static const double inAppMenuBarHeight = 34;
@@ -55,20 +50,18 @@ class InfospectDesktopMenuShell extends StatefulWidget {
       _InfospectDesktopMenuShellState();
 }
 
-class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell> {
+class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell>
+    implements WindowListenerCallbacks {
   late InfospectDesktopMenuActions _actions;
   Map<ShortcutActivator, VoidCallback> _bindings = {};
   DateTime? _lastShortcutAt;
-
-  bool get _useNative =>
-      !widget.forceInAppMenuBar && infospectSupportsNativeMenuBar();
+  bool _focused = true;
+  int? _viewId;
 
   @override
   void initState() {
     super.initState();
     _rebuildActions();
-    // Always register: Multiview windows can miss focus-based Shortcuts, and
-    // native PlatformMenuBar shortcuts are debounce-guarded against double fire.
     HardwareKeyboard.instance.addHandler(_onKeyEvent);
   }
 
@@ -82,12 +75,34 @@ class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _rebuildActions();
+    _syncFocusListener();
   }
 
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKeyEvent);
+    _unregisterFocusListener();
     super.dispose();
+  }
+
+  void _syncFocusListener() {
+    if (kIsWeb) return;
+    try {
+      final id = MultiViewDesktop.getIdByContext(context);
+      if (_viewId == id) return;
+      _unregisterFocusListener();
+      _viewId = id;
+      MultiViewDesktop.addListenerForView(id, this);
+    } catch (_) {
+      _focused = true;
+    }
+  }
+
+  void _unregisterFocusListener() {
+    final id = _viewId;
+    if (id == null) return;
+    MultiViewDesktop.removeListenerForView(id, this);
+    _viewId = null;
   }
 
   void _rebuildActions() {
@@ -97,9 +112,12 @@ class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell> {
       networks: widget.networksListNotifier,
       logs: widget.logsListNotifier,
     );
+    // Close-window is owned by [InfospectDesktopWindowShortcuts] on every
+    // Infospect window — omit it here to avoid double-handling.
     _bindings = {
       for (final entry in _actions.shortcutBindings.entries)
-        entry.key: () => _runShortcut(entry.value),
+        if (entry.key != InfospectDesktopShortcuts.closeWindow)
+          entry.key: () => _runShortcut(entry.value),
     };
   }
 
@@ -114,7 +132,7 @@ class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell> {
   }
 
   bool _onKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return false;
+    if (!_focused || event is! KeyDownEvent) return false;
     for (final entry in _bindings.entries) {
       if (entry.key.accepts(event, HardwareKeyboard.instance)) {
         entry.value();
@@ -125,14 +143,49 @@ class _InfospectDesktopMenuShellState extends State<InfospectDesktopMenuShell> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_useNative) {
-      return PlatformMenuBar(
-        menus: _actions.buildNativeMenus(runGuarded: _runShortcut),
-        child: widget.child,
-      );
-    }
+  void onWindowFocus() => _focused = true;
 
+  @override
+  void onWindowBlur() => _focused = false;
+
+  @override
+  void onWindowClose() {}
+
+  @override
+  void onWindowMaximize() {}
+
+  @override
+  void onWindowUnmaximize() {}
+
+  @override
+  void onWindowMinimize() {}
+
+  @override
+  void onWindowRestore() {}
+
+  @override
+  void onWindowResize() {}
+
+  @override
+  void onWindowResized() {}
+
+  @override
+  void onWindowMove() {}
+
+  @override
+  void onWindowMoved() {}
+
+  @override
+  void onWindowEnterFullScreen() {}
+
+  @override
+  void onWindowLeaveFullScreen() {}
+
+  @override
+  void onWindowEvent(String eventName) {}
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -170,10 +223,7 @@ class InfospectDesktopMenuActions {
         InfospectDesktopShortcuts.closeWindow: closeWindow,
       };
 
-  /// Native macOS menus — OS draws shortcut labels next to each item.
-  ///
-  /// [onSelected] is wrapped so a simultaneous [HardwareKeyboard] delivery of
-  /// the same shortcut does not run the action twice.
+  /// Kept for tests / hosts that want the same menu model as a [PlatformMenuBar].
   List<PlatformMenuItem> buildNativeMenus({
     void Function(VoidCallback action)? runGuarded,
   }) {
@@ -344,13 +394,11 @@ class InfospectDesktopMenuActions {
   void closeWindow() {
     try {
       MultiViewDesktop.of(context).closeWindow();
-    } catch (_) {
-      // Host may not be under a MultiViewDesktop ancestor (e.g. tests).
-    }
+    } catch (_) {}
   }
 }
 
-/// In-window Material menu bar used when native [PlatformMenuBar] is unavailable.
+/// In-window Material menu bar with trailing shortcut labels.
 class InfospectDesktopInAppMenuBar extends StatelessWidget {
   const InfospectDesktopInAppMenuBar({super.key, required this.actions});
 
@@ -362,10 +410,10 @@ class InfospectDesktopInAppMenuBar extends StatelessWidget {
     final barFg = theme.colorScheme.onSurface;
     final shortcutFg = theme.colorScheme.onSurface.withValues(alpha: 0.55);
     final barBg = Color.alphaBlend(
-      theme.colorScheme.primary.withValues(alpha: 0.06),
+      theme.colorScheme.primary.withValues(alpha: 0.08),
       theme.colorScheme.surfaceContainerHigh,
     );
-    final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.7);
+    final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.75);
     final shortcutStyle = TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w500,

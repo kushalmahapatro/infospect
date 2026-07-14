@@ -64,6 +64,17 @@ abstract final class InfospectDesktopShortcuts {
 
   static SingleActivator get closeWindow => primary(LogicalKeyboardKey.keyW);
 
+  static String get networkTabLabel => primaryLabel('1');
+  static String get logsTabLabel => primaryLabel('2');
+  static String get breakpointsLabel => primaryLabel('B');
+  static String get clearNetworkLabel => primaryLabel('K', shift: true);
+  static String get shareNetworkLabel => primaryLabel('S', shift: true);
+  static String get popOutNetworkLabel => primaryLabel('N', shift: true);
+  static String get clearLogsLabel => primaryLabel('L', shift: true);
+  static String get shareLogsLabel => primaryLabel('E', shift: true);
+  static String get popOutLogsLabel => primaryLabel('G', shift: true);
+  static String get closeWindowLabel => primaryLabel('W');
+
   // --- Host: open Infospect (both platforms registered) ---
 
   static const SingleActivator openInspectorMac = SingleActivator(

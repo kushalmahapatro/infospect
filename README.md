@@ -206,9 +206,13 @@ If not provided, the default platform share option will be invoked.
 
   **Desktop Infospect window — menu bar & shortcuts**
 
-  The inspector window has its own in-window menu bar (View / Network / Logs /
-  Window). It does **not** replace the host app’s platform menu bar or
-  dock/taskbar menus.
+  - **macOS:** native system menu bar (View / Network / Logs / Window). The OS
+    shows shortcut glyphs beside each item.
+  - **Windows / Linux:** in-window menu bar with the same items and trailing
+    shortcut labels (Flutter has no built-in native menu bar on these platforms).
+
+  Shortcuts also work via a global keyboard handler (even when a search field
+  has focus):
 
   | Action | macOS | Windows / Linux |
   |---|---|---|
@@ -224,9 +228,9 @@ If not provided, the default platform share option will be invoked.
   | Close window | ⌘W | Ctrl+W |
 
   Prefer `InfospectInvoker` when the host already owns its menus (shortcut only).
-  If you use `InfospectDesktopInvoker`, pass host menus via `menus` (macOS) /
-  `barButtons` (Windows/Linux) so they are preserved — Infospect is appended.
-  Helpers: `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`.
+  To add Infospect to a host macOS `PlatformMenuBar`, use
+  `InfospectDesktopInvoker.mergePlatformMenus`. Helpers also exist for
+  `mergeBarButtons` and `mergeTaskbarMenus`.
 
 6. Network breakpoints (Proxyman-style, without a proxy)
 

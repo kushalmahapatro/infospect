@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:infospect/features/invoker/infospect_invoker.dart';
 import 'package:infospect/features/launch/desktop/infospect_desktop_shortcuts.dart';
@@ -8,23 +9,20 @@ import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:menu_bar/menu_bar.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
-/// Optional host-app menu integration that **appends** Infospect without
-/// replacing consumer menus.
+/// Optional host-app helpers that **append** Infospect without replacing
+/// consumer menus.
 ///
 /// Prefer [InfospectInvoker] when the host already owns its menu bar — that
-/// path only registers the open-inspector keyboard shortcut and never touches
-/// platform / in-app menus.
+/// path only registers the open-inspector keyboard shortcut.
 ///
-/// When you do use this widget:
-/// - **macOS:** pass the host's existing [PlatformMenuItem]s via [menus]. They
-///   are kept and Infospect is appended. Do not also wrap with a separate
-///   [PlatformMenuBar] that would race on `setMenus`.
-/// - **Windows / Linux:** pass the host's [BarButton]s via [barButtons]. They
-///   are shown first; Infospect's "Options" menu is appended.
+/// **Do not** wrap the host in a [PlatformMenuBar] from this widget: Flutter
+/// allows only one active [PlatformMenuBar] per isolate, and the Infospect
+/// inspector window installs its own native menus on macOS. Use
+/// [mergePlatformMenus] inside the host’s existing [PlatformMenuBar] instead.
 ///
-/// Infospect's own desktop inspector window uses an in-window Material
-/// [MenuBar] (see `InfospectDesktopMenuShell`) and does not use this widget.
-class InfospectDesktopInvoker extends StatelessWidget {
+/// On Windows / Linux, pass host [barButtons] so they are preserved and
+/// Infospect is appended to the in-app [MenuBarWidget].
+class InfospectDesktopInvoker extends StatefulWidget {
   const InfospectDesktopInvoker({
     super.key,
     required this.child,
@@ -34,11 +32,13 @@ class InfospectDesktopInvoker extends StatelessWidget {
 
   final Widget child;
 
-  /// Host macOS [PlatformMenuBar] items. Preserved and listed before Infospect.
+  /// Host macOS menu items to merge via [mergePlatformMenus] (for hosts that
+  /// build their own [PlatformMenuBar]). Not applied automatically — see
+  /// [mergePlatformMenus].
   final List<PlatformMenuItem> menus;
 
   /// Host Windows / Linux [MenuBarWidget] buttons. Preserved and listed before
-  /// Infospect's Options menu.
+  /// Infospect's menu.
   final List<BarButton> barButtons;
 
   /// Builds the Infospect [PlatformMenu] for hosts that already own a
@@ -53,7 +53,9 @@ class InfospectDesktopInvoker extends StatelessWidget {
           onSelected: () async {
             await (onOpen ?? Infospect.instance.openInspectorInNewWindow)();
           },
-          shortcut: InfospectDesktopShortcuts.openInspectorMac,
+          shortcut: InfospectDesktopShortcuts.isApple
+              ? InfospectDesktopShortcuts.openInspectorMac
+              : InfospectDesktopShortcuts.openInspectorOther,
           label: 'Open Infospect',
         ),
       ],
@@ -125,61 +127,52 @@ class InfospectDesktopInvoker extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (kIsWeb) return child;
+  State<InfospectDesktopInvoker> createState() =>
+      _InfospectDesktopInvokerState();
+}
 
+class _InfospectDesktopInvokerState extends State<InfospectDesktopInvoker> {
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKeyEvent);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
+    super.dispose();
+  }
+
+  bool _onKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    for (final activator in InfospectDesktopShortcuts.openInspectorActivators) {
+      if (activator.accepts(event, HardwareKeyboard.instance)) {
+        Infospect.instance.openInspectorInNewWindow();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return widget.child;
+
+    // macOS: do not install PlatformMenuBar here — the Infospect inspector
+    // window owns the native menu bar. Hosts should use mergePlatformMenus.
     if (Platform.isMacOS) {
-      return _MacOsMenuBarWidget(this);
-    } else if (Platform.isWindows || Platform.isLinux) {
-      return _OtherDesktopMenuBarWidget(this);
+      return widget.child;
     }
 
-    return InfospectInvoker(child: child);
-  }
-}
+    if (Platform.isWindows || Platform.isLinux) {
+      return MenuBarWidget(
+        barButtons:
+            InfospectDesktopInvoker.mergeBarButtons(widget.barButtons),
+        child: widget.child,
+      );
+    }
 
-class _MacOsMenuBarWidget extends StatelessWidget {
-  const _MacOsMenuBarWidget(this.invoker);
-
-  final InfospectDesktopInvoker invoker;
-
-  @override
-  Widget build(BuildContext context) {
-    return PlatformMenuBar(
-      menus: InfospectDesktopInvoker.mergePlatformMenus(invoker.menus),
-      child: CallbackShortcuts(
-        bindings: {
-          for (final activator
-              in InfospectDesktopShortcuts.openInspectorActivators)
-            activator: () {
-              Infospect.instance.openInspectorInNewWindow();
-            },
-        },
-        child: invoker.child,
-      ),
-    );
-  }
-}
-
-class _OtherDesktopMenuBarWidget extends StatelessWidget {
-  const _OtherDesktopMenuBarWidget(this.invoker);
-
-  final InfospectDesktopInvoker invoker;
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuBarWidget(
-      barButtons: InfospectDesktopInvoker.mergeBarButtons(invoker.barButtons),
-      child: CallbackShortcuts(
-        bindings: {
-          for (final activator
-              in InfospectDesktopShortcuts.openInspectorActivators)
-            activator: () {
-              Infospect.instance.openInspectorInNewWindow();
-            },
-        },
-        child: invoker.child,
-      ),
-    );
+    return InfospectInvoker(child: widget.child);
   }
 }

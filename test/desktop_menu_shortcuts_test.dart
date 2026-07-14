@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -96,21 +97,31 @@ void main() {
       logs.dispose();
     });
 
-    Widget pumpTarget() {
+    Widget pumpTarget({bool forceInApp = true}) {
       return MaterialApp(
         home: Scaffold(
           body: InfospectDesktopMenuShell(
             infospect: infospect,
             networksListNotifier: networks,
             logsListNotifier: logs,
+            forceInAppMenuBar: forceInApp,
             child: const SizedBox.expand(child: Text('content')),
           ),
         ),
       );
     }
 
-    testWidgets('renders View / Network / Logs / Window menus', (tester) async {
+    test('native menu bar is macOS-only', () {
+      expect(
+        infospectSupportsNativeMenuBar(),
+        defaultTargetPlatform == TargetPlatform.macOS,
+      );
+    });
+
+    testWidgets('in-app menu renders View / Network / Logs / Window',
+        (tester) async {
       await tester.pumpWidget(pumpTarget());
+      expect(find.byType(InfospectDesktopInAppMenuBar), findsOneWidget);
       expect(find.text('View'), findsOneWidget);
       expect(find.text('Network'), findsWidgets);
       expect(find.text('Logs'), findsWidgets);
@@ -118,7 +129,36 @@ void main() {
       expect(find.text('content'), findsOneWidget);
     });
 
-    testWidgets('⌘/Ctrl+2 selects logs tab', (tester) async {
+    testWidgets('in-app menu items show shortcut labels', (tester) async {
+      await tester.pumpWidget(pumpTarget());
+      await tester.tap(find.text('View'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(InfospectDesktopShortcuts.networkTabLabel),
+        findsOneWidget,
+      );
+      expect(find.text(InfospectDesktopShortcuts.logsTabLabel), findsOneWidget);
+      expect(
+        find.text(InfospectDesktopShortcuts.breakpointsLabel),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('native path uses PlatformMenuBar without in-app bar',
+        (tester) async {
+      await tester.pumpWidget(pumpTarget(forceInApp: false));
+      if (infospectSupportsNativeMenuBar()) {
+        expect(find.byType(PlatformMenuBar), findsOneWidget);
+        expect(find.byType(InfospectDesktopInAppMenuBar), findsNothing);
+        expect(find.text('content'), findsOneWidget);
+      } else {
+        expect(find.byType(InfospectDesktopInAppMenuBar), findsOneWidget);
+      }
+    });
+
+    testWidgets('⌘/Ctrl+2 selects logs tab via HardwareKeyboard',
+        (tester) async {
       await tester.pumpWidget(pumpTarget());
       expect(LaunchNotifier.instance.selectedTab, 0);
 
@@ -138,7 +178,8 @@ void main() {
       expect(LaunchNotifier.instance.selectedTab, 1);
     });
 
-    testWidgets('⌘/Ctrl+1 selects network tab', (tester) async {
+    testWidgets('⌘/Ctrl+1 selects network tab via HardwareKeyboard',
+        (tester) async {
       LaunchNotifier.instance.selectTab(1);
       await tester.pumpWidget(pumpTarget());
 
@@ -169,7 +210,88 @@ void main() {
         ),
       );
       expect(find.byType(InfospectDesktopMenuShell), findsOneWidget);
-      expect(find.text('View'), findsOneWidget);
+    });
+  });
+
+  group('native menu definitions', () {
+    late Infospect infospect;
+    late NetworksListNotifier networks;
+    late LogsListNotifier logs;
+
+    setUp(() {
+      Infospect.ensureInitialized(logAppLaunch: false);
+      infospect = Infospect.instance;
+      networks = NetworksListNotifier();
+      logs = LogsListNotifier(infospectLogger: infospect.infospectLogger);
+    });
+
+    tearDown(() {
+      networks.dispose();
+      logs.dispose();
+    });
+
+    testWidgets('buildNativeMenus exposes labeled shortcuts', (tester) async {
+      late InfospectDesktopMenuActions actions;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              actions = InfospectDesktopMenuActions(
+                context: context,
+                infospect: infospect,
+                networks: networks,
+                logs: logs,
+              );
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      final menus = actions.buildNativeMenus();
+      expect(menus.length, 4);
+
+      PlatformMenuItem? findItem(String label) {
+        PlatformMenuItem? walk(PlatformMenuItem item) {
+          if (item.label == label) return item;
+          if (item is PlatformMenu) {
+            for (final child in item.menus) {
+              final found = walk(child);
+              if (found != null) return found;
+            }
+          }
+          if (item is PlatformMenuItemGroup) {
+            for (final child in item.members) {
+              final found = walk(child);
+              if (found != null) return found;
+            }
+          }
+          return null;
+        }
+
+        for (final top in menus) {
+          final found = walk(top);
+          if (found != null) return found;
+        }
+        return null;
+      }
+
+      final network = findItem('Network');
+      expect(network, isNotNull);
+      expect(network!.shortcut, isA<SingleActivator>());
+      expect((network.shortcut! as SingleActivator).trigger,
+          LogicalKeyboardKey.digit1);
+
+      final breakpoints = findItem('Breakpoints…');
+      expect(breakpoints, isNotNull);
+      expect((breakpoints!.shortcut! as SingleActivator).trigger,
+          LogicalKeyboardKey.keyB);
+
+      final clear = findItem('Clear Network Calls');
+      expect(clear, isNotNull);
+      expect((clear!.shortcut! as SingleActivator).trigger,
+          LogicalKeyboardKey.keyK);
+      expect((clear.shortcut! as SingleActivator).shift, isTrue);
     });
   });
 }

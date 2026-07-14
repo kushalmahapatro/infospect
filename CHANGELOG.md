@@ -8,7 +8,7 @@
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
 - Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
 - **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `InfospectDesktopBootstrap.runAppOrMultiApp` (and top-level helpers) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
-- **Desktop Infospect menu bar & shortcuts:** in-window Material menu (View / Network / Logs / Window) with keyboard shortcuts; does not replace host platform or dock menus. `InfospectDesktopInvoker` merges host `menus` / `barButtons`; helpers `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`
+- **Desktop Infospect menu bar & shortcuts:** native macOS `PlatformMenuBar` (OS shortcut labels); in-window Material menu on Windows/Linux with trailing shortcut text. `HardwareKeyboard` handlers so shortcuts work without text-field focus. Host merge helpers: `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules

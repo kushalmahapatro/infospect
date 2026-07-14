@@ -192,22 +192,28 @@ Before adding desktop plugins, check for force-unwraps of `registrar.view` /
 
 ## Menu bars — never replace the host
 
-Infospect’s **inspector window** uses an in-window Material menu bar
-(`InfospectDesktopMenuShell`). That is scoped to the Infospect view and does
-**not** call `platformMenuDelegate.setMenus` or
-`MultiViewDesktop.setMenuItems`.
+**Infospect inspector window (macOS):** uses a native [PlatformMenuBar]
+(View / Network / Logs / Window) with OS-drawn shortcut labels. Flutter only
+ships native menu support on macOS; Windows / Linux use an in-window Material
+menu bar with trailing shortcut text instead.
 
-For the **host** app:
+Shortcuts are also registered via `HardwareKeyboard` so they work without
+focus in a text field.
+
+**Host app:**
 
 | Approach | Effect on host menus |
 |---|---|
 | `InfospectInvoker` (recommended default) | Keyboard shortcut only — no menu changes |
-| `InfospectDesktopInvoker(menus: hostMenus, …)` | Appends Infospect; keeps `menus` / `barButtons` |
-| `InfospectDesktopInvoker.mergePlatformMenus(host)` | Insert Infospect into an existing `PlatformMenuBar` |
+| `InfospectDesktopInvoker.mergePlatformMenus(host)` | Insert Infospect into the host’s existing `PlatformMenuBar` |
+| `InfospectDesktopInvoker` on Windows/Linux with `barButtons:` | Appends Infospect; keeps host bar buttons |
 | `InfospectDesktopInvoker.mergeTaskbarMenus(host)` | Merge before `MultiViewDesktop.setMenuItems` (that API replaces the full list) |
 
-Do **not** call `setMenus` / `setMenuItems` with Infospect-only items, or wrap
-`InfospectDesktopInvoker` without passing the host’s existing menus.
+Do **not** install a second host `PlatformMenuBar` that races with Infospect’s
+inspector window (Flutter allows only one active `PlatformMenuBar` per isolate).
+Prefer `mergePlatformMenus` inside the menu list you already own.
+
+Do **not** call `setMenus` / `setMenuItems` with Infospect-only items.
 
 ---
 

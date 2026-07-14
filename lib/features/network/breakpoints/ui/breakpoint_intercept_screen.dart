@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 
-/// Full-screen (mobile) / window (desktop) editor for a paused request or response.
+/// Compact request / response breakpoint editor.
 class BreakpointInterceptScreen extends StatefulWidget {
   const BreakpointInterceptScreen({
     super.key,
@@ -10,35 +10,32 @@ class BreakpointInterceptScreen extends StatefulWidget {
     required this.initialPayload,
     required this.onContinue,
     required this.onAbort,
+    this.compact = true,
   });
 
   final InfospectBreakpointPhase phase;
   final InfospectBreakpointPayload initialPayload;
   final ValueChanged<InfospectBreakpointPayload> onContinue;
   final ValueChanged<InfospectBreakpointPayload> onAbort;
+  final bool compact;
 
   @override
   State<BreakpointInterceptScreen> createState() =>
       _BreakpointInterceptScreenState();
 }
 
-class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
   late final TextEditingController _bodyController;
   late final TextEditingController _statusController;
   late final List<_KvEntry> _headers;
   late final List<_KvEntry> _params;
   late final bool _isResponse;
+  int _section = 0;
 
   @override
   void initState() {
     super.initState();
     _isResponse = widget.phase == InfospectBreakpointPhase.response;
-    _tabController = TabController(
-      length: _isResponse ? 2 : 3,
-      vsync: this,
-    );
     _bodyController =
         TextEditingController(text: widget.initialPayload.body);
     _statusController = TextEditingController(
@@ -70,7 +67,6 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _bodyController.dispose();
     _statusController.dispose();
     for (final entry in _headers) {
@@ -112,134 +108,163 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen>
     );
   }
 
+  List<String> get _sections => _isResponse
+      ? const ['Headers', 'Body']
+      : const ['Headers', 'Query', 'Body'];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final title =
         _isResponse ? 'Response Breakpoint' : 'Request Breakpoint';
-    final subtitle =
-        '${widget.initialPayload.method}  ${widget.initialPayload.uri}';
-    final borderColor =
-        theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
+    final border = theme.colorScheme.outlineVariant.withValues(alpha: 0.45);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        titleSpacing: 12,
-        automaticallyImplyLeading: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleSmall),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontFamily: 'monospace',
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            key: const Key('breakpoint_abort'),
-            onPressed: () => widget.onAbort(_buildPayload()),
-            child: Text(
-              'Abort',
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          ),
-          const SizedBox(width: 4),
-          FilledButton(
-            key: const Key('breakpoint_continue'),
-            onPressed: () => widget.onContinue(_buildPayload()),
-            child: const Text('Continue'),
-          ),
-          const SizedBox(width: 12),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            const Tab(text: 'Headers'),
-            if (!_isResponse) const Tab(text: 'Query'),
-            const Tab(text: 'Body'),
-          ],
-        ),
-      ),
-      body: Column(
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.35),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.initialPayload.method}  ${widget.initialPayload.endpoint}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  key: const Key('breakpoint_abort'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: theme.colorScheme.error,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: () => widget.onAbort(_buildPayload()),
+                  child: const Text('Abort'),
+                ),
+                FilledButton(
+                  key: const Key('breakpoint_continue'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => widget.onContinue(_buildPayload()),
+                  child: const Text('Continue'),
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: _isResponse
-                  ? Row(
-                      children: [
-                        Text('Status', style: theme.textTheme.labelMedium),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 96,
-                          child: TextField(
-                            key: const Key('breakpoint_status_field'),
-                            controller: _statusController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                              hintText: '200',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Edit the response, then Continue to deliver it to the client.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ),
+          ),
+          if (_isResponse)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Status',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      key: const Key('breakpoint_status_field'),
+                      controller: _statusController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 13),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
-                    )
-                  : Text(
-                      'Edit headers, query params, or body, then Continue to send the request.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(),
+                        hintText: '200',
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Edit then Continue to deliver to the client.',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: WidgetStatePropertyAll(
+                    theme.textTheme.labelSmall?.copyWith(fontSize: 11),
+                  ),
+                ),
+                segments: [
+                  for (var i = 0; i < _sections.length; i++)
+                    ButtonSegment<int>(value: i, label: Text(_sections[i])),
+                ],
+                selected: {_section},
+                onSelectionChanged: (value) {
+                  setState(() => _section = value.first);
+                },
+              ),
             ),
           ),
+          Divider(height: 1, color: border),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _KvEditor(
+            child: switch (_sections[_section]) {
+              'Headers' => _KvEditor(
                   entries: _headers,
                   keyHint: 'Header',
                   valueHint: 'Value',
                   onChanged: () => setState(() {}),
                 ),
-                if (!_isResponse)
-                  _KvEditor(
-                    entries: _params,
-                    keyHint: 'Param',
-                    valueHint: 'Value',
-                    onChanged: () => setState(() {}),
-                  ),
-                _BodyEditor(controller: _bodyController),
-              ],
-            ),
+              'Query' => _KvEditor(
+                  entries: _params,
+                  keyHint: 'Param',
+                  valueHint: 'Value',
+                  onChanged: () => setState(() {}),
+                ),
+              _ => _BodyEditor(controller: _bodyController),
+            },
           ),
         ],
       ),
@@ -275,20 +300,24 @@ class _KvEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      padding: const EdgeInsets.fromLTRB(10, 8, 6, 16),
       itemCount: entries.length + 1,
       itemBuilder: (context, index) {
         if (index == entries.length) {
           return Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
               onPressed: () {
                 entries.add(
                   _KvEntry(TextEditingController(), TextEditingController()),
                 );
                 onChanged();
               },
-              icon: const Icon(Icons.add, size: 18),
+              icon: const Icon(Icons.add, size: 16),
               label: Text('Add $keyHint'),
             ),
           );
@@ -296,27 +325,37 @@ class _KvEditor extends StatelessWidget {
 
         final entry = entries[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 6),
           child: Row(
             children: [
               Expanded(
                 flex: 2,
                 child: TextField(
                   controller: entry.keyController,
+                  style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(
                     isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                     border: const OutlineInputBorder(),
                     hintText: keyHint,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 flex: 3,
                 child: TextField(
                   controller: entry.valueController,
+                  style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(
                     isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                     border: const OutlineInputBorder(),
                     hintText: valueHint,
                   ),
@@ -324,12 +363,14 @@ class _KvEditor extends StatelessWidget {
               ),
               IconButton(
                 tooltip: 'Remove',
+                visualDensity: VisualDensity.compact,
+                iconSize: 16,
                 onPressed: () {
                   entry.dispose();
                   entries.removeAt(index);
                   onChanged();
                 },
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
@@ -348,7 +389,7 @@ class _BodyEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
       child: TextField(
         key: const Key('breakpoint_body_field'),
         controller: controller,
@@ -357,12 +398,15 @@ class _BodyEditor extends StatelessWidget {
         textAlignVertical: TextAlignVertical.top,
         style: theme.textTheme.bodySmall?.copyWith(
           fontFamily: 'monospace',
+          fontSize: 12,
           height: 1.35,
         ),
         decoration: const InputDecoration(
+          isDense: true,
           border: OutlineInputBorder(),
           hintText: 'Body',
           alignLabelWithHint: true,
+          contentPadding: EdgeInsets.all(10),
         ),
       ),
     );

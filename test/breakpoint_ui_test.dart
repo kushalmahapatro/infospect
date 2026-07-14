@@ -6,6 +6,7 @@ import 'package:infospect/features/network/breakpoints/models/infospect_breakpoi
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_intercept_screen.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoints_list_screen.dart';
+import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
 
@@ -21,10 +22,15 @@ void main() {
 
   setUp(() {
     Infospect.instance.clearBreakpoints();
+    Infospect.instance.clearAllNetworkCalls();
     Infospect.instance.preferInAppBreakpointDialogs = true;
   });
 
-  Widget wrap(Widget child, {ThemeData? theme, Size size = const Size(390, 844)}) {
+  Widget wrap(
+    Widget child, {
+    ThemeData? theme,
+    Size size = const Size(390, 844),
+  }) {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
@@ -53,10 +59,10 @@ void main() {
         matchesGoldenFile('goldens/breakpoints_list_empty.png'),
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Add breakpoint'));
+      await tester.tap(find.text('Add breakpoint').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Add breakpoint'), findsWidgets);
+      expect(find.textContaining('Add breakpoint'), findsWidgets);
       await tester.enterText(find.byType(TextField).first, '/api/users');
       await tester.tap(find.widgetWithText(FilledButton, 'Add'));
       await tester.pumpAndSettle();
@@ -270,6 +276,7 @@ void main() {
         headers: {'content-type': 'application/json'},
         queryParameters: {'coupon': 'SAVE'},
         body: {'total': 10},
+        requestId: 101,
       );
 
       await tester.pumpAndSettle();
@@ -277,7 +284,7 @@ void main() {
       expect(find.textContaining('/api/checkout'), findsWidgets);
 
       await expectLater(
-        find.byType(Dialog),
+        find.byType(BreakpointInterceptScreen),
         matchesGoldenFile('goldens/breakpoint_integration_request_dialog.png'),
       );
 
@@ -302,15 +309,22 @@ void main() {
         uri: 'https://shop.test/api/checkout',
         headers: {'content-type': 'application/json'},
         body: {'ok': true},
-        statusCode: 201,
+        statusCode: 500,
+        requestId: 101,
       );
 
       await tester.pumpAndSettle();
       expect(find.text('Response Breakpoint'), findsOneWidget);
-      expect(find.text('201'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('breakpoint_status_field')))
+            .controller!
+            .text,
+        '500',
+      );
 
       await expectLater(
-        find.byType(Dialog),
+        find.byType(BreakpointInterceptScreen),
         matchesGoldenFile('goldens/breakpoint_integration_response_dialog.png'),
       );
 
@@ -320,6 +334,10 @@ void main() {
         find.byKey(const Key('breakpoint_body_field')),
         '{\n  "ok": true,\n  "patched": true\n}',
       );
+      await tester.enterText(
+        find.byKey(const Key('breakpoint_status_field')),
+        '200',
+      );
       await tester.tap(find.byKey(const Key('breakpoint_continue')));
       await tester.pumpAndSettle();
 
@@ -327,7 +345,7 @@ void main() {
       expect(responseResult, isNotNull);
       expect(responseResult!.aborted, isFalse);
       expect(responseResult.payload.body, contains('patched'));
-      expect(responseResult.payload.statusCode, 201);
+      expect(responseResult.payload.statusCode, 200);
     });
 
     testWidgets('non-matching calls are not intercepted', (tester) async {
@@ -374,11 +392,57 @@ void main() {
       final result = await future;
       expect(result!.aborted, isTrue);
     });
+
+    testWidgets('marks breakpoint edit traces on the logged call', (tester) async {
+      Infospect.instance.addCall(
+        InfospectNetworkCall(77).copyWith(
+          method: 'GET',
+          endpoint: '/traced',
+          uri: 'https://example.com/traced',
+        ),
+      );
+      Infospect.instance.addEndpointBreakpoint(endpoint: '/traced');
+
+      await tester.pumpWidget(wrap(const Scaffold(body: Text('Host'))));
+      await tester.pumpAndSettle();
+
+      final future = Infospect.instance.interceptRequestIfNeeded(
+        method: 'GET',
+        endpoint: '/traced',
+        uri: 'https://example.com/traced',
+        headers: const {},
+        queryParameters: const {},
+        body: '',
+        requestId: 77,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        Infospect.instance.networkCallsSubject.value
+            .firstWhere((c) => c.id == 77)
+            .hadRequestBreakpoint,
+        isTrue,
+      );
+
+      await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('breakpoint_body_field')),
+        '{"edited":true}',
+      );
+      await tester.tap(find.byKey(const Key('breakpoint_continue')));
+      await tester.pumpAndSettle();
+      await future;
+
+      final call = Infospect.instance.networkCallsSubject.value
+          .firstWhere((c) => c.id == 77);
+      expect(call.requestEditedAtBreakpoint, isTrue);
+      expect(call.hasBreakpointTrace, isTrue);
+    });
   });
 
   group('Artifact export', () {
     test('golden PNGs exist for UI review after update-goldens', () {
-      // Goldens live next to this test file under test/goldens/.
       final candidates = <String>[
         'goldens/breakpoints_list_empty.png',
         'goldens/breakpoints_list_with_rule.png',

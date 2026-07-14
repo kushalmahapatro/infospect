@@ -18,14 +18,13 @@ class BreakpointsListScreen extends StatelessWidget {
     if (!kIsWeb &&
         InfospectUtil.isDesktop &&
         !Infospect.instance.preferInAppBreakpointDialogs) {
-      final darkTheme =
-          Theme.of(context).brightness == Brightness.dark;
+      final darkTheme = Theme.of(context).brightness == Brightness.dark;
       await openWindow(
         (ctx, id) => const BreakpointsListScreen(embedded: true),
         options: WindowOptions(
           title: 'Breakpoints · Infospect',
-          size: const Size(720, 560),
-          minimumSize: const Size(480, 360),
+          size: const Size(560, 480),
+          minimumSize: const Size(420, 320),
           alignment: Alignment.center,
           shellOverrides: ViewShellOverrides(
             appearance: AppShellPatch(
@@ -39,6 +38,7 @@ class BreakpointsListScreen extends StatelessWidget {
       return;
     }
 
+    if (!context.mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => const BreakpointsListScreen(),
@@ -50,17 +50,24 @@ class BreakpointsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final manager = Infospect.instance.breakpointManager;
+    final border = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text('Breakpoints'),
+        titleTextStyle: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface,
+        ),
+        toolbarHeight: 44,
         automaticallyImplyLeading: !embedded,
         actions: [
           IconButton(
             tooltip: 'Add breakpoint',
+            visualDensity: VisualDensity.compact,
             onPressed: () => _showEditor(context),
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, size: 20),
           ),
         ],
       ),
@@ -70,35 +77,42 @@ class BreakpointsListScreen extends StatelessWidget {
           if (rules.isEmpty) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.crisis_alert_outlined,
-                      size: 40,
+                      size: 28,
                       color: theme.colorScheme.onSurface
                           .withValues(alpha: 0.35),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       'No breakpoints yet',
-                      style: theme.textTheme.titleSmall,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: 14,
+                      ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      'Add an endpoint to pause matching requests and responses,\n'
-                      'then edit body, params, or headers before continuing.',
+                      'Pause matching requests and responses to edit\n'
+                      'headers, params, or body before continuing.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
                         color: theme.colorScheme.onSurface
                             .withValues(alpha: 0.55),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
+                    const SizedBox(height: 14),
+                    FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        minimumSize: const Size(0, 34),
+                      ),
                       onPressed: () => _showEditor(context),
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(Icons.add, size: 16),
                       label: const Text('Add breakpoint'),
                     ),
                   ],
@@ -108,12 +122,10 @@ class BreakpointsListScreen extends StatelessWidget {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             itemCount: rules.length,
-            separatorBuilder: (_, _) => Divider(
-              height: 1,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-            ),
+            separatorBuilder: (_, _) =>
+                Divider(height: 1, thickness: 1, color: border),
             itemBuilder: (context, index) {
               final rule = rules[index];
               final methodLabel =
@@ -121,59 +133,78 @@ class BreakpointsListScreen extends StatelessWidget {
                       ? 'ANY'
                       : rule.method!.toUpperCase();
               final phases = <String>[
-                if (rule.breakOnRequest) 'Request',
-                if (rule.breakOnResponse) 'Response',
+                if (rule.breakOnRequest) 'Req',
+                if (rule.breakOnResponse) 'Res',
               ].join(' · ');
 
-              return ListTile(
-                dense: true,
-                leading: Switch.adaptive(
-                  value: rule.enabled,
-                  onChanged: (value) =>
-                      manager.setEnabled(rule.id, value),
-                ),
-                title: Text(
-                  '$methodLabel  ${rule.endpoint}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                subtitle: Text(
-                  phases.isEmpty ? 'Disabled phases' : phases,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface
-                        .withValues(alpha: 0.55),
-                  ),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Edit',
-                      onPressed: () => _showEditor(context, existing: rule),
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                    ),
-                    IconButton(
-                      tooltip: 'Delete',
-                      onPressed: () => manager.removeBreakpoint(rule.id),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ),
+              return InkWell(
                 onTap: () => _showEditor(context, existing: rule),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        height: 28,
+                        child: Switch.adaptive(
+                          value: rule.enabled,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (value) =>
+                              manager.setEnabled(rule.id, value),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$methodLabel  ${rule.endpoint}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              phases.isEmpty ? 'No phases' : phases,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Edit',
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        onPressed: () =>
+                            _showEditor(context, existing: rule),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        tooltip: 'Delete',
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        onPressed: () => manager.removeBreakpoint(rule.id),
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showEditor(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add'),
       ),
     );
   }
@@ -182,9 +213,21 @@ class BreakpointsListScreen extends StatelessWidget {
     BuildContext context, {
     InfospectNetworkBreakpoint? existing,
   }) async {
-    final result = await showDialog<InfospectNetworkBreakpoint>(
+    final result = await showModalBottomSheet<InfospectNetworkBreakpoint>(
       context: context,
-      builder: (dialogContext) => _BreakpointRuleDialog(existing: existing),
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      builder: (dialogContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+        ),
+        child: _BreakpointRuleSheet(existing: existing),
+      ),
     );
     if (result == null) return;
 
@@ -197,16 +240,16 @@ class BreakpointsListScreen extends StatelessWidget {
   }
 }
 
-class _BreakpointRuleDialog extends StatefulWidget {
-  const _BreakpointRuleDialog({this.existing});
+class _BreakpointRuleSheet extends StatefulWidget {
+  const _BreakpointRuleSheet({this.existing});
 
   final InfospectNetworkBreakpoint? existing;
 
   @override
-  State<_BreakpointRuleDialog> createState() => _BreakpointRuleDialogState();
+  State<_BreakpointRuleSheet> createState() => _BreakpointRuleSheetState();
 }
 
-class _BreakpointRuleDialogState extends State<_BreakpointRuleDialog> {
+class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
   static const _methods = <String>[
     'ANY',
     'GET',
@@ -248,29 +291,39 @@ class _BreakpointRuleDialogState extends State<_BreakpointRuleDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isEdit = widget.existing != null;
 
-    return AlertDialog(
-      title: Text(isEdit ? 'Edit breakpoint' : 'Add breakpoint'),
-      content: SizedBox(
-        width: 420,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              isEdit ? 'Edit breakpoint' : 'Add breakpoint',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _endpointController,
+              style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Endpoint',
                 hintText: '/api/users or /api/users*',
+                isDense: true,
                 border: OutlineInputBorder(),
                 helperText: 'Trailing * matches a path prefix',
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             InputDecorator(
               decoration: const InputDecoration(
                 labelText: 'Method',
+                isDense: true,
                 border: OutlineInputBorder(),
                 helperText: 'ANY stops every method for this endpoint',
               ),
@@ -278,6 +331,8 @@ class _BreakpointRuleDialogState extends State<_BreakpointRuleDialog> {
                 child: DropdownButton<String>(
                   value: _method,
                   isExpanded: true,
+                  isDense: true,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
                   items: _methods
                       .map(
                         (m) => DropdownMenuItem(value: m, child: Text(m)),
@@ -290,53 +345,70 @@ class _BreakpointRuleDialogState extends State<_BreakpointRuleDialog> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Enabled'),
+              dense: true,
+              title: const Text('Enabled', style: TextStyle(fontSize: 13)),
               value: _enabled,
               onChanged: (value) => setState(() => _enabled = value),
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Break on request'),
+              dense: true,
+              title: const Text(
+                'Break on request',
+                style: TextStyle(fontSize: 13),
+              ),
               value: _breakOnRequest,
               onChanged: (value) => setState(() => _breakOnRequest = value),
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Break on response'),
+              dense: true,
+              title: const Text(
+                'Break on response',
+                style: TextStyle(fontSize: 13),
+              ),
               value: _breakOnResponse,
               onChanged: (value) => setState(() => _breakOnResponse = value),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      final endpoint = _endpointController.text.trim();
+                      if (endpoint.isEmpty) return;
+                      final method = _method == 'ANY' ? null : _method;
+                      Navigator.of(context).pop(
+                        InfospectNetworkBreakpoint(
+                          id: widget.existing?.id ??
+                              InfospectBreakpointManager.newId(),
+                          endpoint: endpoint,
+                          method: method,
+                          enabled: _enabled,
+                          breakOnRequest: _breakOnRequest,
+                          breakOnResponse: _breakOnResponse,
+                        ),
+                      );
+                    },
+                    child: Text(isEdit ? 'Save' : 'Add'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final endpoint = _endpointController.text.trim();
-            if (endpoint.isEmpty) return;
-            final method = _method == 'ANY' ? null : _method;
-            Navigator.of(context).pop(
-              InfospectNetworkBreakpoint(
-                id: widget.existing?.id ??
-                    InfospectBreakpointManager.newId(),
-                endpoint: endpoint,
-                method: method,
-                enabled: _enabled,
-                breakOnRequest: _breakOnRequest,
-                breakOnResponse: _breakOnResponse,
-              ),
-            );
-          },
-          child: Text(isEdit ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 }

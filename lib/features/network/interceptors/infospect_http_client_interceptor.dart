@@ -114,6 +114,7 @@ class InfospectHttpClientInterceptor extends BaseClient {
         headers: Map<String, dynamic>.from(request.headers),
         queryParameters: Map<String, dynamic>.from(request.url.queryParameters),
         body: request is Request ? request.body : null,
+        requestId: request.hashCode,
       );
 
       if (requestResult != null) {
@@ -181,6 +182,7 @@ class InfospectHttpClientInterceptor extends BaseClient {
           headers: Map<String, dynamic>.from(responseHeaders),
           body: responseBody,
           statusCode: statusCode,
+          requestId: request.hashCode,
         );
 
         if (responseResult != null) {

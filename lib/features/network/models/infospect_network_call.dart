@@ -46,6 +46,18 @@ class InfospectNetworkCall extends Equatable {
   /// The Network error data associated with the call (if any).
   final InfospectNetworkError? error;
 
+  /// Whether a request breakpoint paused this call.
+  final bool hadRequestBreakpoint;
+
+  /// Whether a response breakpoint paused this call.
+  final bool hadResponseBreakpoint;
+
+  /// Whether the request was modified at a breakpoint before sending.
+  final bool requestEditedAtBreakpoint;
+
+  /// Whether the response was modified at a breakpoint before delivery.
+  final bool responseEditedAtBreakpoint;
+
   /// Creates an instance of the `InfospectNetworkCall` class.
   ///
   /// Parameters:
@@ -63,9 +75,20 @@ class InfospectNetworkCall extends Equatable {
       this.duration = 0,
       this.request,
       this.response,
-      this.error})
+      this.error,
+      this.hadRequestBreakpoint = false,
+      this.hadResponseBreakpoint = false,
+      this.requestEditedAtBreakpoint = false,
+      this.responseEditedAtBreakpoint = false})
       : createdTime = time ?? DateTime.now(),
         endpoint = endpoint.isEmpty ? "/" : endpoint;
+
+  /// True when any breakpoint interacted with this call.
+  bool get hasBreakpointTrace =>
+      hadRequestBreakpoint ||
+      hadResponseBreakpoint ||
+      requestEditedAtBreakpoint ||
+      responseEditedAtBreakpoint;
 
   /// Converts the `InfospectNetworkCall` object into a Map representation.
   ///
@@ -98,6 +121,10 @@ class InfospectNetworkCall extends Equatable {
       'request': request?.toMap(),
       'response': response?.toMap(),
       'error': error?.toMap(),
+      'hadRequestBreakpoint': hadRequestBreakpoint,
+      'hadResponseBreakpoint': hadResponseBreakpoint,
+      'requestEditedAtBreakpoint': requestEditedAtBreakpoint,
+      'responseEditedAtBreakpoint': responseEditedAtBreakpoint,
     };
   }
 
@@ -128,6 +155,12 @@ class InfospectNetworkCall extends Equatable {
       error: map['error'] != null
           ? InfospectNetworkError.fromMap(map['error'])
           : null,
+      hadRequestBreakpoint: map['hadRequestBreakpoint'] as bool? ?? false,
+      hadResponseBreakpoint: map['hadResponseBreakpoint'] as bool? ?? false,
+      requestEditedAtBreakpoint:
+          map['requestEditedAtBreakpoint'] as bool? ?? false,
+      responseEditedAtBreakpoint:
+          map['responseEditedAtBreakpoint'] as bool? ?? false,
     );
   }
 
@@ -147,6 +180,10 @@ class InfospectNetworkCall extends Equatable {
       request,
       response,
       error,
+      hadRequestBreakpoint,
+      hadResponseBreakpoint,
+      requestEditedAtBreakpoint,
+      responseEditedAtBreakpoint,
     ];
   }
 
@@ -164,6 +201,10 @@ class InfospectNetworkCall extends Equatable {
     InfospectNetworkRequest? request,
     InfospectNetworkResponse? response,
     InfospectNetworkError? error,
+    bool? hadRequestBreakpoint,
+    bool? hadResponseBreakpoint,
+    bool? requestEditedAtBreakpoint,
+    bool? responseEditedAtBreakpoint,
   }) {
     return InfospectNetworkCall(
       id ?? this.id,
@@ -179,6 +220,14 @@ class InfospectNetworkCall extends Equatable {
       request: request ?? this.request,
       response: response ?? this.response,
       error: error ?? this.error,
+      hadRequestBreakpoint:
+          hadRequestBreakpoint ?? this.hadRequestBreakpoint,
+      hadResponseBreakpoint:
+          hadResponseBreakpoint ?? this.hadResponseBreakpoint,
+      requestEditedAtBreakpoint:
+          requestEditedAtBreakpoint ?? this.requestEditedAtBreakpoint,
+      responseEditedAtBreakpoint:
+          responseEditedAtBreakpoint ?? this.responseEditedAtBreakpoint,
     );
   }
 

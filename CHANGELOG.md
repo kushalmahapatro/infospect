@@ -10,6 +10,13 @@
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
 - Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
+- Coverage for breakpoint edit traces and non-success (error-path) response breakpoints
+
+### Fixes
+- Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
+- Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
+- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, smaller desktop window)
+- Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
 
 ## 0.2.0
 

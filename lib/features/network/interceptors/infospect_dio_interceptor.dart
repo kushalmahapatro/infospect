@@ -124,6 +124,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         headers: Map<String, dynamic>.from(options.headers),
         queryParameters: Map<String, dynamic>.from(options.queryParameters),
         body: options.data is FormData ? null : options.data,
+        requestId: options.hashCode,
       );
 
       if (result != null) {
@@ -173,6 +174,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         headers: _dioHeadersToMap(response.headers),
         body: response.data,
         statusCode: response.statusCode,
+        requestId: response.requestOptions.hashCode,
       );
 
       if (result != null) {
@@ -239,37 +241,108 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
   }
 
   /// Intercepts any errors that occur when making an HTTP request using `Dio`.
+  ///
+  /// Non-2xx responses with a body also go through response breakpoints here,
+  /// since Dio routes them to [onError] instead of [onResponse].
   @override
   void onError(DioException error, ErrorInterceptorHandler handler) {
+    _onError(error, handler);
+  }
+
+  Future<void> _onError(
+    DioException error,
+    ErrorInterceptorHandler handler,
+  ) async {
+    DioException outgoing = error;
+
+    try {
+      final response = error.response;
+      if (response != null) {
+        final result = await infospect.interceptResponseIfNeeded(
+          method: error.requestOptions.method,
+          endpoint: error.requestOptions.uri.path,
+          uri: error.requestOptions.uri.toString(),
+          headers: _dioHeadersToMap(response.headers),
+          body: response.data,
+          statusCode: response.statusCode,
+          requestId: error.requestOptions.hashCode,
+        );
+
+        if (result != null) {
+          if (result.aborted) {
+            handler.reject(
+              DioException(
+                requestOptions: error.requestOptions,
+                response: response,
+                type: DioExceptionType.cancel,
+                error: 'Response aborted at Infospect breakpoint',
+                message: 'Response aborted at Infospect breakpoint',
+              ),
+            );
+            return;
+          }
+
+          _applyResponseEdits(response, result.payload);
+
+          // If the user patched the status into the success range, resolve
+          // instead of rejecting so the client receives a normal response.
+          final status = response.statusCode ?? 0;
+          if (status >= 200 && status < 400) {
+            _logResponse(response);
+            handler.resolve(response);
+            return;
+          }
+
+          outgoing = DioException(
+            requestOptions: error.requestOptions,
+            response: response,
+            type: error.type,
+            error: error.error,
+            message: error.message,
+            stackTrace: error.stackTrace,
+          );
+        }
+      }
+    } catch (e, st) {
+      infospect.addLog(
+        InfospectLog(
+          message: 'Breakpoint error-response intercept failed: $e',
+          stackTrace: st,
+          error: e,
+          level: DiagnosticLevel.error,
+        ),
+      );
+    }
+
     try {
       InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
       dynamic body = '';
       int size = 0;
       int? status;
-      final err = error.toString();
+      final err = outgoing.toString();
       StackTrace? st;
-      if (error is Error) {
-        final basicError = error as Error;
+      if (outgoing is Error) {
+        final basicError = outgoing as Error;
         st = basicError.stackTrace;
       }
 
       infospect.addError(
         InfospectNetworkError(error: err, stackTrace: st),
-        error.requestOptions.hashCode,
+        outgoing.requestOptions.hashCode,
       );
 
-      if (error.response == null) {
+      if (outgoing.response == null) {
         status = -1;
-        infospect.addResponse(httpResponse, error.requestOptions.hashCode);
+        infospect.addResponse(httpResponse, outgoing.requestOptions.hashCode);
       } else {
-        status = error.response!.statusCode;
+        status = outgoing.response!.statusCode;
 
-        if (error.response!.data != null) {
-          body = error.response!.data;
-          size = utf8.encode(error.response!.data.toString()).length;
+        if (outgoing.response!.data != null) {
+          body = outgoing.response!.data;
+          size = utf8.encode(outgoing.response!.data.toString()).length;
         }
         final Map<String, String> headers = {};
-        error.response!.headers.forEach((header, values) {
+        outgoing.response!.headers.forEach((header, values) {
           headers[header] = values.toString();
         });
 
@@ -280,7 +353,7 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
             size: size,
             status: status,
           ),
-          error.response!.requestOptions.hashCode,
+          outgoing.response!.requestOptions.hashCode,
         );
       }
     } catch (e, st) {
@@ -293,7 +366,44 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         ),
       );
     }
-    handler.next(error);
+    handler.next(outgoing);
+  }
+
+  void _logResponse(Response response) {
+    try {
+      InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
+
+      dynamic body = '';
+      int size = 0;
+      if (response.data != null) {
+        body = response.data;
+        size = utf8.encode(response.data.toString()).length;
+      }
+
+      final Map<String, String> headers = {};
+      response.headers.forEach((header, values) {
+        headers[header] = values.toString();
+      });
+
+      infospect.addResponse(
+        httpResponse.copyWith(
+          status: response.statusCode,
+          body: body,
+          size: size,
+          headers: headers,
+        ),
+        response.requestOptions.hashCode,
+      );
+    } catch (e, st) {
+      infospect.addLog(
+        InfospectLog(
+          message: e.toString(),
+          stackTrace: st,
+          error: e,
+          level: DiagnosticLevel.error,
+        ),
+      );
+    }
   }
 
   void _applyRequestEdits(

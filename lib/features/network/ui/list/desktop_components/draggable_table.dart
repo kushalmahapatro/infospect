@@ -425,11 +425,27 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnMethod),
-                  child: _MethodPill(method: widget.call.method),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: _MethodPill(method: widget.call.method),
+                      ),
+                      if (widget.call.hasBreakpointTrace) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.crisis_alert_outlined,
+                          size: 11,
+                          color: theme.colorScheme.tertiary,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnStatus),
-                  child: _PlainText(text: _shortStatus(widget.call)),
+                  child: _PlainText(
+                    text: _shortStatus(widget.call),
+                  ),
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnCode),
@@ -462,11 +478,14 @@ class _CallRowState extends State<_CallRow> {
   }
 
   String _shortStatus(InfospectNetworkCall call) {
-    if (call.loading) return 'Active';
+    final bp = call.requestEditedAtBreakpoint || call.responseEditedAtBreakpoint
+        ? ' · BP✎'
+        : (call.hasBreakpointTrace ? ' · BP' : '');
+    if (call.loading) return 'Active$bp';
     final status = call.response?.status ?? -1;
-    if (status >= 200 && status < 300) return 'OK';
-    if (status >= 300 && status < 400) return 'Redirect';
-    return 'Error';
+    if (status >= 200 && status < 300) return 'OK$bp';
+    if (status >= 300 && status < 400) return 'Redirect$bp';
+    return 'Error$bp';
   }
 }
 

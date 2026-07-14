@@ -10,7 +10,8 @@ import 'package:infospect/styling/themes/infospect_theme.dart';
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 
-/// Presents request/response breakpoint editors (dialog on mobile, window on desktop).
+/// Presents request/response breakpoint editors (compact sheet on mobile,
+/// compact window on desktop).
 class InfospectBreakpointPresenter {
   InfospectBreakpointPresenter(this._infospect);
 
@@ -62,6 +63,7 @@ class InfospectBreakpointPresenter {
       (context, id) => BreakpointInterceptScreen(
         phase: phase,
         initialPayload: payload,
+        compact: true,
         onContinue: (edited) async {
           _infospect.breakpointManager.completePending(
             sessionId,
@@ -79,8 +81,8 @@ class InfospectBreakpointPresenter {
       ),
       options: WindowOptions(
         title: '$title · ${payload.method} ${payload.endpoint}',
-        size: const Size(920, 720),
-        minimumSize: const Size(560, 420),
+        size: const Size(640, 520),
+        minimumSize: const Size(480, 360),
         alignment: Alignment.center,
         shellOverrides: ViewShellOverrides(
           appearance: AppShellPatch(
@@ -112,7 +114,9 @@ class InfospectBreakpointPresenter {
     required InfospectBreakpointPhase phase,
     required InfospectBreakpointPayload payload,
   }) async {
-    final context = _infospect.context;
+    // Prefer Infospect's own navigator when the inspector is open; otherwise
+    // fall back to the host app navigator key.
+    BuildContext? context = _infospect.context;
     if (context == null || !context.mounted) {
       InfospectUtil.log(
         'Breakpoint hit but no NavigatorKey context is available; '
@@ -125,22 +129,32 @@ class InfospectBreakpointPresenter {
       return;
     }
 
-    final result = await showDialog<InfospectBreakpointResult>(
+    final result = await showModalBottomSheet<InfospectBreakpointResult>(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: false,
+      isDismissible: false,
       useRootNavigator: true,
-      builder: (dialogContext) {
-        return Dialog.fullscreen(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      builder: (sheetContext) {
+        final height = MediaQuery.sizeOf(sheetContext).height;
+        return SizedBox(
+          height: height * 0.72,
           child: BreakpointInterceptScreen(
             phase: phase,
             initialPayload: payload,
+            compact: true,
             onContinue: (edited) {
-              Navigator.of(dialogContext).pop(
+              Navigator.of(sheetContext).pop(
                 InfospectBreakpointResult.continueWith(edited),
               );
             },
             onAbort: (edited) {
-              Navigator.of(dialogContext).pop(
+              Navigator.of(sheetContext).pop(
                 InfospectBreakpointResult.abort(edited),
               );
             },

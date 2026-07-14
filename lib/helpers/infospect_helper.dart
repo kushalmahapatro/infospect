@@ -243,6 +243,22 @@ class Infospect {
   void clearAllNetworkCalls() =>
       _infospectNetworkCallHelper.clearAllNetworkCalls();
 
+  /// Records that a breakpoint interacted with [requestId].
+  void markBreakpointTrace({
+    required int requestId,
+    bool requestHit = false,
+    bool responseHit = false,
+    bool requestEdited = false,
+    bool responseEdited = false,
+  }) =>
+      _infospectNetworkCallHelper.markBreakpointTrace(
+        requestId: requestId,
+        requestHit: requestHit,
+        responseHit: responseHit,
+        requestEdited: requestEdited,
+        responseEdited: responseEdited,
+      );
+
   /// interceptors
   InfospectDioInterceptor get dioInterceptor =>
       _infospectNetworkCallHelper.dioInterceptor;
@@ -294,12 +310,17 @@ class Infospect {
     required Map<String, dynamic> headers,
     required Map<String, dynamic> queryParameters,
     required dynamic body,
+    int? requestId,
   }) async {
     final match = breakpointManager.findMatch(
       method: method,
       endpoint: endpoint,
     );
     if (match == null || !match.breakOnRequest) return null;
+
+    if (requestId != null) {
+      markBreakpointTrace(requestId: requestId, requestHit: true);
+    }
 
     final payload = InfospectBreakpointPayload(
       method: method,
@@ -310,10 +331,19 @@ class Infospect {
       body: InfospectBreakpointManager.stringifyBody(body),
     );
 
-    return _breakpointPresenter.present(
+    final result = await _breakpointPresenter.present(
       phase: InfospectBreakpointPhase.request,
       payload: payload,
     );
+
+    if (requestId != null && !result.aborted) {
+      final edited = result.payload != payload;
+      if (edited) {
+        markBreakpointTrace(requestId: requestId, requestEdited: true);
+      }
+    }
+
+    return result;
   }
 
   /// Pauses for response editing when a matching breakpoint rule exists.
@@ -324,12 +354,17 @@ class Infospect {
     required Map<String, dynamic> headers,
     required dynamic body,
     int? statusCode,
+    int? requestId,
   }) async {
     final match = breakpointManager.findMatch(
       method: method,
       endpoint: endpoint,
     );
     if (match == null || !match.breakOnResponse) return null;
+
+    if (requestId != null) {
+      markBreakpointTrace(requestId: requestId, responseHit: true);
+    }
 
     final payload = InfospectBreakpointPayload(
       method: method,
@@ -340,10 +375,19 @@ class Infospect {
       statusCode: statusCode,
     );
 
-    return _breakpointPresenter.present(
+    final result = await _breakpointPresenter.present(
       phase: InfospectBreakpointPhase.response,
       payload: payload,
     );
+
+    if (requestId != null && !result.aborted) {
+      final edited = result.payload != payload;
+      if (edited) {
+        markBreakpointTrace(requestId: requestId, responseEdited: true);
+      }
+    }
+
+    return result;
   }
 
   /// Dispose subjects and subscriptions

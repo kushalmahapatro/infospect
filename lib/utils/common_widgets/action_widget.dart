@@ -357,8 +357,11 @@ class _MobileActionTrigger<T> extends StatelessWidget {
             actionModel: actionModel,
             selectedActions: selectedActions,
             onItemSelected: (action) {
-              onItemSelected(action);
+              // Pop the sheet first so a follow-up push is not immediately popped.
               Navigator.of(sheetContext).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                onItemSelected(action);
+              });
             },
           );
         }
@@ -366,8 +369,11 @@ class _MobileActionTrigger<T> extends StatelessWidget {
         return _OverflowBottomSheet<T>(
           actionModel: actionModel,
           onItemSelected: (action) {
-            onItemSelected(action);
+            // Pop the sheet first so a follow-up push is not immediately popped.
             Navigator.of(sheetContext).pop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              onItemSelected(action);
+            });
           },
         );
       },

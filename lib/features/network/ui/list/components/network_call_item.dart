@@ -78,6 +78,10 @@ class NetworkCallItem extends StatelessWidget {
                     _MethodPill(method: networkCall.method),
                     const SizedBox(width: 5),
                     _StatusPill(networkCall: networkCall),
+                    if (networkCall.hasBreakpointTrace) ...[
+                      const SizedBox(width: 4),
+                      _BreakpointTracePill(call: networkCall),
+                    ],
                     if (networkCall.error != null) ...[
                       const SizedBox(width: 4),
                       Icon(
@@ -225,6 +229,46 @@ class _StatusPill extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
+          height: 1.2,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _BreakpointTracePill extends StatelessWidget {
+  const _BreakpointTracePill({required this.call});
+
+  final InfospectNetworkCall call;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final parts = <String>[
+      if (call.requestEditedAtBreakpoint)
+        'Req✎'
+      else if (call.hadRequestBreakpoint)
+        'Req',
+      if (call.responseEditedAtBreakpoint)
+        'Res✎'
+      else if (call.hadResponseBreakpoint)
+        'Res',
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+
+    final color = theme.colorScheme.tertiary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(3),
+        color: color.withValues(alpha: 0.16),
+      ),
+      child: Text(
+        'BP ${parts.join('·')}',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
           height: 1.2,
           color: color,
         ),

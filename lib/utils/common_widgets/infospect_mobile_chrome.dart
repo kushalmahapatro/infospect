@@ -38,6 +38,9 @@ class InfospectCompactBackButton extends StatelessWidget {
 
 /// Flat 40px mobile toolbar used by pushed Infospect screens (Breakpoints,
 /// network details, etc.) so they match the main list chrome density.
+///
+/// Extends its background into the status-bar inset the same way [AppBar]
+/// does, so [Scaffold] does not leave the toolbar sitting under system UI.
 class InfospectMobileToolbar extends StatelessWidget
     implements PreferredSizeWidget {
   const InfospectMobileToolbar({
@@ -46,12 +49,16 @@ class InfospectMobileToolbar extends StatelessWidget
     this.leading,
     this.actions = const [],
     this.automaticallyImplyLeading = true,
+    this.primary = true,
   });
 
   final Widget title;
   final Widget? leading;
   final List<Widget> actions;
   final bool automaticallyImplyLeading;
+
+  /// When true (default), pads below the status bar and paints behind it.
+  final bool primary;
 
   @override
   Size get preferredSize =>
@@ -60,6 +67,8 @@ class InfospectMobileToolbar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final topPadding =
+        primary ? MediaQuery.paddingOf(context).top : 0.0;
     final canPop = ModalRoute.of(context)?.canPop ?? false;
     final Widget? resolvedLeading = leading ??
         (automaticallyImplyLeading && canPop
@@ -68,34 +77,38 @@ class InfospectMobileToolbar extends StatelessWidget
 
     return Material(
       color: theme.colorScheme.surface,
-      child: SizedBox(
-        height: InfospectMobileChrome.toolbarHeight,
-        child: Padding(
-          padding: InfospectMobileChrome.toolbarPadding,
-          child: NavigationToolbar(
-            centerMiddle: false,
-            leading: resolvedLeading,
-            middle: DefaultTextStyle(
-              style: theme.textTheme.titleSmall?.copyWith(
-                    fontSize: InfospectMobileChrome.titleFontSize,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface,
-                  ) ??
-                  const TextStyle(
-                    fontSize: InfospectMobileChrome.titleFontSize,
-                    fontWeight: FontWeight.w600,
-                  ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              child: title,
+      elevation: 0,
+      child: Padding(
+        padding: EdgeInsets.only(top: topPadding),
+        child: SizedBox(
+          height: InfospectMobileChrome.toolbarHeight,
+          child: Padding(
+            padding: InfospectMobileChrome.toolbarPadding,
+            child: NavigationToolbar(
+              centerMiddle: false,
+              leading: resolvedLeading,
+              middle: DefaultTextStyle(
+                style: theme.textTheme.titleSmall?.copyWith(
+                      fontSize: InfospectMobileChrome.titleFontSize,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ) ??
+                    const TextStyle(
+                      fontSize: InfospectMobileChrome.titleFontSize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                child: title,
+              ),
+              trailing: actions.isEmpty
+                  ? null
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: actions,
+                    ),
+              middleSpacing: 8,
             ),
-            trailing: actions.isEmpty
-                ? null
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: actions,
-                  ),
-            middleSpacing: 8,
           ),
         ),
       ),

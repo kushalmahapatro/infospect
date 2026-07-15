@@ -224,10 +224,16 @@ void main() {
       await tester.tap(find.text('Body'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Tree editor'), findsOneWidget);
       await expectLater(
         find.byType(BreakpointInterceptScreen),
         matchesGoldenFile('goldens/breakpoint_request_body.png'),
       );
+
+      // Raw text mode for format / free-form edits.
+      await tester.tap(find.text('Text'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('breakpoint_body_field')), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('breakpoint_body_field')),
@@ -244,6 +250,50 @@ void main() {
       expect(continued!.body, contains('Grace'));
       expect(continued!.headers['content-type'], 'application/json');
       expect(continued!.queryParameters['page'], '1');
+    });
+
+    testWidgets('tree editor can change a JSON field value', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      InfospectBreakpointPayload? continued;
+
+      await tester.pumpWidget(
+        wrap(
+          BreakpointInterceptScreen(
+            phase: InfospectBreakpointPhase.request,
+            initialPayload: const InfospectBreakpointPayload(
+              method: 'POST',
+              uri: 'https://example.com/api/users',
+              endpoint: '/api/users',
+              headers: {'content-type': 'application/json'},
+              body: '{\n  "name": "Ada"\n}',
+            ),
+            onContinue: (payload) => continued = payload,
+            onAbort: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tree editor'), findsOneWidget);
+      expect(find.text('name'), findsWidgets);
+
+      final valueFields = find.byType(TextField);
+      // Key field + value field for the primitive row (plus none from headers).
+      // On Body tab only tree fields are visible.
+      expect(valueFields, findsWidgets);
+      await tester.enterText(valueFields.last, 'Grace');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('breakpoint_continue')));
+      await tester.pumpAndSettle();
+
+      expect(continued, isNotNull);
+      expect(continued!.body, contains('Grace'));
+      expect(continued!.body, isNot(contains('Ada')));
     });
 
     testWidgets('response editor shows status and aborts when requested', (tester) async {
@@ -372,6 +422,8 @@ void main() {
 
       await tester.tap(find.text('Body'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Text'));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('breakpoint_body_field')),
         '{\n  "total": 42\n}',
@@ -411,6 +463,8 @@ void main() {
       );
 
       await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('breakpoint_body_field')),
@@ -510,6 +564,8 @@ void main() {
       final queryValueFields = find.byType(TextField);
       await tester.enterText(queryValueFields.at(1), '99');
       await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('breakpoint_body_field')),

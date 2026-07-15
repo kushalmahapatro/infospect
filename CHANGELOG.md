@@ -4,7 +4,7 @@
 ### Features
 - Proxyman-style network breakpoints without a proxy: match by endpoint (optional method), pause request and/or response, edit headers / query params / body, then Continue or Abort
 - **Breakpoint conditions (AND):** query params, request headers, request/response body text or JSON path, response status (exact or range) — configurable in UI and via `addEndpointBreakpoint(conditions: …)`
-- **JSON body editing** in intercept dialogs: Format / Minify / Validate while keeping raw-text fallback for non-JSON
+- **JSON body editing** in intercept dialogs: dual-mode Text (syntax highlight, line numbers, smart indent) + editable Tree (keys/values/types, add/remove); Format / Minify when in Text mode; raw-text fallback for invalid JSON
 - Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
 - Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`

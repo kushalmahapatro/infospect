@@ -1,17 +1,25 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_tree_editor.dart';
 
-/// Monospace body editor with Format / Minify / Validate for JSON payloads.
+enum BreakpointJsonEditorMode { text, tree }
+
+/// Dual-mode JSON body editor: syntax-highlighted text + editable tree.
 class BreakpointJsonBodyEditor extends StatefulWidget {
   const BreakpointJsonBodyEditor({
     super.key,
     required this.controller,
+    this.initialMode,
   });
 
   final TextEditingController controller;
+
+  /// Defaults to [BreakpointJsonEditorMode.tree] when the body is valid JSON.
+  final BreakpointJsonEditorMode? initialMode;
 
   @override
   State<BreakpointJsonBodyEditor> createState() =>
@@ -19,14 +27,28 @@ class BreakpointJsonBodyEditor extends StatefulWidget {
 }
 
 class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
+  late BreakpointJsonEditorMode _mode;
   String? _error;
   bool? _isJson;
+  dynamic _treeData;
+  int _treeSession = 0;
+  final ScrollController _textScroll = ScrollController();
+  final ScrollController _gutterScroll = ScrollController();
+  bool _syncingScroll = false;
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_revalidate);
-    _revalidate();
+    _revalidate(notify: false);
+    _mode = widget.initialMode ??
+        (_isJson == true
+            ? BreakpointJsonEditorMode.tree
+            : BreakpointJsonEditorMode.text);
+    if (_mode == BreakpointJsonEditorMode.tree && _treeData == null) {
+      _mode = BreakpointJsonEditorMode.text;
+    }
+    _textScroll.addListener(_syncGutterToText);
   }
 
   @override
@@ -42,29 +64,80 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
   @override
   void dispose() {
     widget.controller.removeListener(_revalidate);
+    _textScroll.removeListener(_syncGutterToText);
+    _textScroll.dispose();
+    _gutterScroll.dispose();
     super.dispose();
   }
 
-  void _revalidate() {
+  void _syncGutterToText() {
+    if (_syncingScroll) return;
+    if (!_gutterScroll.hasClients) return;
+    _syncingScroll = true;
+    _gutterScroll.jumpTo(
+      _textScroll.offset.clamp(0.0, _gutterScroll.position.maxScrollExtent),
+    );
+    _syncingScroll = false;
+  }
+
+  void _revalidate({bool notify = true}) {
     final text = widget.controller.text.trim();
     if (text.isEmpty) {
-      setState(() {
-        _error = null;
-        _isJson = null;
-      });
+      _error = null;
+      _isJson = null;
+      _treeData = null;
+      if (notify) setState(() {});
       return;
     }
     try {
-      jsonDecode(text);
-      setState(() {
-        _error = null;
-        _isJson = true;
-      });
+      _treeData = jsonDecode(text);
+      _error = null;
+      _isJson = true;
     } catch (e) {
-      setState(() {
-        _error = e.toString().replaceFirst('FormatException: ', '');
-        _isJson = false;
-      });
+      _error = e.toString().replaceFirst('FormatException: ', '');
+      _isJson = false;
+      _treeData = null;
+      if (_mode == BreakpointJsonEditorMode.tree) {
+        _mode = BreakpointJsonEditorMode.text;
+      }
+    }
+    if (notify) setState(() {});
+  }
+
+  void _setMode(BreakpointJsonEditorMode mode) {
+    if (mode == BreakpointJsonEditorMode.tree) {
+      if (_isJson != true) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Fix JSON syntax to use the tree editor'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      try {
+        _treeData = jsonDecode(widget.controller.text);
+      } catch (_) {
+        return;
+      }
+      _treeSession++;
+    } else if (_mode == BreakpointJsonEditorMode.tree && _treeData != null) {
+      widget.controller.text =
+          const JsonEncoder.withIndent('  ').convert(_treeData);
+      widget.controller.selection =
+          TextSelection.collapsed(offset: widget.controller.text.length);
+    }
+    setState(() => _mode = mode);
+  }
+
+  void _onTreeChanged(dynamic data) {
+    _treeData = data;
+    final encoded = const JsonEncoder.withIndent('  ').convert(data);
+    if (widget.controller.text != encoded) {
+      widget.controller.value = TextEditingValue(
+        text: encoded,
+        selection: TextSelection.collapsed(offset: encoded.length),
+      );
     }
   }
 
@@ -110,6 +183,12 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
     );
   }
 
+  int get _lineCount {
+    final text = widget.controller.text;
+    if (text.isEmpty) return 1;
+    return '\n'.allMatches(text).length + 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -126,7 +205,7 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
         Material(
           color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
           child: SizedBox(
-            height: 32,
+            height: 34,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Row(
@@ -141,17 +220,49 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
                       color: statusColor,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 26,
+                    child: SegmentedButton<BreakpointJsonEditorMode>(
+                      style: ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: WidgetStatePropertyAll(
+                          theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                        ),
+                        padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                      segments: const [
+                        ButtonSegment(
+                          value: BreakpointJsonEditorMode.text,
+                          label: Text('Text'),
+                          icon: Icon(Icons.code_rounded, size: 14),
+                        ),
+                        ButtonSegment(
+                          value: BreakpointJsonEditorMode.tree,
+                          label: Text('Tree'),
+                          icon: Icon(Icons.account_tree_outlined, size: 14),
+                        ),
+                      ],
+                      selected: {_mode},
+                      onSelectionChanged: (value) => _setMode(value.first),
+                    ),
+                  ),
                   const Spacer(),
-                  _ToolButton(
-                    tooltip: 'Format JSON',
-                    icon: Icons.data_object_rounded,
-                    onPressed: _isJson == true ? _format : null,
-                  ),
-                  _ToolButton(
-                    tooltip: 'Minify JSON',
-                    icon: Icons.compress_rounded,
-                    onPressed: _isJson == true ? _minify : null,
-                  ),
+                  if (_mode == BreakpointJsonEditorMode.text) ...[
+                    _ToolButton(
+                      tooltip: 'Format JSON',
+                      icon: Icons.data_object_rounded,
+                      onPressed: _isJson == true ? _format : null,
+                    ),
+                    _ToolButton(
+                      tooltip: 'Minify JSON',
+                      icon: Icons.compress_rounded,
+                      onPressed: _isJson == true ? _minify : null,
+                    ),
+                  ],
                   _ToolButton(
                     tooltip: 'Copy',
                     icon: Icons.copy_rounded,
@@ -177,39 +288,194 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
             ),
           ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: TextField(
-              key: const Key('breakpoint_body_field'),
-              controller: widget.controller,
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                height: 1.35,
-              ),
-              decoration: InputDecoration(
-                isDense: true,
-                border: const OutlineInputBorder(),
-                hintText: 'JSON or raw body',
-                alignLabelWithHint: true,
-                contentPadding: const EdgeInsets.all(10),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: _isJson == false
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.primary,
-                  ),
+          child: _mode == BreakpointJsonEditorMode.tree && _treeData != null
+              ? BreakpointJsonTreeEditor(
+                  key: ValueKey(_treeSession),
+                  data: _treeData,
+                  onChanged: _onTreeChanged,
+                )
+              : _JsonTextPane(
+                  controller: widget.controller,
+                  textScroll: _textScroll,
+                  gutterScroll: _gutterScroll,
+                  lineCount: _lineCount,
+                  isInvalid: _isJson == false,
                 ),
-              ),
-            ),
-          ),
         ),
       ],
     );
   }
+}
+
+class _JsonTextPane extends StatelessWidget {
+  const _JsonTextPane({
+    required this.controller,
+    required this.textScroll,
+    required this.gutterScroll,
+    required this.lineCount,
+    required this.isInvalid,
+  });
+
+  final TextEditingController controller;
+  final ScrollController textScroll;
+  final ScrollController gutterScroll;
+  final int lineCount;
+  final bool isInvalid;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final gutterWidth = 12.0 + (math.max(2, '$lineCount'.length) * 7.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 6, 8, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isInvalid
+                ? theme.colorScheme.error
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ColoredBox(
+                color: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.45),
+                child: SizedBox(
+                  width: gutterWidth,
+                  child: ListView.builder(
+                    controller: gutterScroll,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    itemCount: lineCount,
+                    itemExtent: 12 * 1.35,
+                    itemBuilder: (context, index) {
+                      return Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Text(
+                            '${index + 1}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10,
+                              height: 1.35,
+                              fontFamily: 'monospace',
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.35),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+              ),
+              Expanded(
+                child: Actions(
+                  actions: <Type, Action<Intent>>{
+                    _IndentIntent: CallbackAction<_IndentIntent>(
+                      onInvoke: (_) {
+                        _insertAtCursor(controller, '  ');
+                        return null;
+                      },
+                    ),
+                    _SmartNewlineIntent: CallbackAction<_SmartNewlineIntent>(
+                      onInvoke: (_) {
+                        _insertSmartNewline(controller);
+                        return null;
+                      },
+                    ),
+                  },
+                  child: Shortcuts(
+                    shortcuts: const <ShortcutActivator, Intent>{
+                      SingleActivator(LogicalKeyboardKey.tab): _IndentIntent(),
+                      SingleActivator(LogicalKeyboardKey.enter):
+                          _SmartNewlineIntent(),
+                    },
+                    child: TextField(
+                      key: const Key('breakpoint_body_field'),
+                      controller: controller,
+                      scrollController: textScroll,
+                      maxLines: null,
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        hintText: 'JSON or raw body',
+                        contentPadding: EdgeInsets.fromLTRB(8, 8, 8, 8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IndentIntent extends Intent {
+  const _IndentIntent();
+}
+
+class _SmartNewlineIntent extends Intent {
+  const _SmartNewlineIntent();
+}
+
+void _insertAtCursor(TextEditingController controller, String text) {
+  final value = controller.value;
+  final selection = value.selection;
+  if (!selection.isValid) {
+    controller.text = '${value.text}$text';
+    controller.selection =
+        TextSelection.collapsed(offset: controller.text.length);
+    return;
+  }
+  final start = selection.start;
+  final end = selection.end;
+  final next = value.text.replaceRange(start, end, text);
+  controller.value = TextEditingValue(
+    text: next,
+    selection: TextSelection.collapsed(offset: start + text.length),
+  );
+}
+
+void _insertSmartNewline(TextEditingController controller) {
+  final value = controller.value;
+  final selection = value.selection;
+  if (!selection.isValid) {
+    _insertAtCursor(controller, '\n');
+    return;
+  }
+  final text = value.text;
+  final start = selection.start;
+  final lineStart = text.lastIndexOf('\n', math.max(0, start - 1)) + 1;
+  final linePrefix = text.substring(lineStart, start);
+  final indentMatch = RegExp(r'^[ \t]*').firstMatch(linePrefix);
+  var indent = indentMatch?.group(0) ?? '';
+  final trimmedLeft = linePrefix.trimRight();
+  if (trimmedLeft.endsWith('{') || trimmedLeft.endsWith('[')) {
+    indent = '$indent  ';
+  }
+  _insertAtCursor(controller, '\n$indent');
 }
 
 class _ToolButton extends StatelessWidget {

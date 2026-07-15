@@ -317,8 +317,13 @@ If not provided, the default platform share option will be invoked.
      bar, section tabs). Reopening **Breakpoints** focuses the existing
      management window. Concurrent intercept windows keep their edit state.
 
-   Request / response **body** editors include Format / Minify / Validate for
-   JSON payloads (invalid JSON is still editable as raw text).
+   Request / response **body** editors are dual-mode JSON editors:
+   - **Tree** — foldable editable tree (edit keys/values, change types, add/remove
+     fields) when the payload is valid JSON
+   - **Text** — syntax-highlighted editor with line numbers, Tab indent, smart
+     newlines, plus Format / Minify / Validate
+
+   Invalid JSON stays editable as raw text (Tree is disabled until syntax is fixed).
 
    Use **Continue** to send the (possibly edited) request / response ahead, or
    **Abort** to cancel the call.

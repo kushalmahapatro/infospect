@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_body_editor.dart';
+import 'package:infospect/features/network/breakpoints/ui/json_editing_controller.dart';
 
 /// Compact request / response breakpoint editor.
 ///
@@ -31,7 +32,7 @@ class BreakpointInterceptScreen extends StatefulWidget {
 }
 
 class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
-  late final TextEditingController _bodyController;
+  late final JsonEditingController _bodyController;
   late final TextEditingController _statusController;
   late final List<_KvEntry> _headers;
   late final List<_KvEntry> _params;
@@ -43,7 +44,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
     super.initState();
     _isResponse = widget.phase == InfospectBreakpointPhase.response;
     _bodyController =
-        TextEditingController(text: widget.initialPayload.body);
+        JsonEditingController(text: widget.initialPayload.body);
     _statusController = TextEditingController(
       text: widget.initialPayload.statusCode?.toString() ?? '',
     );

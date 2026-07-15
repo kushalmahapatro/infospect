@@ -84,6 +84,40 @@ void main() {
       );
     });
 
+    testWidgets('can add a query-param condition on a rule', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(wrap(const BreakpointsListScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add breakpoint').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '/api/pay');
+      await tester.ensureVisible(find.widgetWithText(TextButton, 'Add'));
+      await tester.tap(find.widgetWithText(TextButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Query param'), findsOneWidget);
+      final formFields = find.byType(TextFormField);
+      expect(formFields, findsNWidgets(2));
+      await tester.enterText(formFields.at(0), 'env');
+      await tester.enterText(formFields.at(1), 'staging');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(Infospect.instance.breakpoints, hasLength(1));
+      expect(Infospect.instance.breakpoints.first.endpoint, '/api/pay');
+      expect(Infospect.instance.breakpoints.first.conditions, hasLength(1));
+      expect(Infospect.instance.breakpoints.first.conditions.first.key, 'env');
+      expect(
+        Infospect.instance.breakpoints.first.conditions.first.value,
+        'staging',
+      );
+      expect(find.textContaining('1 condition'), findsOneWidget);
+    });
+
     testWidgets('can open management screen from Navigator.push path', (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -199,6 +233,10 @@ void main() {
         find.byKey(const Key('breakpoint_body_field')),
         '{\n  "name": "Grace"\n}',
       );
+      await tester.tap(find.byTooltip('Format JSON'));
+      await tester.pumpAndSettle();
+      expect(find.text('JSON'), findsOneWidget);
+
       await tester.tap(find.byKey(const Key('breakpoint_continue')));
       await tester.pumpAndSettle();
 

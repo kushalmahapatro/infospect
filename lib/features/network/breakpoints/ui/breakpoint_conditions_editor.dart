@@ -212,7 +212,7 @@ class _ConditionCard extends StatelessWidget {
           ),
           if (needsKey) ...[
             const SizedBox(height: 6),
-            TextFormField<String>(
+            TextFormField(
               initialValue: condition.key ?? '',
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
               decoration: denseDecoration(
@@ -227,7 +227,7 @@ class _ConditionCard extends StatelessWidget {
           ],
           if (needsValue) ...[
             const SizedBox(height: 6),
-            TextFormField<String>(
+            TextFormField(
               initialValue: condition.value ?? '',
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
               decoration: denseDecoration(

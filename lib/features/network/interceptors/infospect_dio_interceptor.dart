@@ -190,6 +190,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
         body: response.data,
         statusCode: response.statusCode,
         requestId: response.requestOptions.hashCode,
+        requestHeaders:
+            Map<String, dynamic>.from(response.requestOptions.headers),
+        queryParameters:
+            Map<String, dynamic>.from(response.requestOptions.queryParameters),
+        requestBody: response.requestOptions.data is FormData
+            ? null
+            : response.requestOptions.data,
       );
 
       if (result != null) {
@@ -265,6 +272,13 @@ class InfospectDioInterceptor extends InterceptorsWrapper {
           body: response.data,
           statusCode: response.statusCode,
           requestId: error.requestOptions.hashCode,
+          requestHeaders:
+              Map<String, dynamic>.from(error.requestOptions.headers),
+          queryParameters:
+              Map<String, dynamic>.from(error.requestOptions.queryParameters),
+          requestBody: error.requestOptions.data is FormData
+              ? null
+              : error.requestOptions.data,
         );
 
         if (result != null) {

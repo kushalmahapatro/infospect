@@ -344,6 +344,8 @@ class Infospect {
     bool breakOnRequest = true,
     bool breakOnResponse = true,
     bool enabled = true,
+    List<InfospectBreakpointCondition> conditions =
+        const <InfospectBreakpointCondition>[],
   }) {
     final breakpoint = InfospectNetworkBreakpoint(
       id: InfospectBreakpointManager.newId(),
@@ -352,6 +354,7 @@ class Infospect {
       enabled: enabled,
       breakOnRequest: breakOnRequest,
       breakOnResponse: breakOnResponse,
+      conditions: conditions,
     );
     addBreakpoint(breakpoint);
     return breakpoint;
@@ -368,8 +371,14 @@ class Infospect {
     int? requestId,
   }) async {
     final match = breakpointManager.findMatch(
-      method: method,
-      endpoint: endpoint,
+      InfospectBreakpointMatchContext(
+        method: method,
+        endpoint: endpoint,
+        queryParameters: queryParameters,
+        requestHeaders: headers,
+        requestBody: body,
+        isResponsePhase: false,
+      ),
     );
     if (match == null || !match.breakOnRequest) return null;
 
@@ -410,10 +419,22 @@ class Infospect {
     required dynamic body,
     int? statusCode,
     int? requestId,
+    Map<String, dynamic> requestHeaders = const <String, dynamic>{},
+    Map<String, dynamic> queryParameters = const <String, dynamic>{},
+    dynamic requestBody,
   }) async {
     final match = breakpointManager.findMatch(
-      method: method,
-      endpoint: endpoint,
+      InfospectBreakpointMatchContext(
+        method: method,
+        endpoint: endpoint,
+        queryParameters: queryParameters,
+        requestHeaders: requestHeaders,
+        requestBody: requestBody,
+        statusCode: statusCode,
+        responseBody: body,
+        responseHeaders: headers,
+        isResponsePhase: true,
+      ),
     );
     if (match == null || !match.breakOnResponse) return null;
 

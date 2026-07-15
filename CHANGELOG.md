@@ -3,6 +3,8 @@
 
 ### Features
 - Proxyman-style network breakpoints without a proxy: match by endpoint (optional method), pause request and/or response, edit headers / query params / body, then Continue or Abort
+- **Breakpoint conditions (AND):** query params, request headers, request/response body text or JSON path, response status (exact or range) — configurable in UI and via `addEndpointBreakpoint(conditions: …)`
+- **JSON body editing** in intercept dialogs: Format / Minify / Validate while keeping raw-text fallback for non-JSON
 - Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
 - Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
 - Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
@@ -12,6 +14,7 @@
 
 ### Tests
 - Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
+- Unit coverage for condition matching (query, JSON path, status range, response-only deferral)
 - Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
 - Coverage for breakpoint edit traces, original/edited snapshots, and non-success (error-path) response breakpoints
 - Unit coverage for Multiview desktop bootstrap gating (`isMultiViewDesktopBootstrapRequired`)
@@ -21,14 +24,16 @@
 - Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
 - Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
 - Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop); mobile Breakpoints / details / intercept chrome aligned with the compact main Infospect toolbar (shared back button, 40px height)
-- Desktop Breakpoints management uses a table + inspector pane (not mobile list/sheets); reopen focuses the existing window
+- Desktop Breakpoints management uses a table + inspector pane (not mobile list/sheets); reopen focuses the existing window; condition count column + wider editor for filters
 - Concurrent intercept windows keep their edit state across multiview rebuilds
 - Desktop network details use a side-by-side Original vs Edited diff panel with top spacing and flex layout (no overflow when expanded)
 - Desktop host and Infospect windows keep native title-bar buttons (minimize / maximize / close) via `windowButtonVisibility: true` in `MultiAppConfig` / `WindowOptions`
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
+- Mobile Breakpoints toolbar pads under the status bar like AppBar; smaller desktop menu bar text for a denser native feel
 
 ### Docs
 - README / MIGRATION: Multiview entry must use Infospect bootstrap/`run` (never plain `runApp` on desktop); macOS AppDelegate terminate forwarding; `window_manager` + Multiview hang warning; obsolete multi_window args path
+- README: breakpoint conditions + JSON body editing examples
 - **[DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)** — Multiview consumer hazards (`window_manager` / `registrar.view`, feature-flagged Infospect, quit lifecycle, `hiddenWindowAtLaunch`, plugin safety)
 - `InfospectDesktopBootstrap` (`isDesktopMultiViewRequired` / `runAppOrMultiApp`) for flag-off Multiview hosts
 - [AGENTS.md](AGENTS.md) + Cursor rule for Multiview consumer footguns

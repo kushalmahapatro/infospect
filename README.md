@@ -257,13 +257,57 @@ If not provided, the default platform share option will be invoked.
 
    // Path prefix match:
    Infospect.instance.addEndpointBreakpoint(endpoint: '/api/users*');
+
+   // Extra AND conditions (query, headers, JSON body path, status, …):
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/checkout',
+     method: 'POST',
+     conditions: [
+       InfospectBreakpointCondition(
+         id: 'c1',
+         target: InfospectBreakpointMatchTarget.queryParam,
+         op: InfospectBreakpointMatchOp.equals,
+         key: 'env',
+         value: 'staging',
+       ),
+       InfospectBreakpointCondition(
+         id: 'c2',
+         target: InfospectBreakpointMatchTarget.requestBodyJson,
+         op: InfospectBreakpointMatchOp.equals,
+         key: 'cart.id',
+         value: '42',
+       ),
+     ],
+   );
+
+   // Break only when the response is a 5xx (evaluated at response phase):
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/*',
+     breakOnRequest: false,
+     breakOnResponse: true,
+     conditions: [
+       InfospectBreakpointCondition(
+         id: 'c3',
+         target: InfospectBreakpointMatchTarget.responseStatus,
+         op: InfospectBreakpointMatchOp.inRange,
+         value: '500-599',
+       ),
+     ],
+   );
    ```
+
+   Conditions are AND-combined on top of endpoint / method. Targets include
+   query params, request headers, request/response body text or JSON path
+   (`user.id`), and response status (exact or `200-299` range). Response-only
+   filters do not pause the outbound request.
 
    **Add / manage breakpoints in the UI**
 
    - Network tab → overflow menu → **Breakpoints**
    - Desktop: right-click a network call → **Add breakpoint**
    - Mobile: long-press a network call → adds a breakpoint for that method + path
+   - In the rule editor, use **Conditions → Add** for query / header / body /
+     status filters (same options as the API)
 
    When a rule matches:
 
@@ -272,6 +316,9 @@ If not provided, the default platform share option will be invoked.
    - **Desktop:** the same editors open in a native window (AppBar, summary
      bar, section tabs). Reopening **Breakpoints** focuses the existing
      management window. Concurrent intercept windows keep their edit state.
+
+   Request / response **body** editors include Format / Minify / Validate for
+   JSON payloads (invalid JSON is still editable as raw text).
 
    Use **Continue** to send the (possibly edited) request / response ahead, or
    **Abort** to cancel the call.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_body_editor.dart';
 
 /// Compact request / response breakpoint editor.
 ///
@@ -352,7 +353,7 @@ class _BreakpointInterceptScreenState extends State<BreakpointInterceptScreen> {
           valueHint: 'Value',
           onChanged: () => setState(() {}),
         ),
-      _ => _BodyEditor(controller: _bodyController),
+      _ => BreakpointJsonBodyEditor(controller: _bodyController),
     };
   }
 }
@@ -674,35 +675,4 @@ class _KvEditor extends StatelessWidget {
   }
 }
 
-class _BodyEditor extends StatelessWidget {
-  const _BodyEditor({required this.controller});
 
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-      child: TextField(
-        key: const Key('breakpoint_body_field'),
-        controller: controller,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          height: 1.35,
-        ),
-        decoration: const InputDecoration(
-          isDense: true,
-          border: OutlineInputBorder(),
-          hintText: 'Body',
-          alignLabelWithHint: true,
-          contentPadding: EdgeInsets.all(10),
-        ),
-      ),
-    );
-  }
-}

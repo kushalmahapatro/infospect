@@ -2,6 +2,7 @@ export 'package:infospect/features/invoker/infospect_desktop_invoker.dart';
 export 'package:infospect/features/invoker/infospect_invoker.dart';
 export 'package:infospect/features/launch/models/infospect_desktop_tab.dart';
 export 'package:infospect/features/logger/models/infospect_log.dart';
+export 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_condition.dart';
 export 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
 export 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 export 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';

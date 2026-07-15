@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_condition.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 
@@ -54,13 +55,12 @@ class InfospectBreakpointManager {
     breakpoints.value = next;
   }
 
-  /// Returns the first enabled rule that matches the request.
-  InfospectNetworkBreakpoint? findMatch({
-    required String method,
-    required String endpoint,
-  }) {
+  /// Returns the first enabled rule that matches [context].
+  InfospectNetworkBreakpoint? findMatch(
+    InfospectBreakpointMatchContext context,
+  ) {
     for (final rule in breakpoints.value) {
-      if (rule.matches(requestMethod: method, requestEndpoint: endpoint)) {
+      if (rule.matches(context)) {
         return rule;
       }
     }

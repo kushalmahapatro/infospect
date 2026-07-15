@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_condition.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_conditions_editor.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/styling/themes/infospect_theme.dart';
 import 'package:infospect/utils/common_widgets/infospect_mobile_chrome.dart';
@@ -56,8 +58,8 @@ class BreakpointsListScreen extends StatelessWidget {
       ),
       options: infospectDesktopWindowOptions(
         title: 'Breakpoints · Infospect',
-        size: const Size(780, 560),
-        minimumSize: const Size(640, 420),
+        size: const Size(860, 600),
+        minimumSize: const Size(720, 460),
         alignment: Alignment.center,
         shellOverrides: ViewShellOverrides(
           appearance: AppShellPatch(
@@ -190,7 +192,7 @@ class _BreakpointsDesktopScreenState extends State<_BreakpointsDesktopScreen> {
                     ),
                     VerticalDivider(width: 1, thickness: 1, color: border),
                     SizedBox(
-                      width: 300,
+                      width: 340,
                       child: _creating || effectiveSelected != null
                           ? _BreakpointEditorPanel(
                               key: ValueKey(
@@ -373,6 +375,8 @@ class _BreakpointTable extends StatelessWidget {
               const Expanded(child: _HeaderCell('Endpoint')),
               SizedBox(width: 1, height: 14, child: ColoredBox(color: border)),
               const SizedBox(width: 72, child: _HeaderCell('Phases')),
+              SizedBox(width: 1, height: 14, child: ColoredBox(color: border)),
+              const SizedBox(width: 56, child: _HeaderCell('If')),
               const SizedBox(width: 28),
             ],
           ),
@@ -394,6 +398,9 @@ class _BreakpointTable extends StatelessWidget {
                 if (rule.breakOnRequest) 'Req',
                 if (rule.breakOnResponse) 'Res',
               ].join(' · ');
+              final conditionLabel = rule.conditions.isEmpty
+                  ? '—'
+                  : '${rule.conditions.length}';
 
               return Material(
                 color: selected
@@ -451,6 +458,23 @@ class _BreakpointTable extends StatelessWidget {
                                 fontSize: 10,
                                 color: theme.colorScheme.onSurface
                                     .withValues(alpha: 0.55),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 56,
+                            child: Text(
+                              conditionLabel,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                                fontWeight: rule.conditions.isEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.w700,
+                                color: rule.conditions.isEmpty
+                                    ? theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.4)
+                                    : theme.colorScheme.primary,
                               ),
                             ),
                           ),
@@ -567,6 +591,7 @@ class _BreakpointEditorPanelState extends State<_BreakpointEditorPanel> {
   late bool _enabled;
   late bool _breakOnRequest;
   late bool _breakOnResponse;
+  late List<InfospectBreakpointCondition> _conditions;
 
   @override
   void initState() {
@@ -580,6 +605,9 @@ class _BreakpointEditorPanelState extends State<_BreakpointEditorPanel> {
     _enabled = existing?.enabled ?? true;
     _breakOnRequest = existing?.breakOnRequest ?? true;
     _breakOnResponse = existing?.breakOnResponse ?? true;
+    _conditions = List<InfospectBreakpointCondition>.from(
+      existing?.conditions ?? const <InfospectBreakpointCondition>[],
+    );
   }
 
   @override
@@ -599,6 +627,7 @@ class _BreakpointEditorPanelState extends State<_BreakpointEditorPanel> {
         enabled: _enabled,
         breakOnRequest: _breakOnRequest,
         breakOnResponse: _breakOnResponse,
+        conditions: List<InfospectBreakpointCondition>.from(_conditions),
       ),
     );
   }
@@ -727,6 +756,12 @@ class _BreakpointEditorPanelState extends State<_BreakpointEditorPanel> {
                 label: 'Break on response',
                 value: _breakOnResponse,
                 onChanged: (v) => setState(() => _breakOnResponse = v),
+              ),
+              const SizedBox(height: 12),
+              BreakpointConditionsEditor(
+                compact: true,
+                conditions: _conditions,
+                onChanged: (next) => setState(() => _conditions = next),
               ),
             ],
           ),
@@ -917,6 +952,12 @@ class _BreakpointsMobileScreen extends StatelessWidget {
                 if (rule.breakOnRequest) 'Req',
                 if (rule.breakOnResponse) 'Res',
               ].join(' · ');
+              final conditionHint = rule.conditions.isEmpty
+                  ? null
+                  : rule.conditions
+                      .take(2)
+                      .map((c) => c.summary)
+                      .join(' · ');
 
               return InkWell(
                 onTap: () => _showMobileEditor(context, existing: rule),
@@ -951,13 +992,31 @@ class _BreakpointsMobileScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              phases.isEmpty ? 'No phases' : phases,
+                              [
+                                if (phases.isNotEmpty) phases else 'No phases',
+                                if (rule.conditions.isNotEmpty)
+                                  '${rule.conditions.length} condition${rule.conditions.length == 1 ? '' : 's'}',
+                              ].join(' · '),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontSize: 10,
                                 color: theme.colorScheme.onSurface
                                     .withValues(alpha: 0.5),
                               ),
                             ),
+                            if (conditionHint != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                conditionHint,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                  color: theme.colorScheme.primary
+                                      .withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1047,6 +1106,7 @@ class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
   late bool _enabled;
   late bool _breakOnRequest;
   late bool _breakOnResponse;
+  late List<InfospectBreakpointCondition> _conditions;
 
   @override
   void initState() {
@@ -1062,6 +1122,9 @@ class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
     _enabled = existing?.enabled ?? true;
     _breakOnRequest = existing?.breakOnRequest ?? true;
     _breakOnResponse = existing?.breakOnResponse ?? true;
+    _conditions = List<InfospectBreakpointCondition>.from(
+      existing?.conditions ?? const <InfospectBreakpointCondition>[],
+    );
   }
 
   @override
@@ -1074,121 +1137,155 @@ class _BreakpointRuleSheetState extends State<_BreakpointRuleSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEdit = widget.existing != null;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              isEdit ? 'Edit breakpoint' : 'Add breakpoint',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontSize: InfospectMobileChrome.titleFontSize,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _endpointController,
-              style: const TextStyle(fontSize: 13),
-              decoration: const InputDecoration(
-                labelText: 'Endpoint',
-                hintText: '/api/users or /api/users*',
-                isDense: true,
-                border: OutlineInputBorder(),
-                helperText: 'Trailing * matches a path prefix',
-              ),
-            ),
-            const SizedBox(height: 10),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Method',
-                isDense: true,
-                border: OutlineInputBorder(),
-                helperText: 'ANY stops every method for this endpoint',
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _method,
-                  isExpanded: true,
-                  isDense: true,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
-                  items: _methods
-                      .map(
-                        (m) => DropdownMenuItem(value: m, child: Text(m)),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => _method = value);
-                  },
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isEdit ? 'Edit breakpoint' : 'Add breakpoint',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontSize: InfospectMobileChrome.titleFontSize,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text('Enabled', style: TextStyle(fontSize: 13)),
-              value: _enabled,
-              onChanged: (value) => setState(() => _enabled = value),
-            ),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text(
-                'Break on request',
-                style: TextStyle(fontSize: 13),
-              ),
-              value: _breakOnRequest,
-              onChanged: (value) => setState(() => _breakOnRequest = value),
-            ),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text(
-                'Break on response',
-                style: TextStyle(fontSize: 13),
-              ),
-              value: _breakOnResponse,
-              onChanged: (value) => setState(() => _breakOnResponse = value),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () {
-                      final endpoint = _endpointController.text.trim();
-                      if (endpoint.isEmpty) return;
-                      final method = _method == 'ANY' ? null : _method;
-                      Navigator.of(context).pop(
-                        InfospectNetworkBreakpoint(
-                          id: widget.existing?.id ??
-                              InfospectBreakpointManager.newId(),
-                          endpoint: endpoint,
-                          method: method,
-                          enabled: _enabled,
-                          breakOnRequest: _breakOnRequest,
-                          breakOnResponse: _breakOnResponse,
+              const SizedBox(height: 10),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _endpointController,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(
+                          labelText: 'Endpoint',
+                          hintText: '/api/users or /api/users*',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          helperText: 'Trailing * matches a path prefix',
                         ),
-                      );
-                    },
-                    child: Text(isEdit ? 'Save' : 'Add'),
+                      ),
+                      const SizedBox(height: 10),
+                      InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Method',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          helperText: 'ANY stops every method for this endpoint',
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _method,
+                            isExpanded: true,
+                            isDense: true,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontSize: 13),
+                            items: _methods
+                                .map(
+                                  (m) => DropdownMenuItem(
+                                    value: m,
+                                    child: Text(m),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() => _method = value);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: const Text(
+                          'Enabled',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        value: _enabled,
+                        onChanged: (value) =>
+                            setState(() => _enabled = value),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: const Text(
+                          'Break on request',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        value: _breakOnRequest,
+                        onChanged: (value) =>
+                            setState(() => _breakOnRequest = value),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: const Text(
+                          'Break on response',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        value: _breakOnResponse,
+                        onChanged: (value) =>
+                            setState(() => _breakOnResponse = value),
+                      ),
+                      const SizedBox(height: 8),
+                      BreakpointConditionsEditor(
+                        conditions: _conditions,
+                        onChanged: (next) =>
+                            setState(() => _conditions = next),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        final endpoint = _endpointController.text.trim();
+                        if (endpoint.isEmpty) return;
+                        final method = _method == 'ANY' ? null : _method;
+                        Navigator.of(context).pop(
+                          InfospectNetworkBreakpoint(
+                            id: widget.existing?.id ??
+                                InfospectBreakpointManager.newId(),
+                            endpoint: endpoint,
+                            method: method,
+                            enabled: _enabled,
+                            breakOnRequest: _breakOnRequest,
+                            breakOnResponse: _breakOnResponse,
+                            conditions:
+                                List<InfospectBreakpointCondition>.from(
+                              _conditions,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(isEdit ? 'Save' : 'Add'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

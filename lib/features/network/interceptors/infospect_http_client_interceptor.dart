@@ -212,6 +212,10 @@ class InfospectHttpClientInterceptor extends BaseClient {
           body: responseBody,
           statusCode: statusCode,
           requestId: request.hashCode,
+          requestHeaders: Map<String, dynamic>.from(outgoing.headers),
+          queryParameters:
+              Map<String, dynamic>.from(outgoing.url.queryParameters),
+          requestBody: outgoing is Request ? outgoing.body : null,
         );
 
         if (responseResult != null) {

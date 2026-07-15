@@ -33,4 +33,5 @@ build/
 .vscode/settings.json
 
 # FVM Version Cache
-.fvm/test/failures/
+.fvm/
+test/failures/

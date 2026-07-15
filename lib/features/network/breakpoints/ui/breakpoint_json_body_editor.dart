@@ -28,7 +28,7 @@ class BreakpointJsonBodyEditor extends StatefulWidget {
 }
 
 class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
-  late BreakpointJsonEditorMode _mode;
+  BreakpointJsonEditorMode _mode = BreakpointJsonEditorMode.text;
   String? _error;
   int? _errorLine;
   bool? _isJson;
@@ -41,7 +41,8 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_revalidate);
+    // Validate before attaching the listener so the first parse cannot race
+    // with an uninitialized mode (e.g. non-JSON response bodies).
     _revalidate(notify: false);
     _mode = widget.initialMode ??
         (_isJson == true
@@ -50,6 +51,7 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
     if (_mode == BreakpointJsonEditorMode.tree && _treeData == null) {
       _mode = BreakpointJsonEditorMode.text;
     }
+    widget.controller.addListener(_revalidate);
     _textScroll.addListener(_syncGutterToText);
   }
 

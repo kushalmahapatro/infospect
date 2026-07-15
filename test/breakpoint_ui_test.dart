@@ -6,6 +6,7 @@ import 'package:infospect/features/network/breakpoints/models/infospect_breakpoi
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_network_breakpoint.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_intercept_screen.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_body_editor.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoints_list_screen.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_request.dart';
@@ -332,6 +333,39 @@ void main() {
 
       expect(find.text('Invalid JSON'), findsOneWidget);
       expect(find.textContaining('Line '), findsOneWidget);
+    });
+
+    testWidgets('response body with non-JSON content opens without crashing',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        wrap(
+          BreakpointInterceptScreen(
+            phase: InfospectBreakpointPhase.response,
+            initialPayload: const InfospectBreakpointPayload(
+              method: 'GET',
+              uri: 'https://example.com/api/boom',
+              endpoint: '/api/boom',
+              headers: {'content-type': 'text/plain'},
+              body: 'Internal Server Error\nstack trace here',
+              statusCode: 500,
+            ),
+            onContinue: (_) {},
+            onAbort: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BreakpointJsonBodyEditor), findsOneWidget);
+      expect(find.text('Invalid JSON'), findsOneWidget);
+      expect(find.byKey(const Key('breakpoint_body_field')), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('response editor shows status and aborts when requested', (tester) async {

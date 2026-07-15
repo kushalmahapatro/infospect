@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_tree_editor.dart';
 import 'package:infospect/features/network/breakpoints/ui/json_editing_controller.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 
 enum BreakpointJsonEditorMode { text, tree }
 
@@ -120,11 +121,10 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
   void _setMode(BreakpointJsonEditorMode mode) {
     if (mode == BreakpointJsonEditorMode.tree) {
       if (_isJson != true) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          const SnackBar(
-            content: Text('Fix JSON syntax to use the tree editor'),
-            duration: Duration(seconds: 2),
-          ),
+        InfospectToast.show(
+          context,
+          'Fix JSON syntax to use the tree editor',
+          icon: Icons.warning_amber_rounded,
         );
         return;
       }
@@ -188,11 +188,11 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
     if (text.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(
-        content: Text('Body copied'),
-        duration: Duration(seconds: 1),
-      ),
+    InfospectToast.show(
+      context,
+      'Body copied',
+      duration: const Duration(seconds: 1),
+      icon: Icons.copy_rounded,
     );
   }
 

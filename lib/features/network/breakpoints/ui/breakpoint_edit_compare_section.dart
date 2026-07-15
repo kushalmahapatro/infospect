@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
 import 'package:infospect/features/network/ui/list/components/expansion_widget.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 
 /// Shows original vs edited values captured at a breakpoint.
 class BreakpointEditCompareSection extends StatelessWidget {
@@ -181,12 +182,11 @@ class _Side extends StatelessWidget {
       child: InkWell(
         onLongPress: () {
           Clipboard.setData(ClipboardData(text: value));
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            SnackBar(
-              content: Text('Copied $label'),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 1),
-            ),
+          InfospectToast.show(
+            context,
+            'Copied $label',
+            duration: const Duration(seconds: 1),
+            icon: Icons.copy_rounded,
           );
         },
         child: Padding(

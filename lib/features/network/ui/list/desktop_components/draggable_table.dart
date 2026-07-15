@@ -8,6 +8,7 @@ import 'package:infospect/features/network/ui/list/desktop_components/state_help
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/common_widgets/live_edge_scroll_view.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
@@ -269,14 +270,10 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
         method: call.method,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Breakpoint added for ${call.method} ${call.endpoint}',
-            ),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
+        InfospectToast.show(
+          context,
+          'Breakpoint added for ${call.method} ${call.endpoint}',
+          icon: Icons.crisis_alert_outlined,
         );
       }
       return;

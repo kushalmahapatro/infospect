@@ -5,6 +5,7 @@ import 'package:infospect/features/network/ui/list/components/network_call_app_b
 import 'package:infospect/features/network/ui/list/components/network_call_item.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/common_widgets/live_edge_scroll_view.dart';
 import 'package:infospect/utils/infospect_share.dart';
 import 'package:share_plus/share_plus.dart';
@@ -88,14 +89,10 @@ class _NetworksListScreenState extends State<NetworksListScreen> {
                       endpoint: call.endpoint,
                       method: call.method,
                     );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Breakpoint added for ${call.method} ${call.endpoint}',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 2),
-                      ),
+                    InfospectToast.show(
+                      context,
+                      'Breakpoint added for ${call.method} ${call.endpoint}',
+                      icon: Icons.crisis_alert_outlined,
                     );
                   },
                   searchedText: widget.notifier.searchedText,

@@ -7,6 +7,7 @@ import 'package:infospect/features/network/ui/details/models/details_topic_data.
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
 import 'package:infospect/features/network/ui/details/widgets/json_body_viewer.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
@@ -502,12 +503,11 @@ class _KeyValueTable extends StatelessWidget {
                   ),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _allText));
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      const SnackBar(
-                        content: Text('Copied'),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    InfospectToast.show(
+                      context,
+                      'Copied',
+                      duration: const Duration(seconds: 1),
+                      icon: Icons.copy_rounded,
                     );
                   },
                 ),

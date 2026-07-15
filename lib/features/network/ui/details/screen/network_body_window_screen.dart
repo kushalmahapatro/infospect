@@ -5,6 +5,7 @@ import 'package:infospect/features/network/ui/details/widgets/json_body_viewer.d
 import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
 /// Which body to show in a popped-out network body window.
@@ -406,12 +407,11 @@ class _MetaPanel extends StatelessWidget {
 
   void _copyText(BuildContext context, String text, String message) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
+    InfospectToast.show(
+      context,
+      message,
+      duration: const Duration(seconds: 1),
+      icon: Icons.copy_rounded,
     );
   }
 }

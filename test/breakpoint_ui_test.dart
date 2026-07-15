@@ -296,6 +296,44 @@ void main() {
       expect(continued!.body, isNot(contains('Ada')));
     });
 
+    testWidgets('text mode underlines invalid JSON with a line marker',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        wrap(
+          BreakpointInterceptScreen(
+            phase: InfospectBreakpointPhase.request,
+            initialPayload: const InfospectBreakpointPayload(
+              method: 'POST',
+              uri: 'https://example.com/api/users',
+              endpoint: '/api/users',
+              headers: {'content-type': 'application/json'},
+              body: '{\n  "name": "Ada"\n}',
+            ),
+            onContinue: (_) {},
+            onAbort: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Body'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('breakpoint_body_field')),
+        '{\n  "name": \n}',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invalid JSON'), findsOneWidget);
+      expect(find.textContaining('Line '), findsOneWidget);
+    });
+
     testWidgets('response editor shows status and aborts when requested', (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));

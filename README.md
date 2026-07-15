@@ -321,7 +321,8 @@ If not provided, the default platform share option will be invoked.
    - **Tree** — foldable editable tree (edit keys/values, change types, add/remove
      fields) when the payload is valid JSON
    - **Text** — syntax-highlighted editor with line numbers, Tab indent, smart
-     newlines, plus Format / Minify / Validate
+     newlines, wavy underline + gutter marker on parse errors, bracket-pair
+     highlight at the caret, plus Format / Minify / Validate
 
    Invalid JSON stays editable as raw text (Tree is disabled until syntax is fixed).
 

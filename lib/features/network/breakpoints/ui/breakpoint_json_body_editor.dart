@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
 import 'package:infospect/features/network/breakpoints/ui/breakpoint_json_tree_editor.dart';
+import 'package:infospect/features/network/breakpoints/ui/json_editing_controller.dart';
 
 enum BreakpointJsonEditorMode { text, tree }
 
@@ -29,6 +30,7 @@ class BreakpointJsonBodyEditor extends StatefulWidget {
 class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
   late BreakpointJsonEditorMode _mode;
   String? _error;
+  int? _errorLine;
   bool? _isJson;
   dynamic _treeData;
   int _treeSession = 0;
@@ -81,20 +83,29 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
   }
 
   void _revalidate({bool notify = true}) {
-    final text = widget.controller.text.trim();
-    if (text.isEmpty) {
+    final text = widget.controller.text;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
       _error = null;
+      _errorLine = null;
       _isJson = null;
       _treeData = null;
       if (notify) setState(() {});
       return;
     }
-    try {
-      _treeData = jsonDecode(text);
+    final issue = findJsonParseIssue(text);
+    if (issue == null) {
+      try {
+        _treeData = jsonDecode(text);
+      } catch (_) {
+        _treeData = null;
+      }
       _error = null;
+      _errorLine = null;
       _isJson = true;
-    } catch (e) {
-      _error = e.toString().replaceFirst('FormatException: ', '');
+    } else {
+      _error = issue.message;
+      _errorLine = lineNumberForOffset(text, issue.offset);
       _isJson = false;
       _treeData = null;
       if (_mode == BreakpointJsonEditorMode.tree) {
@@ -203,51 +214,68 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Material(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
           child: SizedBox(
             height: 34,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Row(
                 children: [
-                  Text(
-                    _isJson == null
-                        ? 'Body'
-                        : (_isJson! ? 'JSON' : 'Invalid JSON'),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
+                  Flexible(
+                    child: Text(
+                      _isJson == null
+                          ? 'Body'
+                          : (_isJson! ? 'JSON' : 'Invalid JSON'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 26,
-                    child: SegmentedButton<BreakpointJsonEditorMode>(
-                      style: ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: WidgetStatePropertyAll(
-                          theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                        ),
-                        padding: const WidgetStatePropertyAll(
-                          EdgeInsets.symmetric(horizontal: 8),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    flex: 2,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          height: 26,
+                          child: SegmentedButton<BreakpointJsonEditorMode>(
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: WidgetStatePropertyAll(
+                                theme.textTheme.labelSmall
+                                    ?.copyWith(fontSize: 10),
+                              ),
+                              padding: const WidgetStatePropertyAll(
+                                EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                            ),
+                            segments: const [
+                              ButtonSegment(
+                                value: BreakpointJsonEditorMode.text,
+                                label: Text('Text'),
+                                icon: Icon(Icons.code_rounded, size: 14),
+                              ),
+                              ButtonSegment(
+                                value: BreakpointJsonEditorMode.tree,
+                                label: Text('Tree'),
+                                icon: Icon(Icons.account_tree_outlined, size: 14),
+                              ),
+                            ],
+                            selected: {_mode},
+                            onSelectionChanged: (value) =>
+                                _setMode(value.first),
+                          ),
                         ),
                       ),
-                      segments: const [
-                        ButtonSegment(
-                          value: BreakpointJsonEditorMode.text,
-                          label: Text('Text'),
-                          icon: Icon(Icons.code_rounded, size: 14),
-                        ),
-                        ButtonSegment(
-                          value: BreakpointJsonEditorMode.tree,
-                          label: Text('Tree'),
-                          icon: Icon(Icons.account_tree_outlined, size: 14),
-                        ),
-                      ],
-                      selected: {_mode},
-                      onSelectionChanged: (value) => _setMode(value.first),
                     ),
                   ),
                   const Spacer(),
@@ -266,7 +294,8 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
                   _ToolButton(
                     tooltip: 'Copy',
                     icon: Icons.copy_rounded,
-                    onPressed: widget.controller.text.isEmpty ? null : _copy,
+                    onPressed:
+                        widget.controller.text.isEmpty ? null : _copy,
                   ),
                 ],
               ),
@@ -278,7 +307,7 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
             child: Text(
-              _error!,
+              _errorLine == null ? _error! : 'Line $_errorLine: $_error',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
@@ -300,6 +329,7 @@ class _BreakpointJsonBodyEditorState extends State<BreakpointJsonBodyEditor> {
                   gutterScroll: _gutterScroll,
                   lineCount: _lineCount,
                   isInvalid: _isJson == false,
+                  errorLine: _errorLine,
                 ),
         ),
       ],
@@ -314,6 +344,7 @@ class _JsonTextPane extends StatelessWidget {
     required this.gutterScroll,
     required this.lineCount,
     required this.isInvalid,
+    this.errorLine,
   });
 
   final TextEditingController controller;
@@ -321,11 +352,13 @@ class _JsonTextPane extends StatelessWidget {
   final ScrollController gutterScroll;
   final int lineCount;
   final bool isInvalid;
+  final int? errorLine;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gutterWidth = 12.0 + (math.max(2, '$lineCount'.length) * 7.0);
+    const lineHeight = 12 * 1.35;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 8, 8),
@@ -353,20 +386,31 @@ class _JsonTextPane extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(top: 8, bottom: 8),
                     itemCount: lineCount,
-                    itemExtent: 12 * 1.35,
+                    itemExtent: lineHeight,
                     itemBuilder: (context, index) {
-                      return Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Text(
-                            '${index + 1}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
-                              height: 1.35,
-                              fontFamily: 'monospace',
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.35),
+                      final line = index + 1;
+                      final isError = errorLine == line;
+                      return ColoredBox(
+                        color: isError
+                            ? theme.colorScheme.error.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Text(
+                              '$line',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                                height: 1.35,
+                                fontFamily: 'monospace',
+                                fontWeight:
+                                    isError ? FontWeight.w700 : FontWeight.w400,
+                                color: isError
+                                    ? theme.colorScheme.error
+                                    : theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.35),
+                              ),
                             ),
                           ),
                         ),

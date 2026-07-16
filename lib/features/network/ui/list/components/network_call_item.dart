@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
+import 'package:infospect/features/network/ui/list/components/infospect_endpoint_label.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
@@ -91,47 +91,38 @@ class NetworkCallItem extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
-                    Text(time, style: metaStyle),
+                    Flexible(
+                      child: Text(
+                        '$duration · $up↑ $down↓ · $time',
+                        maxLines: 1,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
+                        textAlign: TextAlign.end,
+                        style: metaStyle,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: HighlightText(
-                        text: path,
-                        highlight:
-                            searchedText.isEmpty ? null : searchedText,
-                        ignoreCase: true,
-                        selectable: false,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$duration · $up↑ $down↓',
-                      style: metaStyle,
-                    ),
-                  ],
+                InfospectEndpointLabel(
+                  text: path,
+                  highlight: searchedText,
+                  mode: InfospectEndpointOverflowMode.wrap,
+                  maxLines: 2,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
                 ),
                 if (networkCall.server.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  HighlightText(
+                  InfospectEndpointLabel(
                     text: networkCall.server,
-                    highlight: searchedText.isEmpty ? null : searchedText,
-                    ignoreCase: true,
-                    selectable: false,
+                    highlight: searchedText,
+                    mode: InfospectEndpointOverflowMode.wrap,
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: metaStyle,
                   ),
                 ],

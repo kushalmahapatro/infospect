@@ -30,8 +30,9 @@
 - Desktop host and Infospect windows keep native title-bar buttons (minimize / maximize / close) via `windowButtonVisibility: true` in `MultiAppConfig` / `WindowOptions`
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
 - Mobile Breakpoints toolbar pads under the status bar like AppBar; smaller desktop menu bar text for a denser native feel
-- Compact desktop toast notifications (`InfospectToast`) — top-right card on desktop, floating snackbar on mobile — used for copy / breakpoint / JSON editor feedback
+- Network call list endpoints stay compact without `…` truncation: mobile rows wrap the path up to two lines (timing meta moved to the top row); desktop URL cells scrub horizontally and show the full value in a tooltip
 - Non-JSON response bodies no longer crash with `LateInitializationError: _mode` when opening the Body tab
+- Compact desktop toast notifications (`InfospectToast`) — top-right card on desktop, floating snackbar on mobile — used for copy / breakpoint / JSON editor feedback
 
 ### Docs
 - README / MIGRATION: Multiview entry must use Infospect bootstrap/`run` (never plain `runApp` on desktop); macOS AppDelegate terminate forwarding; `window_manager` + Multiview hang warning; obsolete multi_window args path

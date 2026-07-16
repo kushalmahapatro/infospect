@@ -2,12 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
+import 'package:infospect/features/network/ui/list/components/infospect_endpoint_label.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
 import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/common_widgets/live_edge_scroll_view.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
@@ -402,13 +402,10 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnUrl),
-                  child: HighlightText(
+                  child: InfospectEndpointLabel(
                     text: widget.call.uri,
                     highlight: widget.searchedText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                    selectable: false,
+                    mode: InfospectEndpointOverflowMode.scroll,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 11,
                       fontFamily: 'monospace',

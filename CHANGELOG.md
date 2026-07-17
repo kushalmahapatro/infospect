@@ -31,6 +31,7 @@
 - Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
 - Mobile Breakpoints toolbar pads under the status bar like AppBar; smaller desktop menu bar text for a denser native feel
 - Network call list endpoints stay compact without `…` truncation: mobile rows wrap the path up to two lines (timing meta moved to the top row); desktop URL cells scrub horizontally and show the full value in a tooltip
+- Mobile network details header shows the complete selectable URL (wraps instead of single-line ellipsis)
 - Network call list shows a clear call timestamp on mobile (dedicated top-right `HH:mm:ss.SSS`) and desktop (Time column), with a full `yyyy-MM-dd HH:mm:ss.SSS` tooltip
 - Non-JSON response bodies no longer crash with `LateInitializationError: _mode` when opening the Body tab
 - Compact desktop toast notifications (`InfospectToast`) — top-right card on desktop, floating snackbar on mobile — used for copy / breakpoint / JSON editor feedback

@@ -236,11 +236,10 @@ class _CallHeaderBar extends StatelessWidget {
           const SizedBox(height: 4),
           SelectableText(
             call.uri,
-            maxLines: 1,
             style: theme.textTheme.bodySmall?.copyWith(
               fontSize: 11,
               fontFamily: 'monospace',
-              height: 1.2,
+              height: 1.3,
             ),
           ),
         ],

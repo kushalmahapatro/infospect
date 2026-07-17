@@ -447,9 +447,17 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnTime),
-                  child: _PlainText(
-                    text: widget.call.createdTime.formatTime,
-                    monospace: true,
+                  child: Tooltip(
+                    message: (widget.call.request?.time ??
+                            widget.call.createdTime)
+                        .formatTimestamp,
+                    waitDuration: const Duration(milliseconds: 400),
+                    child: _PlainText(
+                      text: (widget.call.request?.time ??
+                              widget.call.createdTime)
+                          .formatTime,
+                      monospace: true,
+                    ),
                   ),
                 ),
                 _Cell(

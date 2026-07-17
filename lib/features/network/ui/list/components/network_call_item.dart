@@ -51,8 +51,8 @@ class NetworkCallItem extends StatelessWidget {
         : networkCall.duration.toReadableTime;
     final up = (networkCall.request?.size ?? 0).toReadableBytes;
     final down = (networkCall.response?.size ?? 0).toReadableBytes;
-    final time =
-        (networkCall.request?.time ?? networkCall.createdTime).formatTime;
+    final stampedAt = networkCall.request?.time ?? networkCall.createdTime;
+    final time = stampedAt.formatTime;
 
     return Material(
       color: background,
@@ -91,14 +91,16 @@ class NetworkCallItem extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
-                    Flexible(
+                    Tooltip(
+                      message: stampedAt.formatTimestamp,
+                      waitDuration: const Duration(milliseconds: 400),
                       child: Text(
-                        '$duration · $up↑ $down↓ · $time',
-                        maxLines: 1,
-                        overflow: TextOverflow.fade,
-                        softWrap: false,
-                        textAlign: TextAlign.end,
-                        style: metaStyle,
+                        time,
+                        style: metaStyle?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.7),
+                        ),
                       ),
                     ),
                   ],
@@ -115,6 +117,14 @@ class NetworkCallItem extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     height: 1.25,
                   ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$duration · $up↑ $down↓',
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  style: metaStyle,
                 ),
                 if (networkCall.server.isNotEmpty) ...[
                   const SizedBox(height: 2),

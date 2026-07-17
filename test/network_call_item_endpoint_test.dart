@@ -54,6 +54,8 @@ void main() {
         .join();
     expect(endpointTexts, contains(path));
     expect(endpointTexts, isNot(contains('…')));
+    // Timestamp is always visible on the top row (not faded into meta).
+    expect(find.text('12:00:00.000'), findsOneWidget);
   });
 
   testWidgets('endpoint label scroll mode keeps a single-line full URL',

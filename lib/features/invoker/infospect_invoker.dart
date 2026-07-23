@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:infospect/features/launch/desktop/infospect_desktop_shortcuts.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
@@ -391,18 +391,9 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
       textDirection: TextDirection.ltr,
       child: CallbackShortcuts(
         bindings: {
-          const SingleActivator(
-            LogicalKeyboardKey.keyI,
-            alt: true,
-            meta: true,
-            control: false,
-          ): () => Infospect.instance.openInspectorInNewWindow(),
-          const SingleActivator(
-            LogicalKeyboardKey.keyI,
-            alt: true,
-            meta: false,
-            control: true,
-          ): () => Infospect.instance.openInspectorInNewWindow(),
+          for (final activator
+              in InfospectDesktopShortcuts.openInspectorActivators)
+            activator: () => Infospect.instance.openInspectorInNewWindow(),
         },
         child: LayoutBuilder(
           builder: (context, constraints) {

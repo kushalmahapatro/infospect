@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
 import 'package:infospect/features/network/models/infospect_network_request.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
@@ -46,43 +47,57 @@ class InfospectNetworkCall extends Equatable {
   /// The Network error data associated with the call (if any).
   final InfospectNetworkError? error;
 
-  /// Creates an instance of the `InfospectNetworkCall` class.
-  ///
-  /// Parameters:
-  /// - [id]: The unique identifier for the Network call.
-  /// - [time]: The timestamp when the Network call was created (default is the current time).
-  InfospectNetworkCall(this.id,
-      {DateTime? time,
-      String endpoint = '',
-      this.client = '',
-      this.loading = true,
-      this.secure = false,
-      this.method = '',
-      this.server = '',
-      this.uri = '',
-      this.duration = 0,
-      this.request,
-      this.response,
-      this.error})
-      : createdTime = time ?? DateTime.now(),
-        endpoint = endpoint.isEmpty ? "/" : endpoint;
+  /// Whether a request breakpoint paused this call.
+  final bool hadRequestBreakpoint;
 
-  /// Converts the `InfospectNetworkCall` object into a Map representation.
-  ///
-  /// Returns a Map with the following key-value pairs:
-  /// - 'id': The unique identifier for the Network call.
-  /// - 'createdTime': The timestamp when the Network call was created (in microseconds since epoch).
-  /// - 'client': The client information associated with the Network call.
-  /// - 'loading': A flag indicating if the call is still in progress (loading) or completed.
-  /// - 'secure': A flag indicating if the call is made over a secure (NetworkS) connection.
-  /// - 'method': The Network method used in the call.
-  /// - 'endpoint': The endpoint (URL path) used in the Network call.
-  /// - 'server': The server URL (domain) to which the call is made.
-  /// - 'uri': The full URI (server + endpoint) used in the Network call.
-  /// - 'duration': The duration of the Network call in milliseconds.
-  /// - 'request': The Map representation of the Network request data associated with the call.
-  /// - 'response': The Map representation of the Network response data associated with the call.
-  /// - 'error': The Map representation of the Network error data associated with the call (if any).
+  /// Whether a response breakpoint paused this call.
+  final bool hadResponseBreakpoint;
+
+  /// Whether the request was modified at a breakpoint before sending.
+  final bool requestEditedAtBreakpoint;
+
+  /// Whether the response was modified at a breakpoint before delivery.
+  final bool responseEditedAtBreakpoint;
+
+  /// Original vs edited request snapshot when a request breakpoint applied.
+  final InfospectBreakpointEdit? requestBreakpointEdit;
+
+  /// Original vs edited response snapshot when a response breakpoint applied.
+  final InfospectBreakpointEdit? responseBreakpointEdit;
+
+  /// Creates an instance of the `InfospectNetworkCall` class.
+  InfospectNetworkCall(
+    this.id, {
+    DateTime? time,
+    String endpoint = '',
+    this.client = '',
+    this.loading = true,
+    this.secure = false,
+    this.method = '',
+    this.server = '',
+    this.uri = '',
+    this.duration = 0,
+    this.request,
+    this.response,
+    this.error,
+    this.hadRequestBreakpoint = false,
+    this.hadResponseBreakpoint = false,
+    this.requestEditedAtBreakpoint = false,
+    this.responseEditedAtBreakpoint = false,
+    this.requestBreakpointEdit,
+    this.responseBreakpointEdit,
+  })  : createdTime = time ?? DateTime.now(),
+        endpoint = endpoint.isEmpty ? '/' : endpoint;
+
+  /// True when any breakpoint interacted with this call.
+  bool get hasBreakpointTrace =>
+      hadRequestBreakpoint ||
+      hadResponseBreakpoint ||
+      requestEditedAtBreakpoint ||
+      responseEditedAtBreakpoint ||
+      requestBreakpointEdit != null ||
+      responseBreakpointEdit != null;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
@@ -98,15 +113,15 @@ class InfospectNetworkCall extends Equatable {
       'request': request?.toMap(),
       'response': response?.toMap(),
       'error': error?.toMap(),
+      'hadRequestBreakpoint': hadRequestBreakpoint,
+      'hadResponseBreakpoint': hadResponseBreakpoint,
+      'requestEditedAtBreakpoint': requestEditedAtBreakpoint,
+      'responseEditedAtBreakpoint': responseEditedAtBreakpoint,
+      'requestBreakpointEdit': requestBreakpointEdit?.toMap(),
+      'responseBreakpointEdit': responseBreakpointEdit?.toMap(),
     };
   }
 
-  /// Creates an instance of the `InfospectNetworkCall` class from a Map representation.
-  ///
-  /// Parameters:
-  /// - [map]: A Map containing the key-value pairs representing the `InfospectNetworkCall` object.
-  ///
-  /// Returns an instance of the `InfospectNetworkCall` class with the data populated from the provided Map.
   factory InfospectNetworkCall.fromMap(dynamic map) {
     return InfospectNetworkCall(
       map['id'] as int,
@@ -128,6 +143,22 @@ class InfospectNetworkCall extends Equatable {
       error: map['error'] != null
           ? InfospectNetworkError.fromMap(map['error'])
           : null,
+      hadRequestBreakpoint: map['hadRequestBreakpoint'] as bool? ?? false,
+      hadResponseBreakpoint: map['hadResponseBreakpoint'] as bool? ?? false,
+      requestEditedAtBreakpoint:
+          map['requestEditedAtBreakpoint'] as bool? ?? false,
+      responseEditedAtBreakpoint:
+          map['responseEditedAtBreakpoint'] as bool? ?? false,
+      requestBreakpointEdit: map['requestBreakpointEdit'] != null
+          ? InfospectBreakpointEdit.fromMap(
+              Map<String, dynamic>.from(map['requestBreakpointEdit'] as Map),
+            )
+          : null,
+      responseBreakpointEdit: map['responseBreakpointEdit'] != null
+          ? InfospectBreakpointEdit.fromMap(
+              Map<String, dynamic>.from(map['responseBreakpointEdit'] as Map),
+            )
+          : null,
     );
   }
 
@@ -147,6 +178,12 @@ class InfospectNetworkCall extends Equatable {
       request,
       response,
       error,
+      hadRequestBreakpoint,
+      hadResponseBreakpoint,
+      requestEditedAtBreakpoint,
+      responseEditedAtBreakpoint,
+      requestBreakpointEdit,
+      responseBreakpointEdit,
     ];
   }
 
@@ -164,6 +201,12 @@ class InfospectNetworkCall extends Equatable {
     InfospectNetworkRequest? request,
     InfospectNetworkResponse? response,
     InfospectNetworkError? error,
+    bool? hadRequestBreakpoint,
+    bool? hadResponseBreakpoint,
+    bool? requestEditedAtBreakpoint,
+    bool? responseEditedAtBreakpoint,
+    InfospectBreakpointEdit? requestBreakpointEdit,
+    InfospectBreakpointEdit? responseBreakpointEdit,
   }) {
     return InfospectNetworkCall(
       id ?? this.id,
@@ -179,6 +222,16 @@ class InfospectNetworkCall extends Equatable {
       request: request ?? this.request,
       response: response ?? this.response,
       error: error ?? this.error,
+      hadRequestBreakpoint: hadRequestBreakpoint ?? this.hadRequestBreakpoint,
+      hadResponseBreakpoint: hadResponseBreakpoint ?? this.hadResponseBreakpoint,
+      requestEditedAtBreakpoint:
+          requestEditedAtBreakpoint ?? this.requestEditedAtBreakpoint,
+      responseEditedAtBreakpoint:
+          responseEditedAtBreakpoint ?? this.responseEditedAtBreakpoint,
+      requestBreakpointEdit:
+          requestBreakpointEdit ?? this.requestBreakpointEdit,
+      responseBreakpointEdit:
+          responseBreakpointEdit ?? this.responseBreakpointEdit,
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
-import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
+import 'package:infospect/features/network/ui/list/components/infospect_endpoint_label.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/extensions/int_extension.dart';
@@ -11,12 +11,14 @@ class NetworkCallItem extends StatelessWidget {
     super.key,
     required this.networkCall,
     required this.onItemClicked,
+    this.onAddBreakpoint,
     this.searchedText = '',
     this.zebra = false,
   });
 
   final InfospectNetworkCall networkCall;
   final ValueChanged<InfospectNetworkCall> onItemClicked;
+  final ValueChanged<InfospectNetworkCall>? onAddBreakpoint;
   final String searchedText;
   final bool zebra;
 
@@ -49,13 +51,16 @@ class NetworkCallItem extends StatelessWidget {
         : networkCall.duration.toReadableTime;
     final up = (networkCall.request?.size ?? 0).toReadableBytes;
     final down = (networkCall.response?.size ?? 0).toReadableBytes;
-    final time =
-        (networkCall.request?.time ?? networkCall.createdTime).formatTime;
+    final stampedAt = networkCall.request?.time ?? networkCall.createdTime;
+    final time = stampedAt.formatTime;
 
     return Material(
       color: background,
       child: InkWell(
         onTap: () => onItemClicked(networkCall),
+        onLongPress: onAddBreakpoint == null
+            ? null
+            : () => onAddBreakpoint!(networkCall),
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border(
@@ -73,6 +78,10 @@ class NetworkCallItem extends StatelessWidget {
                     _MethodPill(method: networkCall.method),
                     const SizedBox(width: 5),
                     _StatusPill(networkCall: networkCall),
+                    if (networkCall.hasBreakpointTrace) ...[
+                      const SizedBox(width: 4),
+                      _BreakpointTracePill(call: networkCall),
+                    ],
                     if (networkCall.error != null) ...[
                       const SizedBox(width: 4),
                       Icon(
@@ -82,47 +91,48 @@ class NetworkCallItem extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
-                    Text(time, style: metaStyle),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: HighlightText(
-                        text: path,
-                        highlight:
-                            searchedText.isEmpty ? null : searchedText,
-                        ignoreCase: true,
-                        selectable: false,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
+                    Tooltip(
+                      message: stampedAt.formatTimestamp,
+                      waitDuration: const Duration(milliseconds: 400),
+                      child: Text(
+                        time,
+                        style: metaStyle?.copyWith(
                           fontWeight: FontWeight.w600,
-                          height: 1.25,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.7),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$duration · $up↑ $down↓',
-                      style: metaStyle,
-                    ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                InfospectEndpointLabel(
+                  text: path,
+                  highlight: searchedText,
+                  mode: InfospectEndpointOverflowMode.wrap,
+                  maxLines: 2,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$duration · $up↑ $down↓',
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  style: metaStyle,
                 ),
                 if (networkCall.server.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  HighlightText(
+                  InfospectEndpointLabel(
                     text: networkCall.server,
-                    highlight: searchedText.isEmpty ? null : searchedText,
-                    ignoreCase: true,
-                    selectable: false,
+                    highlight: searchedText,
+                    mode: InfospectEndpointOverflowMode.wrap,
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: metaStyle,
                   ),
                 ],
@@ -220,6 +230,46 @@ class _StatusPill extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
+          height: 1.2,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _BreakpointTracePill extends StatelessWidget {
+  const _BreakpointTracePill({required this.call});
+
+  final InfospectNetworkCall call;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final parts = <String>[
+      if (call.requestEditedAtBreakpoint)
+        'Req✎'
+      else if (call.hadRequestBreakpoint)
+        'Req',
+      if (call.responseEditedAtBreakpoint)
+        'Res✎'
+      else if (call.hadResponseBreakpoint)
+        'Res',
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+
+    final color = theme.colorScheme.tertiary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(3),
+        color: color.withValues(alpha: 0.16),
+      ),
+      child: Text(
+        'BP ${parts.join('·')}',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
           height: 1.2,
           color: color,
         ),

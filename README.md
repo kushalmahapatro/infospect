@@ -22,6 +22,14 @@ to faster bug resolution.
 
 Upgrading from **0.1.5** to **0.2.0**? See **[MIGRATION.md](MIGRATION.md)** for consumer breaking changes (Flutter / SDK floors, `multiview_desktop` desktop runner setup, and obsolete multi-window IPC APIs).
 
+### Desktop compatibility (Multiview hosts)
+
+If your desktop runners use Multiview — especially with a feature-flagged Infospect
+build or a host dependency like `window_manager` — read
+**[DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)** before shipping. It covers
+the `registrar.view` hang, always-`runMultiApp` requirement, quit lifecycle, and
+`hiddenWindowAtLaunch` pitfalls.
+
 ## Getting started
 
 1. Add the dependency to your pubspec.yaml file. (Replace latest-version with the latest version of
@@ -81,16 +89,59 @@ This will provide the path of the compressed file name infospect_logs.tar.gz, wh
 accordingly.
 If not provided, the default platform share option will be invoked.
 
-2. Rather than using `runApp`, use `Infospect.instance.run(args, myApp: EntryWidget())`.
-   On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop) so Infospect
-   can open in a secondary OS window on the same Flutter engine (no separate isolate / IPC).
-   On mobile this behaves like a normal `runApp`.
+2. Desktop / Multiview entry (required when Multiview natives are wired)
+
+   Prefer `Infospect.instance.run` when the inspector is initialized, or
+   `Infospect.bootstrapMultiViewApp` when logging may be disabled:
+
   ```dart
+    // Inspector enabled:
+    Infospect.ensureInitialized(logAppLaunch: true);
     Infospect.instance.run(args, myApp: const MainApp());
+
+    // Multiview natives installed but Infospect logging off:
+    Infospect.bootstrapMultiViewApp(const MainApp());
+    // or: InfospectDesktopBootstrap.runAppOrMultiApp(const MainApp());
   ```
+
+   On desktop this starts [multiview_desktop](https://pub.dev/packages/multiview_desktop)
+   (`runMultiApp`) so Infospect can open secondary OS windows on the same Flutter
+   engine. On mobile / web this behaves like a normal `runApp`.
+
+   **Never use plain `runApp` on desktop** after Multiview native runners are
+   installed — macOS terminate stays cancelled until Multiview Dart replies, and
+   the process can hang as an unkillable `UE` task.
 
    Desktop hosts also need the [multiview_desktop platform setup](https://pub.dev/packages/multiview_desktop)
    in their macOS / Windows / Linux runners (see the package README and the Infospect example app).
+
+   `Infospect.instance.run` / `bootstrapMultiViewApp` set `windowButtonVisibility: true`
+   so the host window keeps native minimize / maximize / close controls.
+
+   ### Multiview host lifecycle (macOS)
+
+   Forward these AppDelegate methods to `MultiviewDesktopPlugin` (see Multiview README
+   and `example/macos/Runner/AppDelegate.swift`):
+
+   - `applicationShouldTerminateAfterLastWindowClosed`
+   - `applicationShouldTerminate`
+   - `applicationShouldHandleReopen`
+   - `applicationDockMenu`
+
+   Without Dart `runMultiApp`, `applicationShouldTerminate` returns `.terminateCancel`
+   forever — quit never completes.
+
+   ### `window_manager` hazard (macOS + Multiview)
+
+   `window_manager` 0.3.x resolving the primary window via `registrar.view` is
+   **unsafe** with Multiview / `enableMultiView` on macOS (main-thread hang at
+   `(registrar.view?.window)!`). Do not rely on that for the primary window.
+   Prefer Multiview `WindowOptions` / `MultiViewDesktop` APIs, or patch window
+   resolution (e.g. `NSApp.windows` / null-safe `GetView`) if you must keep
+   `window_manager`.
+
+   Obsolete `multi_window` CLI args / second-isolate Infospect entry is **not**
+   the Multiview model — secondary windows share one isolate.
 
 3. Adding network call interceptor
    a. dio:
@@ -153,13 +204,149 @@ If not provided, the default platform share option will be invoked.
 
   But in mobile the infospect window will be opened in a new route.
 
+  **Desktop Infospect window — menu bar & shortcuts**
+
+  Flutter’s native `PlatformMenuBar` only targets the main window, so it does
+  **not** appear on Multiview secondary windows. Infospect therefore uses an
+  **in-window** menu bar (View / Network / Logs / Window) with trailing
+  shortcut labels on every platform.
+
+  Every Infospect-opened window (inspector, popped tabs, breakpoints,
+  intercept editors, body windows) closes with:
+
+  > macOS: `⌘W` · Windows / Linux: `Ctrl+W`
+
+  Other inspector shortcuts (focus-gated so they only apply to the focused
+  Infospect window):
+
+  | Action | macOS | Windows / Linux |
+  |---|---|---|
+  | Network tab | ⌘1 | Ctrl+1 |
+  | Logs tab | ⌘2 | Ctrl+2 |
+  | Breakpoints… | ⌘B | Ctrl+B |
+  | Clear network calls | ⌘⇧K | Ctrl+Shift+K |
+  | Share network calls | ⌘⇧S | Ctrl+Shift+S |
+  | Open Network in new window | ⌘⇧N | Ctrl+Shift+N |
+  | Clear logs | ⌘⇧L | Ctrl+Shift+L |
+  | Share logs | ⌘⇧E | Ctrl+Shift+E |
+  | Open Logs in new window | ⌘⇧G | Ctrl+Shift+G |
+  | Close window | ⌘W | Ctrl+W |
+
+  Prefer `InfospectInvoker` when the host already owns its menus (shortcut only).
+  To add Infospect to a host macOS `PlatformMenuBar`, use
+  `InfospectDesktopInvoker.mergePlatformMenus`. Helpers also exist for
+  `mergeBarButtons` and `mergeTaskbarMenus`.
+
+6. Network breakpoints (Proxyman-style, without a proxy)
+
+   Pause matching requests and/or responses so you can edit headers, query
+   params, and body before the call continues — the same workflow proxy tools
+   provide, powered by Infospect's Dio / `http` interceptors.
+
+   **Add a breakpoint from code**
+
+   ```dart
+   // Pause every method for this path:
+   Infospect.instance.addEndpointBreakpoint(endpoint: '/api/users');
+
+   // Pause only POST:
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/users',
+     method: 'POST',
+   );
+
+   // Path prefix match:
+   Infospect.instance.addEndpointBreakpoint(endpoint: '/api/users*');
+
+   // Extra AND conditions (query, headers, JSON body path, status, …):
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/checkout',
+     method: 'POST',
+     conditions: [
+       InfospectBreakpointCondition(
+         id: 'c1',
+         target: InfospectBreakpointMatchTarget.queryParam,
+         op: InfospectBreakpointMatchOp.equals,
+         key: 'env',
+         value: 'staging',
+       ),
+       InfospectBreakpointCondition(
+         id: 'c2',
+         target: InfospectBreakpointMatchTarget.requestBodyJson,
+         op: InfospectBreakpointMatchOp.equals,
+         key: 'cart.id',
+         value: '42',
+       ),
+     ],
+   );
+
+   // Break only when the response is a 5xx (evaluated at response phase):
+   Infospect.instance.addEndpointBreakpoint(
+     endpoint: '/api/*',
+     breakOnRequest: false,
+     breakOnResponse: true,
+     conditions: [
+       InfospectBreakpointCondition(
+         id: 'c3',
+         target: InfospectBreakpointMatchTarget.responseStatus,
+         op: InfospectBreakpointMatchOp.inRange,
+         value: '500-599',
+       ),
+     ],
+   );
+   ```
+
+   Conditions are AND-combined on top of endpoint / method. Targets include
+   query params, request headers, request/response body text or JSON path
+   (`user.id`), and response status (exact or `200-299` range). Response-only
+   filters do not pause the outbound request.
+
+   **Add / manage breakpoints in the UI**
+
+   - Network tab → overflow menu → **Breakpoints**
+   - Desktop: right-click a network call → **Add breakpoint**
+   - Mobile: long-press a network call → adds a breakpoint for that method + path
+   - In the rule editor, use **Conditions → Add** for query / header / body /
+     status filters (same options as the API)
+
+   When a rule matches:
+
+   - **Mobile:** a fullscreen dialog opens to edit the request; after the
+     server responds, another dialog opens for the response.
+   - **Desktop:** the same editors open in a native window (AppBar, summary
+     bar, section tabs). Reopening **Breakpoints** focuses the existing
+     management window. Concurrent intercept windows keep their edit state.
+
+   Request / response **body** editors are dual-mode JSON editors:
+   - **Tree** — foldable editable tree (edit keys/values, change types, add/remove
+     fields) when the payload is valid JSON
+   - **Text** — syntax-highlighted editor with line numbers, Tab indent, smart
+     newlines, wavy underline + gutter marker on parse errors, bracket-pair
+     highlight at the caret, plus Format / Minify / Validate
+
+   Invalid JSON stays editable as raw text (Tree is disabled until syntax is fixed).
+
+   Use **Continue** to send the (possibly edited) request / response ahead, or
+   **Abort** to cancel the call.
+
+   Edited calls keep both the **original** and **edited** URL / params /
+   headers / body (and response status) on the logged call, shown as an
+   Original vs Edited section in request / response details (mobile and
+   desktop).
+
+   **UI / integration tests**
+
+   ```console
+   flutter test test/breakpoint_ui_test.dart
+   # Refresh golden screenshots after intentional UI changes:
+   flutter test test/breakpoint_ui_test.dart --update-goldens
+   ```
+
 ## Upcoming Feature
 
-1. Breakpoints for network call to edit request and response.
-2. Add support for more network client.
-3. Sorting of the logs and network calls.
-4. An example app having multiple screens to show the usage of the plugin with network call and selection for respective network library to be intercepted and logger implementation.
-5. Bug fixes and many more.
+1. Add support for more network client.
+2. An example app having multiple screens to show the usage of the plugin with network call and selection for respective network library to be intercepted and logger implementation.
+3. Bug fixes and many more.
 
 
 ## Support

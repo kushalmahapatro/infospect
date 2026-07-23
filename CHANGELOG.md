@@ -1,4 +1,48 @@
 
+## 0.3.0
+
+### Features
+- Proxyman-style network breakpoints without a proxy: match by endpoint (optional method), pause request and/or response, edit headers / query params / body, then Continue or Abort
+- **Breakpoint conditions (AND):** query params, request headers, request/response body text or JSON path, response status (exact or range) — configurable in UI and via `addEndpointBreakpoint(conditions: …)`
+- **JSON body editing** in intercept dialogs: dual-mode Text (syntax highlight, line numbers, smart indent, wavy error underline + error gutter line, bracket-pair highlight) + editable Tree (keys/values/types, add/remove); Format / Minify when in Text mode; raw-text fallback for invalid JSON
+- Breakpoints management UI from the Network overflow menu; desktop context menu can add a breakpoint for a call
+- Request breakpoint editors open as a fullscreen dialog on mobile and a native desktop window on desktop; response editors follow the same pattern after the server replies
+- Public API: `addEndpointBreakpoint`, `addBreakpoint`, `updateBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, and `breakpoints`
+- Breakpoint edits persist **original vs edited** snapshots on each network call (`requestBreakpointEdit` / `responseBreakpointEdit`) for URL, query params, headers, body, and response status — shown as an Original / Edited compare section in call details (mobile and desktop)
+- **Multiview host bootstrap:** `Infospect.bootstrapMultiViewApp` / `InfospectDesktopBootstrap.runAppOrMultiApp` (and top-level helpers) call `runMultiApp` on desktop **without** requiring Infospect logging/`ensureInitialized` — hosts with Multiview natives must not use plain `runApp` on desktop. `Infospect.instance.run` uses the same helper.
+- **Desktop Infospect menu bar & shortcuts:** in-window Material menu on all platforms (native `PlatformMenuBar` is unavailable for Multiview secondary windows). Trailing shortcut labels; focus-gated `HardwareKeyboard` handlers. ⌘W / Ctrl+W closes every Infospect-opened window via `InfospectDesktopWindowShortcuts`. Host merge helpers: `mergePlatformMenus`, `mergeBarButtons`, `mergeTaskbarMenus`
+
+### Tests
+- Widget / integration coverage for breakpoint list management, request/response editors, Continue/Abort, and matching rules
+- Unit coverage for condition matching (query, JSON path, status range, response-only deferral)
+- Golden screenshots under `test/goldens/` for empty list, populated list, request/response editors, and intercept dialogs
+- Coverage for breakpoint edit traces, original/edited snapshots, and non-success (error-path) response breakpoints
+- Unit coverage for Multiview desktop bootstrap gating (`isMultiViewDesktopBootstrapRequired`)
+- Coverage for desktop menu merge helpers and Infospect-window shortcut bindings
+
+### Fixes
+- Mobile Network overflow → Breakpoints now navigates correctly (sheet no longer pops the new route)
+- Response breakpoints also apply for non-2xx Dio responses that arrive via `onError`
+- Compact native-feeling breakpoint list and intercept editors (bottom sheet on mobile, Scaffold + summary bar on desktop); mobile Breakpoints / details / intercept chrome aligned with the compact main Infospect toolbar (shared back button, 40px height)
+- Desktop Breakpoints management uses a table + inspector pane (not mobile list/sheets); reopen focuses the existing window; condition count column + wider editor for filters
+- Concurrent intercept windows keep their edit state across multiview rebuilds
+- Desktop network details use a side-by-side Original vs Edited diff panel with top spacing and flex layout (no overflow when expanded)
+- Desktop host and Infospect windows keep native title-bar buttons (minimize / maximize / close) via `windowButtonVisibility: true` in `MultiAppConfig` / `WindowOptions`
+- Network call rows show BP / BP✎ traces when a breakpoint hit or edited the request/response
+- Mobile Breakpoints toolbar pads under the status bar like AppBar; smaller desktop menu bar text for a denser native feel
+- Network call list endpoints stay compact without `…` truncation: mobile rows wrap the path up to two lines (timing meta moved to the top row); desktop URL cells scrub horizontally and show the full value in a tooltip
+- Mobile network details header shows the complete selectable URL (wraps instead of single-line ellipsis)
+- Network call list shows a clear call timestamp on mobile (dedicated top-right `HH:mm:ss.SSS`) and desktop (Time column), with a full `yyyy-MM-dd HH:mm:ss.SSS` tooltip
+- Non-JSON response bodies no longer crash with `LateInitializationError: _mode` when opening the Body tab
+- Compact desktop toast notifications (`InfospectToast`) — top-right card on desktop, floating snackbar on mobile — used for copy / breakpoint / JSON editor feedback
+
+### Docs
+- README / MIGRATION: Multiview entry must use Infospect bootstrap/`run` (never plain `runApp` on desktop); macOS AppDelegate terminate forwarding; `window_manager` + Multiview hang warning; obsolete multi_window args path
+- README: breakpoint conditions + JSON body editing examples
+- **[DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md)** — Multiview consumer hazards (`window_manager` / `registrar.view`, feature-flagged Infospect, quit lifecycle, `hiddenWindowAtLaunch`, plugin safety)
+- `InfospectDesktopBootstrap` (`isDesktopMultiViewRequired` / `runAppOrMultiApp`) for flag-off Multiview hosts
+- [AGENTS.md](AGENTS.md) + Cursor rule for Multiview consumer footguns
+
 ## 0.2.0
 
 > Consumer migration steps: see [MIGRATION.md](MIGRATION.md) (0.1.5 → 0.2.0).

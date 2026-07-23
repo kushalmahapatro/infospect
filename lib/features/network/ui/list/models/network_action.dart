@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:infospect/utils/models/action_model.dart';
 
-enum NetworkActionType { method, status, share, clear }
+enum NetworkActionType { method, status, share, clear, breakpoints }
 
 abstract class NetworkAction {
   static ActionModel get filterModel {
@@ -47,6 +47,11 @@ abstract class NetworkAction {
       icon: Icons.more_horiz_rounded,
       title: 'More',
       actions: const [
+        PopupAction(
+          id: NetworkActionType.breakpoints,
+          name: 'Breakpoints',
+          icon: Icons.crisis_alert_outlined,
+        ),
         PopupAction(
           id: NetworkActionType.share,
           name: 'Share',

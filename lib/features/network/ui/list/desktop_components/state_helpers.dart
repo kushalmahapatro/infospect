@@ -49,7 +49,7 @@ enum CellType {
   columnMethod(4, 'Method', minWidth: 64, maxWidth: 88),
   columnStatus(5, 'Status', minWidth: 56, maxWidth: 80),
   columnCode(6, 'Code', minWidth: 44, maxWidth: 64),
-  columnTime(7, 'Time', minWidth: 80, maxWidth: 120),
+  columnTime(7, 'Time', minWidth: 96, maxWidth: 140),
   columnDuration(8, 'Duration', minWidth: 64, maxWidth: 96),
   columnSecure(9, 'Secure', minWidth: 40, maxWidth: 52);
 

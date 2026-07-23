@@ -2,12 +2,13 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
+import 'package:infospect/features/network/ui/list/components/infospect_endpoint_label.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/desktop_call_list_states.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/draggable_cell.dart';
 import 'package:infospect/features/network/ui/list/desktop_components/state_helpers.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
-import 'package:infospect/utils/common_widgets/highlight_text_widget.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/common_widgets/live_edge_scroll_view.dart';
 import 'package:infospect/utils/extensions/date_time_extension.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_request_extension.dart';
@@ -217,7 +218,7 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
     Offset globalPosition,
     InfospectNetworkCall call,
   ) async {
-    if (call.loading || !InfospectUtil.isDesktop) return;
+    if (!InfospectUtil.isDesktop) return;
 
     final selected = await showMenu<String>(
       context: context,
@@ -235,26 +236,50 @@ class _DraggableTableState extends DesktopCallListStates<DraggableTable> {
           ).colorScheme.outlineVariant.withValues(alpha: 0.55),
         ),
       ),
-      items: const [
-        PopupMenuItem(
-          value: 'open',
+      items: [
+        const PopupMenuItem(
+          value: 'breakpoint',
           height: 32,
-          child: Text('Open in new window', style: TextStyle(fontSize: 12)),
+          child: Text('Add breakpoint', style: TextStyle(fontSize: 12)),
         ),
-        PopupMenuItem(
-          value: 'open_request',
-          height: 32,
-          child: Text('Open request body', style: TextStyle(fontSize: 12)),
-        ),
-        PopupMenuItem(
-          value: 'open_response',
-          height: 32,
-          child: Text('Open response body', style: TextStyle(fontSize: 12)),
-        ),
+        if (!call.loading) ...[
+          const PopupMenuItem(
+            value: 'open',
+            height: 32,
+            child: Text('Open in new window', style: TextStyle(fontSize: 12)),
+          ),
+          const PopupMenuItem(
+            value: 'open_request',
+            height: 32,
+            child: Text('Open request body', style: TextStyle(fontSize: 12)),
+          ),
+          const PopupMenuItem(
+            value: 'open_response',
+            height: 32,
+            child: Text('Open response body', style: TextStyle(fontSize: 12)),
+          ),
+        ],
       ],
     );
 
     if (selected == null) return;
+
+    if (selected == 'breakpoint') {
+      Infospect.instance.addEndpointBreakpoint(
+        endpoint: call.endpoint,
+        method: call.method,
+      );
+      if (context.mounted) {
+        InfospectToast.show(
+          context,
+          'Breakpoint added for ${call.method} ${call.endpoint}',
+          icon: Icons.crisis_alert_outlined,
+        );
+      }
+      return;
+    }
+
+    if (call.loading) return;
 
     final kind = switch (selected) {
       'open_request' => NetworkBodyKind.request,
@@ -377,13 +402,10 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnUrl),
-                  child: HighlightText(
+                  child: InfospectEndpointLabel(
                     text: widget.call.uri,
                     highlight: widget.searchedText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                    selectable: false,
+                    mode: InfospectEndpointOverflowMode.scroll,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 11,
                       fontFamily: 'monospace',
@@ -397,11 +419,27 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnMethod),
-                  child: _MethodPill(method: widget.call.method),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: _MethodPill(method: widget.call.method),
+                      ),
+                      if (widget.call.hasBreakpointTrace) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.crisis_alert_outlined,
+                          size: 11,
+                          color: theme.colorScheme.tertiary,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnStatus),
-                  child: _PlainText(text: _shortStatus(widget.call)),
+                  child: _PlainText(
+                    text: _shortStatus(widget.call),
+                  ),
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnCode),
@@ -409,9 +447,17 @@ class _CallRowState extends State<_CallRow> {
                 ),
                 _Cell(
                   width: widget.widths.width(CellType.columnTime),
-                  child: _PlainText(
-                    text: widget.call.createdTime.formatTime,
-                    monospace: true,
+                  child: Tooltip(
+                    message: (widget.call.request?.time ??
+                            widget.call.createdTime)
+                        .formatTimestamp,
+                    waitDuration: const Duration(milliseconds: 400),
+                    child: _PlainText(
+                      text: (widget.call.request?.time ??
+                              widget.call.createdTime)
+                          .formatTime,
+                      monospace: true,
+                    ),
                   ),
                 ),
                 _Cell(
@@ -434,11 +480,14 @@ class _CallRowState extends State<_CallRow> {
   }
 
   String _shortStatus(InfospectNetworkCall call) {
-    if (call.loading) return 'Active';
+    final bp = call.requestEditedAtBreakpoint || call.responseEditedAtBreakpoint
+        ? ' · BP✎'
+        : (call.hasBreakpointTrace ? ' · BP' : '');
+    if (call.loading) return 'Active$bp';
     final status = call.response?.status ?? -1;
-    if (status >= 200 && status < 300) return 'OK';
-    if (status >= 300 && status < 400) return 'Redirect';
-    return 'Error';
+    if (status >= 200 && status < 300) return 'OK$bp';
+    if (status >= 300 && status < 400) return 'Redirect$bp';
+    return 'Error$bp';
   }
 }
 

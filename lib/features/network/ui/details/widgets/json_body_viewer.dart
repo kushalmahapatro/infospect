@@ -7,6 +7,7 @@ import 'package:infospect/features/network/ui/details/screen/network_body_window
 import 'package:infospect/features/network/ui/raw_data_viewer/models/raw_data_view.dart';
 import 'package:infospect/features/network/ui/raw_data_viewer/widgets/json_viewer_desktop_toolbar.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
 /// Renders JSON request/response bodies with beautify and foldable tree modes,
@@ -68,12 +69,11 @@ class _JsonBodyViewerState extends State<JsonBodyViewer> {
   void _copyBody(BuildContext context) {
     final text = InfospectUtil.encoder.convert(widget.data);
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(
-        content: Text('Body copied'),
-        duration: Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
+    InfospectToast.show(
+      context,
+      'Body copied',
+      duration: const Duration(seconds: 1),
+      icon: Icons.copy_rounded,
     );
   }
 

@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:infospect/features/logger/models/infospect_log.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_session.dart';
 import 'package:infospect/features/network/models/infospect_form_data.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
@@ -30,22 +33,21 @@ class InfospectHttpClientInterceptor extends BaseClient {
   /// typically use to make network requests.
   ///
   /// The [infospect] is the primary system that manages and logs network activities.
-  InfospectHttpClientInterceptor(
-      {required this.client, required this.infospect});
+  InfospectHttpClientInterceptor({
+    required this.client,
+    required this.infospect,
+  });
 
   /// Intercepts outgoing HTTP requests made using the provided [client].
   ///
-  /// The interceptor captures details about the request and its corresponding response,
-  /// if any, then logs this information using the `Infospect` system.
-  ///
-  /// - [request]: The outgoing HTTP request.
-  ///
-  /// Returns a [Future] that completes with the corresponding [StreamedResponse] once
-  /// the request completes.
+  /// Matching breakpoints can pause the call so headers / params / body can
+  /// be edited before the request is sent, and again when the response arrives.
   @override
   Future<StreamedResponse> send(BaseRequest request) async {
     StreamedResponse? response;
     List<int>? responseBytes;
+    BaseRequest outgoing = request;
+
     try {
       InfospectNetworkCall httpCall = InfospectNetworkCall(request.hashCode);
       InfospectNetworkRequest httpRequest = InfospectNetworkRequest();
@@ -107,19 +109,69 @@ class InfospectHttpClientInterceptor extends BaseClient {
         ),
       );
 
-      response = await client.send(request).onError((e, st) async {
+      final requestResult = await infospect.interceptRequestIfNeeded(
+        method: request.method,
+        endpoint: request.url.path,
+        uri: request.url.toString(),
+        headers: Map<String, dynamic>.from(request.headers),
+        queryParameters: Map<String, dynamic>.from(request.url.queryParameters),
+        body: request is Request ? request.body : null,
+        requestId: request.hashCode,
+      );
+
+      if (requestResult != null) {
+        if (requestResult.aborted) {
+          infospect.addError(
+            InfospectNetworkError(
+              error: 'Request aborted at Infospect breakpoint',
+            ),
+            request.hashCode,
+          );
+          infospect.addResponse(
+            InfospectNetworkResponse(status: -1),
+            request.hashCode,
+          );
+          throw ClientException(
+            'Request aborted at Infospect breakpoint',
+            request.url,
+          );
+        }
+        final original = InfospectBreakpointPayload(
+          method: request.method,
+          uri: request.url.toString(),
+          endpoint: request.url.path,
+          headers: InfospectBreakpointManager.stringifyMap(
+            Map<String, dynamic>.from(request.headers),
+          ),
+          queryParameters: InfospectBreakpointManager.stringifyMap(
+            Map<String, dynamic>.from(request.url.queryParameters),
+          ),
+          body: request is Request ? request.body : '',
+        );
+        final edited = _withRebuiltUri(requestResult.payload, original.uri);
+        outgoing = _applyRequestEdits(request, edited);
+        infospect.applyRequestBreakpointEdit(
+          requestId: request.hashCode,
+          edit: InfospectBreakpointEdit(original: original, edited: edited),
+        );
+      }
+
+      response = await client.send(outgoing).onError((e, st) async {
         InfospectNetworkResponse httpResponse =
             InfospectNetworkResponse(status: -1);
 
         infospect.addResponse(httpResponse, request.hashCode);
         infospect.addError(
-            InfospectNetworkError(error: e, stackTrace: st), request.hashCode);
+          InfospectNetworkError(error: e, stackTrace: st),
+          request.hashCode,
+        );
 
         return StreamedResponse(ByteStream.fromBytes([]), 500);
       });
+
       InfospectNetworkResponse httpResponse = InfospectNetworkResponse();
 
-      if (request is Request || request is MultipartRequest) {
+      if (outgoing is Request || outgoing is MultipartRequest) {
         dynamic responseBody = '';
 
         responseBytes = await response.stream.toBytes();
@@ -136,32 +188,92 @@ class InfospectHttpClientInterceptor extends BaseClient {
           );
         }
 
+        var statusCode = response.statusCode;
+        var responseHeaders = Map<String, String>.from(response.headers);
+        var finalBody = responseBody;
+        var finalBytes = responseBytes;
+
+        final originalResponse = InfospectBreakpointPayload(
+          method: outgoing.method,
+          uri: outgoing.url.toString(),
+          endpoint: outgoing.url.path,
+          headers: Map<String, String>.from(responseHeaders),
+          body: responseBody is String
+              ? responseBody
+              : InfospectBreakpointManager.stringifyBody(responseBody),
+          statusCode: statusCode,
+        );
+
+        final responseResult = await infospect.interceptResponseIfNeeded(
+          method: outgoing.method,
+          endpoint: outgoing.url.path,
+          uri: outgoing.url.toString(),
+          headers: Map<String, dynamic>.from(responseHeaders),
+          body: responseBody,
+          statusCode: statusCode,
+          requestId: request.hashCode,
+          requestHeaders: Map<String, dynamic>.from(outgoing.headers),
+          queryParameters:
+              Map<String, dynamic>.from(outgoing.url.queryParameters),
+          requestBody: outgoing is Request ? outgoing.body : null,
+        );
+
+        if (responseResult != null) {
+          if (responseResult.aborted) {
+            infospect.addError(
+              InfospectNetworkError(
+                error: 'Response aborted at Infospect breakpoint',
+              ),
+              request.hashCode,
+            );
+            throw ClientException(
+              'Response aborted at Infospect breakpoint',
+              outgoing.url,
+            );
+          }
+
+          final edited = responseResult.payload;
+          statusCode = edited.statusCode ?? statusCode;
+          responseHeaders = Map<String, String>.from(edited.headers);
+          finalBody = edited.body;
+          finalBytes = utf8.encode(edited.body);
+          infospect.applyResponseBreakpointEdit(
+            requestId: request.hashCode,
+            edit: InfospectBreakpointEdit(
+              original: originalResponse,
+              edited: edited,
+            ),
+          );
+        }
+
         infospect.addResponse(
           httpResponse.copyWith(
-            size: responseBytes.length,
-            headers: response.headers,
-            status: response.statusCode,
-            body: responseBody,
+            size: finalBytes.length,
+            headers: responseHeaders,
+            status: statusCode,
+            body: finalBody,
           ),
           request.hashCode,
         );
 
-        if (response.statusCode != 200) {
+        if (statusCode != 200) {
           infospect.addError(
             InfospectNetworkError(
               error: response.reasonPhrase,
-              stackTrace: StackTrace.fromString(responseBody),
+              stackTrace: StackTrace.fromString(
+                finalBody is String ? finalBody : finalBody.toString(),
+              ),
             ),
             request.hashCode,
           );
         }
 
         return StreamedResponse(
-          ByteStream.fromBytes(responseBytes),
-          response.statusCode,
-          contentLength: response.contentLength,
-          request: request,
-          headers: response.headers,
+          ByteStream.fromBytes(finalBytes),
+          statusCode,
+          contentLength: finalBytes.length,
+          request: outgoing,
+          headers: responseHeaders,
           isRedirect: response.isRedirect,
           persistentConnection: response.persistentConnection,
           reasonPhrase: response.reasonPhrase,
@@ -169,6 +281,9 @@ class InfospectHttpClientInterceptor extends BaseClient {
       }
       return response;
     } catch (e, st) {
+      if (e is ClientException) {
+        rethrow;
+      }
       infospect.addLog(
         InfospectLog(
           message: 'Error while intercepting network all',
@@ -183,14 +298,70 @@ class InfospectHttpClientInterceptor extends BaseClient {
           ByteStream.fromBytes(responseBytes ?? []),
           response.statusCode,
           contentLength: response.contentLength,
-          request: request,
+          request: outgoing,
           headers: response.headers,
           isRedirect: response.isRedirect,
           persistentConnection: response.persistentConnection,
           reasonPhrase: response.reasonPhrase,
         );
       }
-      return client.send(request);
+      return client.send(outgoing);
+    }
+  }
+
+  BaseRequest _applyRequestEdits(
+    BaseRequest original,
+    InfospectBreakpointPayload payload,
+  ) {
+    final uri = original.url.replace(
+      queryParameters: payload.queryParameters,
+    );
+
+    if (original is Request) {
+      final next = Request(original.method, uri)
+        ..followRedirects = original.followRedirects
+        ..maxRedirects = original.maxRedirects
+        ..persistentConnection = original.persistentConnection;
+      next.headers.addAll(payload.headers);
+      if (payload.body.isNotEmpty) {
+        next.body = payload.body;
+      }
+      return next;
+    }
+
+    if (original is MultipartRequest) {
+      final next = MultipartRequest(original.method, uri)
+        ..followRedirects = original.followRedirects
+        ..maxRedirects = original.maxRedirects
+        ..persistentConnection = original.persistentConnection
+        ..fields.addAll(original.fields)
+        ..files.addAll(original.files);
+      next.headers.clear();
+      next.headers.addAll(payload.headers);
+      return next;
+    }
+
+    original.headers
+      ..clear()
+      ..addAll(payload.headers);
+    return original;
+  }
+
+  InfospectBreakpointPayload _withRebuiltUri(
+    InfospectBreakpointPayload payload,
+    String originalUri,
+  ) {
+    try {
+      final rebuilt = Uri.parse(originalUri).replace(
+        queryParameters:
+            payload.queryParameters.isEmpty ? null : payload.queryParameters,
+      );
+      return payload.copyWith(
+        uri: rebuilt.toString(),
+        endpoint: rebuilt.path.isEmpty ? payload.endpoint : rebuilt.path,
+      );
+    } catch (_) {
+      return payload;
     }
   }
 }

@@ -1,0 +1,30 @@
+---
+description: Multiview / desktop consumer pitfalls for Infospect agents
+globs:
+  - lib/utils/infospect_*bootstrap*.dart
+  - lib/utils/infospect_desktop_window.dart
+  - lib/helpers/navigation_helper.dart
+  - example/macos/**/*
+  - example/windows/**/*
+  - example/linux/**/*
+  - DESKTOP_COMPATIBILITY.md
+  - MIGRATION.md
+  - README.md
+alwaysApply: false
+---
+
+# Desktop Multiview (Infospect)
+
+Infospect is a generic Flutter package. Never assume a specific host app.
+
+Before editing desktop bootstrap, runners, or window chrome:
+
+1. Read `DESKTOP_COMPATIBILITY.md` and `MIGRATION.md`.
+2. Desktop entry must Multiview-bootstrap (`Infospect.run`,
+   `Infospect.bootstrapMultiViewApp`, or
+   `InfospectDesktopBootstrap.runAppOrMultiApp`) — never plain `runApp` when
+   Multiview natives are installed.
+3. Do not regress `infospect_share.dart` macOS Multiview `share_plus` fallbacks.
+4. Do not vendor/patch `window_manager` inside Infospect; document host mitigations only.
+5. Warn about: `window_manager` + Multiview hang, flag-gated Infospect without
+   `runMultiApp`, quit-before-lifecycle, `hiddenWindowAtLaunch`, `registrar.view` plugins.

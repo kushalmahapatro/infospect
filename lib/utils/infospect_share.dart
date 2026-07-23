@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Safe sharing for Infospect.
@@ -26,7 +27,11 @@ class InfospectShare {
         await Process.run('open', ['-R', file.path]);
       }
       if (context != null && context.mounted) {
-        _showSnackBar(context, 'Revealed in Finder');
+        InfospectToast.show(
+          context,
+          'Revealed in Finder',
+          icon: Icons.folder_open_rounded,
+        );
       }
       return;
     }
@@ -49,7 +54,11 @@ class InfospectShare {
     if (_useMacosFallback) {
       await Clipboard.setData(ClipboardData(text: text));
       if (context != null && context.mounted) {
-        _showSnackBar(context, 'Copied to clipboard');
+        InfospectToast.show(
+          context,
+          'Copied to clipboard',
+          icon: Icons.copy_rounded,
+        );
       }
       return;
     }
@@ -60,13 +69,6 @@ class InfospectShare {
         subject: subject,
         sharePositionOrigin: sharePositionOrigin,
       ),
-    );
-  }
-
-  static void _showSnackBar(BuildContext? context, String message) {
-    if (context == null || !context.mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }

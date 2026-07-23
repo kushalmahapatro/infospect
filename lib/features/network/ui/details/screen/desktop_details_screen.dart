@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:infospect/features/network/breakpoints/models/infospect_breakpoint_edit.dart';
+import 'package:infospect/features/network/breakpoints/ui/breakpoint_edit_compare_desktop.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/ui/details/models/details_topic_data.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
 import 'package:infospect/features/network/ui/details/widgets/json_body_viewer.dart';
 import 'package:infospect/helpers/infospect_helper.dart';
+import 'package:infospect/utils/common_widgets/infospect_toast.dart';
 import 'package:infospect/utils/extensions/infospect_network/network_response_extension.dart';
 import 'package:infospect/utils/infospect_util.dart';
 
@@ -52,6 +55,8 @@ class DesktopDetailsScreen extends StatelessWidget {
                     desktopTopics: topicHelper!.desktopTopics,
                     selectedTopicData: selectedTopic,
                     onTopicSelected: onTopicSelected,
+                    breakpointEdit: selectedCall!.requestBreakpointEdit,
+                    isResponseEdit: false,
                   ),
                 VerticalDivider(
                   width: 1,
@@ -64,6 +69,8 @@ class DesktopDetailsScreen extends StatelessWidget {
                     desktopTopics: responseTopicHelper!.desktopTopics,
                     selectedTopicData: selectedResponseTopic,
                     onTopicSelected: onResponseTopicSelected,
+                    breakpointEdit: selectedCall!.responseBreakpointEdit,
+                    isResponseEdit: true,
                   ),
               ],
             ),
@@ -83,48 +90,82 @@ class _CallHeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusColor = call.response?.getStatusTextColor(context);
+    final requestEdit = call.requestBreakpointEdit;
+    final showOriginalUri = requestEdit != null && requestEdit.urlChanged;
 
     return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Pill(
-            label: call.method,
-            background: theme.colorScheme.primary.withValues(alpha: 0.22),
-            foreground: theme.colorScheme.primary,
+          Row(
+            children: [
+              _Pill(
+                label: call.method,
+                background: theme.colorScheme.primary.withValues(alpha: 0.22),
+                foreground: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              _Pill(
+                label: call.response?.statusString ?? '…',
+                background: (statusColor ?? theme.colorScheme.outline)
+                    .withValues(alpha: 0.28),
+                foreground: statusColor ?? theme.colorScheme.onSurface,
+              ),
+              if (call.hasBreakpointTrace) ...[
+                const SizedBox(width: 6),
+                _Pill(
+                  label: call.requestEditedAtBreakpoint ||
+                          call.responseEditedAtBreakpoint
+                      ? 'BP✎'
+                      : 'BP',
+                  background:
+                      theme.colorScheme.tertiary.withValues(alpha: 0.22),
+                  foreground: theme.colorScheme.tertiary,
+                ),
+              ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: SelectableText(
+                  call.uri,
+                  maxLines: 1,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Copy URL',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: Icon(
+                  Icons.copy_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
+                onPressed: () =>
+                    Clipboard.setData(ClipboardData(text: call.uri)),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          _Pill(
-            label: call.response?.statusString ?? '…',
-            background: (statusColor ?? theme.colorScheme.outline)
-                .withValues(alpha: 0.28),
-            foreground: statusColor ?? theme.colorScheme.onSurface,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SelectableText(
-              call.uri,
-              maxLines: 1,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12,
-                fontFamily: 'monospace',
+          if (showOriginalUri)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 1),
+              child: SelectableText(
+                'Original: ${requestEdit.original.uri}',
+                maxLines: 1,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Copy URL',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            icon: Icon(
-              Icons.copy_rounded,
-              size: 14,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-            ),
-            onPressed: () => Clipboard.setData(ClipboardData(text: call.uri)),
-          ),
         ],
       ),
     );
@@ -162,39 +203,53 @@ class _Pill extends StatelessWidget {
   }
 }
 
-class _DetailsPane extends StatelessWidget {
+class _DetailsPane extends StatefulWidget {
   const _DetailsPane({
     required this.onTopicSelected,
     required this.desktopTopics,
     required this.title,
     this.selectedTopicData,
+    this.breakpointEdit,
+    this.isResponseEdit = false,
   });
 
   final List<TopicData> desktopTopics;
   final TopicData? selectedTopicData;
   final ValueChanged<TopicData> onTopicSelected;
   final String title;
+  final InfospectBreakpointEdit? breakpointEdit;
+  final bool isResponseEdit;
+
+  @override
+  State<_DetailsPane> createState() => _DetailsPaneState();
+}
+
+class _DetailsPaneState extends State<_DetailsPane> {
+  bool _compareExpanded = false;
 
   @override
   Widget build(BuildContext context) {
-    if (desktopTopics.isEmpty) {
+    if (widget.desktopTopics.isEmpty && widget.breakpointEdit == null) {
       return const Expanded(child: SizedBox.shrink());
     }
 
-    final selected = selectedTopicData ?? desktopTopics.first;
+    final selected = widget.selectedTopicData ??
+        (widget.desktopTopics.isNotEmpty ? widget.desktopTopics.first : null);
     final theme = Theme.of(context);
     final borderColor =
         theme.colorScheme.outlineVariant.withValues(alpha: 0.55);
+    final hasEdit = widget.breakpointEdit != null;
 
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PaneToolbar(
-            title: title,
-            topics: desktopTopics,
+            title: widget.title,
+            topics: widget.desktopTopics,
             selected: selected,
-            onTopicSelected: onTopicSelected,
+            onTopicSelected: widget.onTopicSelected,
+            hasEdits: hasEdit,
           ),
           Expanded(
             child: DecoratedBox(
@@ -202,7 +257,29 @@ class _DetailsPane extends StatelessWidget {
                 border: Border(top: BorderSide(color: borderColor)),
                 color: theme.colorScheme.surface,
               ),
-              child: _TopicContent(selected: selected),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (hasEdit)
+                    Flexible(
+                      flex: _compareExpanded ? 4 : 0,
+                      fit: _compareExpanded ? FlexFit.tight : FlexFit.loose,
+                      child: BreakpointEditCompareDesktop(
+                        edit: widget.breakpointEdit!,
+                        isResponse: widget.isResponseEdit,
+                        initiallyExpanded: false,
+                        onExpandedChanged: (expanded) {
+                          setState(() => _compareExpanded = expanded);
+                        },
+                      ),
+                    ),
+                  if (selected != null)
+                    Expanded(
+                      flex: _compareExpanded ? 5 : 1,
+                      child: _TopicContent(selected: selected),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -217,12 +294,14 @@ class _PaneToolbar extends StatelessWidget {
     required this.topics,
     required this.selected,
     required this.onTopicSelected,
+    this.hasEdits = false,
   });
 
   final String title;
   final List<TopicData> topics;
-  final TopicData selected;
+  final TopicData? selected;
   final ValueChanged<TopicData> onTopicSelected;
+  final bool hasEdits;
 
   @override
   Widget build(BuildContext context) {
@@ -244,6 +323,17 @@ class _PaneToolbar extends StatelessWidget {
               letterSpacing: 0.2,
             ),
           ),
+          if (hasEdits) ...[
+            const SizedBox(width: 6),
+            Text(
+              'edited',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.tertiary,
+              ),
+            ),
+          ],
           const SizedBox(width: 10),
           Container(width: 1, height: 14, color: borderColor),
           const SizedBox(width: 6),
@@ -255,7 +345,7 @@ class _PaneToolbar extends StatelessWidget {
                   for (final topic in topics)
                     _TopicTab(
                       label: topic.topic,
-                      selected: selected.topic == topic.topic,
+                      selected: selected?.topic == topic.topic,
                       onTap: () => onTopicSelected(topic),
                     ),
                 ],
@@ -413,12 +503,11 @@ class _KeyValueTable extends StatelessWidget {
                   ),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _allText));
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      const SnackBar(
-                        content: Text('Copied'),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    InfospectToast.show(
+                      context,
+                      'Copied',
+                      duration: const Duration(seconds: 1),
+                      icon: Icons.copy_rounded,
                     );
                   },
                 ),

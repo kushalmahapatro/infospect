@@ -34,3 +34,4 @@ build/
 
 # FVM Version Cache
 .fvm/
+test/failures/

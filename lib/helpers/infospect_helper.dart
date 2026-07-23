@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +9,13 @@ import 'package:infospect/features/logger/infospect_logger.dart';
 import 'package:infospect/features/launch/screen/infospect_launch_screen.dart';
 import 'package:infospect/features/logger/ui/logs_list/notifier/logs_list_notifier.dart';
 import 'package:infospect/features/logger/ui/logs_list/screen/desktop_logs_list_screen.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_manager.dart';
+import 'package:infospect/features/network/breakpoints/infospect_breakpoint_presenter.dart';
 import 'package:infospect/features/network/interceptors/infospect_dio_interceptor.dart';
 import 'package:infospect/features/network/interceptors/infospect_http_client_interceptor.dart';
 import 'package:infospect/features/network/models/infospect_network_call.dart';
 import 'package:infospect/features/network/models/infospect_network_error.dart';
+import 'package:infospect/features/network/models/infospect_network_request.dart';
 import 'package:infospect/features/network/models/infospect_network_response.dart';
 import 'package:infospect/features/network/ui/details/screen/network_body_window_screen.dart';
 import 'package:infospect/features/network/ui/list/notifier/networks_list_notifier.dart';
@@ -19,6 +23,9 @@ import 'package:infospect/features/network/ui/list/screen/desktop_networks_list_
 import 'package:infospect/infospect.dart';
 import 'package:infospect/routes/routes.dart';
 import 'package:infospect/utils/data_transfer.dart';
+import 'package:infospect/utils/infospect_desktop_window.dart';
+import 'package:infospect/utils/infospect_multiview_bootstrap.dart'
+    as package_bootstrap;
 import 'package:infospect/utils/infospect_util.dart';
 import 'package:multiview_desktop/multiview_desktop.dart';
 import 'package:rxdart/rxdart.dart';
@@ -45,11 +52,13 @@ class Infospect {
     this.onShareAllNetworkCalls,
     this.onShareAllLogs,
   }) : _navigatorKey = navigatorKey ?? GlobalKey<NavigatorState>(),
-       infospectLogger = InfospectLogger() {
+       infospectLogger = InfospectLogger(),
+       breakpointManager = InfospectBreakpointManager() {
     _instance = this;
     _infospectLogHelper = InfospectLogHelper._(this);
     _infospectNavigationHelper = InfospectNavigationHelper._(this);
     _infospectNetworkCallHelper = InfospectNetworkCallHelper._(this);
+    _breakpointPresenter = InfospectBreakpointPresenter(this);
 
     _logAppLaunch(logAppLaunch);
   }
@@ -73,6 +82,7 @@ class Infospect {
   late InfospectLogHelper _infospectLogHelper;
   late InfospectNavigationHelper _infospectNavigationHelper;
   late InfospectNetworkCallHelper _infospectNetworkCallHelper;
+  late InfospectBreakpointPresenter _breakpointPresenter;
 
   /// completer
   late final Completer<bool> _runAppCompleter = Completer<bool>();
@@ -83,6 +93,13 @@ class Infospect {
       BehaviorSubject.seeded([]);
 
   final InfospectLogger infospectLogger;
+
+  /// Proxyman-style endpoint breakpoints (request / response editing).
+  final InfospectBreakpointManager breakpointManager;
+
+  /// When true, breakpoint editors always use in-app dialogs instead of
+  /// desktop secondary windows. Useful for widget / integration tests.
+  bool preferInAppBreakpointDialogs = false;
 
   /// Ensures the `Infospect` instance is initialized.
   /// If it's not initialized, it will initialize it with the provided arguments.
@@ -141,9 +158,39 @@ class Infospect {
     );
   }
 
-  /// run app
+  /// Boots [myApp] via [bootstrapMultiViewApp] (Multiview on desktop, [runApp]
+  /// elsewhere). Prefer this or [Infospect.bootstrapMultiViewApp] over plain
+  /// [runApp] whenever Multiview native runners are wired.
+  ///
+  /// - `args`: Kept for API compatibility; unused with multiview_desktop
+  ///   (secondary windows share one isolate — no `multi_window` CLI args).
+  /// - `myApp`: The main widget to run for the app.
   void run(List<String> args, {required Widget myApp}) =>
       _infospectNavigationHelper.run(args, myApp: myApp);
+
+  /// Desktop-safe entry that does **not** require [ensureInitialized].
+  ///
+  /// Use when Multiview natives are installed but Infospect logging may be
+  /// disabled (e.g. production builds that skip inspector init).
+  static void bootstrapMultiViewApp(
+    Widget app, {
+    MultiAppConfig? config,
+  }) {
+    package_bootstrap.bootstrapMultiViewApp(app, config: config);
+  }
+
+  /// Alias for [bootstrapMultiViewApp].
+  static void bootstrapDesktopApp(
+    Widget app, {
+    MultiAppConfig? config,
+  }) {
+    Infospect.bootstrapMultiViewApp(app, config: config);
+  }
+
+  /// Whether desktop entry must use Multiview ([runMultiApp]) instead of
+  /// [runApp]. See [isMultiViewDesktopBootstrapRequired].
+  static bool get requiresMultiViewDesktopBootstrap =>
+      package_bootstrap.isMultiViewDesktopBootstrapRequired();
 
   /// Logs an instance of `InfospectLog`.
   void addLog(InfospectLog log) => _infospectLogHelper.addLog(log);
@@ -231,6 +278,42 @@ class Infospect {
   void clearAllNetworkCalls() =>
       _infospectNetworkCallHelper.clearAllNetworkCalls();
 
+  /// Records that a breakpoint interacted with [requestId].
+  void markBreakpointTrace({
+    required int requestId,
+    bool requestHit = false,
+    bool responseHit = false,
+    bool requestEdited = false,
+    bool responseEdited = false,
+  }) =>
+      _infospectNetworkCallHelper.markBreakpointTrace(
+        requestId: requestId,
+        requestHit: requestHit,
+        responseHit: responseHit,
+        requestEdited: requestEdited,
+        responseEdited: responseEdited,
+      );
+
+  /// Stores original + edited request data and updates the live logged request.
+  void applyRequestBreakpointEdit({
+    required int requestId,
+    required InfospectBreakpointEdit edit,
+  }) =>
+      _infospectNetworkCallHelper.applyRequestBreakpointEdit(
+        requestId: requestId,
+        edit: edit,
+      );
+
+  /// Stores original + edited response data for a breakpoint.
+  void applyResponseBreakpointEdit({
+    required int requestId,
+    required InfospectBreakpointEdit edit,
+  }) =>
+      _infospectNetworkCallHelper.applyResponseBreakpointEdit(
+        requestId: requestId,
+        edit: edit,
+      );
+
   /// interceptors
   InfospectDioInterceptor get dioInterceptor =>
       _infospectNetworkCallHelper.dioInterceptor;
@@ -239,9 +322,154 @@ class Infospect {
     required Client client,
   }) => _infospectNetworkCallHelper.httpClientInterceptor(client: client);
 
+  /// Breakpoints
+  List<InfospectNetworkBreakpoint> get breakpoints => breakpointManager.rules;
+
+  void addBreakpoint(InfospectNetworkBreakpoint breakpoint) =>
+      breakpointManager.addBreakpoint(breakpoint);
+
+  void updateBreakpoint(InfospectNetworkBreakpoint breakpoint) =>
+      breakpointManager.updateBreakpoint(breakpoint);
+
+  void removeBreakpoint(String id) => breakpointManager.removeBreakpoint(id);
+
+  void clearBreakpoints() => breakpointManager.clearBreakpoints();
+
+  /// Adds a breakpoint for [endpoint], optionally scoped to [method].
+  ///
+  /// When [method] is omitted, every HTTP method for that endpoint is paused.
+  InfospectNetworkBreakpoint addEndpointBreakpoint({
+    required String endpoint,
+    String? method,
+    bool breakOnRequest = true,
+    bool breakOnResponse = true,
+    bool enabled = true,
+    List<InfospectBreakpointCondition> conditions =
+        const <InfospectBreakpointCondition>[],
+  }) {
+    final breakpoint = InfospectNetworkBreakpoint(
+      id: InfospectBreakpointManager.newId(),
+      endpoint: endpoint,
+      method: method,
+      enabled: enabled,
+      breakOnRequest: breakOnRequest,
+      breakOnResponse: breakOnResponse,
+      conditions: conditions,
+    );
+    addBreakpoint(breakpoint);
+    return breakpoint;
+  }
+
+  /// Pauses for request editing when a matching breakpoint rule exists.
+  Future<InfospectBreakpointResult?> interceptRequestIfNeeded({
+    required String method,
+    required String endpoint,
+    required String uri,
+    required Map<String, dynamic> headers,
+    required Map<String, dynamic> queryParameters,
+    required dynamic body,
+    int? requestId,
+  }) async {
+    final match = breakpointManager.findMatch(
+      InfospectBreakpointMatchContext(
+        method: method,
+        endpoint: endpoint,
+        queryParameters: queryParameters,
+        requestHeaders: headers,
+        requestBody: body,
+        isResponsePhase: false,
+      ),
+    );
+    if (match == null || !match.breakOnRequest) return null;
+
+    if (requestId != null) {
+      markBreakpointTrace(requestId: requestId, requestHit: true);
+    }
+
+    final payload = InfospectBreakpointPayload(
+      method: method,
+      uri: uri,
+      endpoint: endpoint,
+      headers: InfospectBreakpointManager.stringifyMap(headers),
+      queryParameters: InfospectBreakpointManager.stringifyMap(queryParameters),
+      body: InfospectBreakpointManager.stringifyBody(body),
+    );
+
+    final result = await _breakpointPresenter.present(
+      phase: InfospectBreakpointPhase.request,
+      payload: payload,
+    );
+
+    if (requestId != null && !result.aborted) {
+      final edited = result.payload != payload;
+      if (edited) {
+        markBreakpointTrace(requestId: requestId, requestEdited: true);
+      }
+    }
+
+    return result;
+  }
+
+  /// Pauses for response editing when a matching breakpoint rule exists.
+  Future<InfospectBreakpointResult?> interceptResponseIfNeeded({
+    required String method,
+    required String endpoint,
+    required String uri,
+    required Map<String, dynamic> headers,
+    required dynamic body,
+    int? statusCode,
+    int? requestId,
+    Map<String, dynamic> requestHeaders = const <String, dynamic>{},
+    Map<String, dynamic> queryParameters = const <String, dynamic>{},
+    dynamic requestBody,
+  }) async {
+    final match = breakpointManager.findMatch(
+      InfospectBreakpointMatchContext(
+        method: method,
+        endpoint: endpoint,
+        queryParameters: queryParameters,
+        requestHeaders: requestHeaders,
+        requestBody: requestBody,
+        statusCode: statusCode,
+        responseBody: body,
+        responseHeaders: headers,
+        isResponsePhase: true,
+      ),
+    );
+    if (match == null || !match.breakOnResponse) return null;
+
+    if (requestId != null) {
+      markBreakpointTrace(requestId: requestId, responseHit: true);
+    }
+
+    final payload = InfospectBreakpointPayload(
+      method: method,
+      uri: uri,
+      endpoint: endpoint,
+      headers: InfospectBreakpointManager.stringifyMap(headers),
+      body: InfospectBreakpointManager.stringifyBody(body),
+      statusCode: statusCode,
+    );
+
+    final result = await _breakpointPresenter.present(
+      phase: InfospectBreakpointPhase.response,
+      payload: payload,
+    );
+
+    if (requestId != null && !result.aborted) {
+      final edited = result.payload != payload;
+      if (edited) {
+        markBreakpointTrace(requestId: requestId, responseEdited: true);
+      }
+    }
+
+    return result;
+  }
+
   /// Dispose subjects and subscriptions
   void dispose() {
     networkCallsSubject.close();
     isInfospectOpened.dispose();
+    breakpointManager.dispose();
   }
 }

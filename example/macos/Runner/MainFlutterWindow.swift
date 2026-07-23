@@ -9,6 +9,8 @@ class MainFlutterWindow: NSWindow {
       project: nil,
       allowHeadlessExecution: true
     )
+    // Multiview orderOuts the host window here — do not also call
+    // window_manager hiddenWindowAtLaunch (double-hide). Keep display: false.
     MultiviewDesktopPlugin.prepareEngine(engine, window: self)
 
     let flutterViewController =

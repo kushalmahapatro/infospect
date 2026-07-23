@@ -4,6 +4,16 @@ import multiview_desktop
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  // Multiview owns last-window / terminate / reopen / dock menu.
+  // applicationShouldTerminate returns .terminateCancel until Dart Multiview
+  // replies — the Dart entry MUST use runMultiApp (Infospect.instance.run or
+  // Infospect.bootstrapMultiViewApp / InfospectDesktopBootstrap).
+  // Plain runApp leaves quit cancelled forever.
+  //
+  // Feature-flagged hosts that can start without Multiview Dart should add a
+  // lifecycle-ready failsafe (see DESKTOP_COMPATIBILITY.md / MIGRATION.md)
+  // instead of forwarding terminate unconditionally.
+
   override func applicationShouldTerminateAfterLastWindowClosed(
       _ sender: NSApplication
   ) -> Bool {

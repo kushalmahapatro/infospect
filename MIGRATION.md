@@ -590,7 +590,7 @@ None of these require consumer code changes beyond the migration steps above.
 ## Further reading
 
 - [DESKTOP_COMPATIBILITY.md](DESKTOP_COMPATIBILITY.md) — Multiview + `window_manager` / feature-flag / quit hazards
-- [CHANGELOG.md](CHANGELOG.md) — full 0.2.0 / 0.3.0 release notes
+- [CHANGELOG.md](CHANGELOG.md) — full 0.2.0 / 0.3.x release notes
 - [README.md](README.md) — current usage
 - [multiview_desktop on pub.dev](https://pub.dev/packages/multiview_desktop) — native runner details
 - [AGENTS.md](AGENTS.md) — notes for automated agents working in this repo

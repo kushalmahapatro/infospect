@@ -1,4 +1,13 @@
 
+## 0.3.1
+
+### Fixes
+- Collapsed / hidden `InfospectInvoker` now sits flush against the device edge (no inset gap) and uses a larger inward hit target (~44 logical px) so the edge tab is easier to tap
+- `InfospectInvoker` only docks to the left/right sides (no top/bottom snap); `InvokerEdge.top` / `bottom` are treated as `right` for compatibility
+
+### Docs
+- README: collapsed invoker edge docking, hit-target behavior, and left/right-only repositioning
+
 ## 0.3.0
 
 ### Features

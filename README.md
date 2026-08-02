@@ -168,7 +168,9 @@ If not provided, the default platform share option will be invoked.
   5. Adding invoker to get and overlay button to open the infospect window
   state:  `alwaysOpened`, `collapsible`, `autoCollapse`
 
-  Drag the bubble to dock it on any screen edge. Long-press to hide it; tap the thin edge nub to show it again. Optional `initialEdge` / `initialAlign` set the starting dock.
+  Drag the bubble to reposition it; on release it snaps to the nearer **left or right** edge (not top/bottom). Long-press to hide it; tap the thin edge nub to show it again. Optional `initialEdge` (`left` / `right`) and `initialAlign` (0–1 vertical) set the starting dock.
+
+  In `collapsible` / `autoCollapse` modes the edge tab sits flush against the device border; the visible strip stays thin while the tap target extends inward (~44 logical px) for easier invoking.
 
   ```dart
     InfospectInvoker(

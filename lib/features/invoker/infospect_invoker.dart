@@ -17,13 +17,20 @@ import 'package:infospect/utils/infospect_util.dart';
 /// `autoCollapse`: like [collapsible], but auto-collapses 5 seconds after expand.
 enum InvokerState { alwaysOpened, collapsible, autoCollapse }
 
-/// Screen edge the invoker can dock to.
+/// Horizontal screen edge the invoker can dock to.
+///
+/// Only [left] and [right] are used. [top] and [bottom] remain for API
+/// compatibility and are treated as [right].
 enum InvokerEdge { left, right, top, bottom }
 
 /// Floating Infospect entry point overlaid on [child].
 ///
-/// Drag to move; release to snap to the nearest edge. Long-press to hide.
-/// When hidden, a thin edge nub remains so it can be shown again.
+/// Drag to move; release to snap to the nearer **left or right** edge
+/// (vertical edges are not used). Long-press to hide. When hidden, a thin
+/// edge nub remains so it can be shown again.
+///
+/// In collapsed / hidden modes the visual tab sits flush against the device
+/// edge; the hit target extends inward (~44 logical px) so it stays easy to tap.
 class InfospectInvoker extends StatefulWidget {
   const InfospectInvoker({
     super.key,
@@ -38,11 +45,12 @@ class InfospectInvoker extends StatefulWidget {
   final InvokerState state;
   final bool newWindowInDesktop;
 
-  /// Edge the invoker docks to initially.
+  /// Horizontal edge the invoker docks to initially ([left] or [right]).
+  ///
+  /// [InvokerEdge.top] / [InvokerEdge.bottom] are treated as [InvokerEdge.right].
   final InvokerEdge initialEdge;
 
-  /// Position along the docked edge from `0` (start) to `1` (end).
-  /// For left/right edges this is vertical; for top/bottom horizontal.
+  /// Vertical position along the docked side from `0` (top) to `1` (bottom).
   final double initialAlign;
 
   @override
@@ -51,10 +59,22 @@ class InfospectInvoker extends StatefulWidget {
 
 class _InfospectInvokerState extends State<InfospectInvoker> {
   static const double _bubbleSize = 48;
-  static const double _collapsedThickness = 6;
-  static const double _hiddenThickness = 4;
-  static const double _hiddenLength = 28;
-  static const double _margin = 8;
+
+  /// Visible thickness of the collapsed edge tab.
+  static const double _collapsedVisualThickness = 8;
+
+  /// Minimum inward hit extent when collapsed (Material / iOS touch target).
+  static const double _collapsedHitThickness = 44;
+
+  /// Visible length of the collapsed edge tab along the docked edge.
+  static const double _collapsedLength = 56;
+
+  static const double _hiddenVisualThickness = 5;
+  static const double _hiddenHitThickness = 36;
+  static const double _hiddenLength = 40;
+
+  /// Gap from safe area when showing the expanded bubble.
+  static const double _expandedMargin = 8;
 
   late InvokerEdge _edge;
   late double _align;
@@ -70,7 +90,7 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
   @override
   void initState() {
     super.initState();
-    _edge = widget.initialEdge;
+    _edge = _horizontalEdge(widget.initialEdge);
     _align = widget.initialAlign.clamp(0.0, 1.0);
     _expanded = widget.state == InvokerState.alwaysOpened;
   }
@@ -78,11 +98,22 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
   @override
   void didUpdateWidget(covariant InfospectInvoker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialEdge != widget.initialEdge) {
+      _edge = _horizontalEdge(widget.initialEdge);
+    }
     if (oldWidget.state != widget.state &&
         widget.state == InvokerState.alwaysOpened) {
       _expanded = true;
     }
   }
+
+  /// Invoker only docks on the left/right sides.
+  static InvokerEdge _horizontalEdge(InvokerEdge edge) => switch (edge) {
+    InvokerEdge.left => InvokerEdge.left,
+    InvokerEdge.right ||
+    InvokerEdge.top ||
+    InvokerEdge.bottom => InvokerEdge.right,
+  };
 
   @override
   void dispose() {
@@ -94,6 +125,10 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
   bool get _isCollapsible =>
       widget.state == InvokerState.collapsible ||
       widget.state == InvokerState.autoCollapse;
+
+  /// Collapsed peek or hidden nub — docked flush to the screen edge.
+  bool get _isEdgePeek =>
+      _hidden || (!_expanded && _isCollapsible && !_dragging);
 
   void _cancelAutoCollapse() {
     _autoCollapseTimer?.cancel();
@@ -158,24 +193,33 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     _scheduleAutoHide();
   }
 
+  /// Layout / gesture size (includes expanded hit area when edge-peeking).
   Size _handleSize() {
     if (_hidden) {
-      return switch (_edge) {
-        InvokerEdge.left || InvokerEdge.right =>
-          const Size(_hiddenThickness, _hiddenLength),
-        InvokerEdge.top || InvokerEdge.bottom =>
-          const Size(_hiddenLength, _hiddenThickness),
-      };
+      return const Size(_hiddenHitThickness, _hiddenLength);
     }
     if (!_expanded && _isCollapsible) {
-      return switch (_edge) {
-        InvokerEdge.left || InvokerEdge.right =>
-          const Size(_collapsedThickness, _bubbleSize),
-        InvokerEdge.top || InvokerEdge.bottom =>
-          const Size(_bubbleSize, _collapsedThickness),
-      };
+      return const Size(_collapsedHitThickness, _collapsedLength);
     }
     return const Size(_bubbleSize, _bubbleSize);
+  }
+
+  /// Painted tab size (thinner than the hit target when edge-peeking).
+  Size _visualSize() {
+    if (_hidden) {
+      return const Size(_hiddenVisualThickness, _hiddenLength);
+    }
+    if (!_expanded && _isCollapsible && !_dragging) {
+      return const Size(_collapsedVisualThickness, _collapsedLength);
+    }
+    return _handleSize();
+  }
+
+  Alignment _visualAlignment() {
+    if (!_isEdgePeek) return Alignment.center;
+    return _edge == InvokerEdge.left
+        ? Alignment.centerLeft
+        : Alignment.centerRight;
   }
 
   BorderRadius _borderRadiusFor(InvokerEdge edge, {required bool docked}) {
@@ -184,17 +228,10 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     }
     return switch (edge) {
       InvokerEdge.left => const BorderRadius.horizontal(
-          right: Radius.circular(6),
-        ),
-      InvokerEdge.right => const BorderRadius.horizontal(
-          left: Radius.circular(6),
-        ),
-      InvokerEdge.top => const BorderRadius.vertical(
-          bottom: Radius.circular(6),
-        ),
-      InvokerEdge.bottom => const BorderRadius.vertical(
-          top: Radius.circular(6),
-        ),
+        right: Radius.circular(8),
+      ),
+      InvokerEdge.right || InvokerEdge.top || InvokerEdge.bottom =>
+        const BorderRadius.horizontal(left: Radius.circular(8)),
     };
   }
 
@@ -205,29 +242,35 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     required Size handle,
     required EdgeInsets safe,
   }) {
-    final left = safe.left + _margin;
-    final top = safe.top + _margin;
-    final right = viewport.width - safe.right - handle.width - _margin;
-    final bottom = viewport.height - safe.bottom - handle.height - _margin;
+    // Expanded bubble: inset from safe area. Edge peeks: flush to the
+    // physical screen edge on the docked side so there is no visible gap.
+    final top = _isEdgePeek ? safe.top : safe.top + _expandedMargin;
+    final bottom = _isEdgePeek
+        ? viewport.height - safe.bottom - handle.height
+        : viewport.height - safe.bottom - handle.height - _expandedMargin;
     final verticalRange = math.max(0.0, bottom - top);
-    final horizontalRange = math.max(0.0, right - left);
+    final y = top + _align * verticalRange;
 
-    return switch (_edge) {
-      InvokerEdge.left => Offset(left, top + _align * verticalRange),
-      InvokerEdge.right => Offset(right, top + _align * verticalRange),
-      InvokerEdge.top => Offset(left + _align * horizontalRange, top),
-      InvokerEdge.bottom => Offset(left + _align * horizontalRange, bottom),
-    };
+    if (_isEdgePeek) {
+      return _edge == InvokerEdge.left
+          ? Offset(0, y)
+          : Offset(viewport.width - handle.width, y);
+    }
+
+    final x = _edge == InvokerEdge.left
+        ? safe.left + _expandedMargin
+        : viewport.width - safe.right - handle.width - _expandedMargin;
+    return Offset(x, y);
   }
 
-  InvokerEdge _nearestEdge(Offset center, Size viewport, EdgeInsets safe) {
-    final distances = <InvokerEdge, double>{
-      InvokerEdge.left: center.dx - safe.left,
-      InvokerEdge.right: viewport.width - safe.right - center.dx,
-      InvokerEdge.top: center.dy - safe.top,
-      InvokerEdge.bottom: viewport.height - safe.bottom - center.dy,
-    };
-    return distances.entries.reduce((a, b) => a.value <= b.value ? a : b).key;
+  InvokerEdge _nearestHorizontalEdge(
+    Offset center,
+    Size viewport,
+    EdgeInsets safe,
+  ) {
+    final leftDist = center.dx - safe.left;
+    final rightDist = viewport.width - safe.right - center.dx;
+    return leftDist <= rightDist ? InvokerEdge.left : InvokerEdge.right;
   }
 
   void _snapToNearestEdge({
@@ -237,25 +280,13 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     required EdgeInsets safe,
   }) {
     final center = topLeft + Offset(handle.width / 2, handle.height / 2);
-    final edge = _nearestEdge(center, viewport, safe);
+    final edge = _nearestHorizontalEdge(center, viewport, safe);
 
-    final minAlong = switch (edge) {
-      InvokerEdge.left || InvokerEdge.right => safe.top + _margin,
-      InvokerEdge.top || InvokerEdge.bottom => safe.left + _margin,
-    };
-    final maxAlong = switch (edge) {
-      InvokerEdge.left || InvokerEdge.right =>
-        viewport.height - safe.bottom - handle.height - _margin,
-      InvokerEdge.top || InvokerEdge.bottom =>
-        viewport.width - safe.right - handle.width - _margin,
-    };
+    final minAlong = safe.top + _expandedMargin;
+    final maxAlong =
+        viewport.height - safe.bottom - handle.height - _expandedMargin;
     final range = math.max(1.0, maxAlong - minAlong);
-    final along = switch (edge) {
-      InvokerEdge.left || InvokerEdge.right =>
-        (topLeft.dy).clamp(minAlong, maxAlong),
-      InvokerEdge.top || InvokerEdge.bottom =>
-        (topLeft.dx).clamp(minAlong, maxAlong),
-    };
+    final along = topLeft.dy.clamp(minAlong, maxAlong);
 
     setState(() {
       _edge = edge;
@@ -265,15 +296,13 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     });
   }
 
-  void _onPanStart({
-    required Size viewport,
-    required EdgeInsets safe,
-  }) {
+  void _onPanStart({required Size viewport, required EdgeInsets safe}) {
     if (_hidden) return;
     _cancelAutoCollapse();
     _cancelAutoHide();
     final handle = _handleSize();
-    final origin = _dragOffset ??
+    final origin =
+        _dragOffset ??
         _dockedTopLeft(viewport: viewport, handle: handle, safe: safe);
     setState(() {
       _dragging = true;
@@ -294,10 +323,7 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
     });
   }
 
-  void _onPanEnd({
-    required Size viewport,
-    required EdgeInsets safe,
-  }) {
+  void _onPanEnd({required Size viewport, required EdgeInsets safe}) {
     if (!_dragging || _dragOffset == null) return;
     final handle = _handleSize();
     _snapToNearestEdge(
@@ -399,6 +425,7 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
           builder: (context, constraints) {
             final viewport = Size(constraints.maxWidth, constraints.maxHeight);
             final handle = _handleSize();
+            final visual = _visualSize();
             final topLeft = _dragging && _dragOffset != null
                 ? _dragOffset!
                 : _dockedTopLeft(
@@ -427,49 +454,55 @@ class _InfospectInvokerState extends State<InfospectInvoker> {
                       height: handle.height,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onPanStart: (_) => _onPanStart(
-                          viewport: viewport,
-                          safe: safe,
-                        ),
+                        onPanStart: (_) =>
+                            _onPanStart(viewport: viewport, safe: safe),
                         onPanUpdate: (details) =>
                             _onPanUpdate(details, viewport),
-                        onPanEnd: (_) => _onPanEnd(
-                          viewport: viewport,
-                          safe: safe,
-                        ),
+                        onPanEnd: (_) =>
+                            _onPanEnd(viewport: viewport, safe: safe),
                         onTap: _onTap,
                         onLongPress: _onLongPress,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
+                        child: SizedBox(
                           width: handle.width,
                           height: handle.height,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: bg.withValues(alpha: _hidden ? 0.55 : 0.92),
-                            borderRadius: _borderRadiusFor(
-                              _edge,
-                              docked: !_dragging,
+                          child: Align(
+                            alignment: _visualAlignment(),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                              width: visual.width,
+                              height: visual.height,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: bg.withValues(
+                                  alpha: _hidden ? 0.55 : 0.92,
+                                ),
+                                borderRadius: _borderRadiusFor(
+                                  _edge,
+                                  docked: !_dragging,
+                                ),
+                                boxShadow:
+                                    _hidden || (!_expanded && _isCollapsible)
+                                    ? null
+                                    : [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.22,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                              ),
+                              child: (_expanded && !_hidden)
+                                  ? Icon(
+                                      Icons.manage_search_rounded,
+                                      color: fg,
+                                      size: 22,
+                                    )
+                                  : null,
                             ),
-                            boxShadow: _hidden ||
-                                    (!_expanded && _isCollapsible)
-                                ? null
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black
-                                          .withValues(alpha: 0.22),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
                           ),
-                          child: (_expanded && !_hidden)
-                              ? Icon(
-                                  Icons.manage_search_rounded,
-                                  color: fg,
-                                  size: 22,
-                                )
-                              : null,
                         ),
                       ),
                     );
